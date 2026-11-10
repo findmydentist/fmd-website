@@ -1173,6 +1173,12 @@ html.theme-anim *::after {
 @media (prefers-reduced-motion: reduce) {
   .mascot-float { animation: none; }
 }
+/* the hero's turntable frames (HeroTurn) float like the live model: ±0.01 of its height (0.87% of the canvas), 5.2 s */
+@keyframes hero-turn-float {
+  0%, 100% { translate: 0 0.87%; }
+  50% { translate: 0 -0.87%; }
+}
+.hero-turn-float { animation: hero-turn-float 5.24s ease-in-out infinite; }
 
 /* the navbar's " acEarlycess" call to action: every 3s a quick double beat (scale up and back), so it reads as
    "press me"; the arrow pushes forward on each beat. Still on hover, and for anyone who prefers reduced motion */
