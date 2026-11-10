@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { rigPath } from "@/lib/device";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Contain from "./Contain";
 import { model } from "@/lib/models";
 
@@ -42,8 +42,25 @@ const MODELS: Record<string, Art> = {
  */
 const STILL_V = 3;
 const stillOf = (model: string) => `/models/stills/${model.split("/").pop()!.split("?")[0].replace(".glb", ".webp")}?v=${STILL_V}`;
+/*
+ * Phones play each model as a transparent looping video instead (public/models/videos: one exact loop of its motion,
+ * rendered from the same scene by model/blender/mascots/encode_videos.sh): no WebGL canvases to juggle, no warm-up.
+ * WebM's transparency doesn't show on iOS (all its browsers are Safari underneath), so iPhones and iPads keep the live
+ * models until there are HEVC-with-alpha copies. The glass tooth stays live everywhere: a full turn of see-through glass
+ * changes every pixel every frame (a 7+ MB video against a 0.47 MB model). Bump VIDEO_V when the videos are re-rendered.
+ */
+const VIDEO_V = 1;
+const IOS =
+  typeof navigator !== "undefined" &&
+  (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1));
+const VIDEOS = typeof window !== "undefined" && window.matchMedia("(hover: none) and (pointer: coarse)").matches && !IOS;
+// served from web/public (not uploaded to Cloudinary, unlike the models)
+const videoOf = (model: string) => `/models/videos/${model.split("/").pop()!.split("?")[0].replace(".glb", ".webm")}?v=${VIDEO_V}`;
+const playsVideo = (url?: string) => VIDEOS && !!url && !url.includes("/tooth.glb");
+const noSubscribe = () => () => {};
+
 /** every model the page can show (and the walkthrough's mirrored guide): the loading screen fetches them up front */
-export const MODEL_URLS = [...new Set([...Object.values(MODELS).map((a) => a.model), M("guide-left")])];
+export const MODEL_URLS = [...new Set([...Object.values(MODELS).map((a) => a.model), M("guide-left")])].filter((u) => !playsVideo(u));
 
 /**
  * Live canvases: once a model has appeared its canvas stays (paused while off screen), so coming back to it is instant.
@@ -135,9 +152,21 @@ export default function MascotArt({ src, model, sizes, className = "object-conta
   const [, snapped] = useState(0); // re-render once a snapshot exists
   const warmTurn = useRef<(() => void) | null>(null); // set while this box is the one warming up
   const lost = useRef<() => void>(() => {}); // the browser killed this box's canvas: drop it, its picture shows
+  const videos = useSyncExternalStore(noSubscribe, () => playsVideo(url), () => false);
+  const vid = useRef<HTMLVideoElement>(null);
+
+  // phones: the video plays while near the screen (it loads then too), pauses once scrolled away; the still stays
+  // as its poster until the first frame, and for good with reduced motion
+  useEffect(() => {
+    const v = vid.current;
+    if (!videos || !v || !box.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const io = new IntersectionObserver(([e]) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause()), { rootMargin: "200px 0px" });
+    io.observe(box.current);
+    return () => io.disconnect();
+  }, [videos]);
 
   useEffect(() => {
-    if (!url || !box.current) return;
+    if (!url || !box.current || playsVideo(url)) return;
     const id = nextId++;
     const el = box.current;
     let alive = true;
@@ -199,6 +228,27 @@ export default function MascotArt({ src, model, sizes, className = "object-conta
 
   const shown = ready === url;
   const still = snapshots.get(key); // this model's own frame, once it has rendered
+  if (videos)
+    return (
+      <div ref={box} className="absolute inset-0">
+        <video
+          ref={vid}
+          src={videoOf(url!)}
+          poster={stillOf(url!)}
+          muted
+          loop
+          playsInline
+          preload="none"
+          disablePictureInPicture
+          aria-hidden
+          className="absolute inset-0 size-full object-contain"
+        />
+        {art?.overlay && !model && (
+          // eslint-disable-next-line @next/next/no-img-element -- a small SVG, nothing to optimise
+          <img src={art.overlay.src} alt="" className="mascot-float absolute h-auto" style={art.overlay.style} />
+        )}
+      </div>
+    );
   return (
     <div ref={box} className="absolute inset-0">
       {still && url ? (
