@@ -180,7 +180,7 @@ export const LOOPS: Record<string, number> = {
   "vault.glb": 5,
   "reading.glb": 14,
   "heart.glb": 4,
-  // no tooth: it stays live on phones too (MascotArt)
+  "tooth.glb": 26, // one full turn, ten heartbeats
 };
 const MOTIONS: Record<string, Motion> = {
   // presenting the features: the open palm sweeps a little up and out, the head tilts towards it
@@ -265,7 +265,7 @@ const MOTIONS: Record<string, Motion> = {
     ],
   },
   // the Care Core: a slow turn, its core glowing like a heartbeat
-  "tooth.glb": { spin: 0.25, pulse: [0.25, 2.6] },
+  "tooth.glb": { spin: TAU / 26, pulse: [0.25, 2.6] },
 };
 
 /**
