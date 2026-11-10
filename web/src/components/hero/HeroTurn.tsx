@@ -19,12 +19,14 @@ const frameOf = (deg: number) => Math.round((((deg % 360) + 360) % 360) / (360 /
 const gap = (a: number, b: number) => Math.min(Math.abs(a - b), STEPS - Math.abs(a - b));
 
 // Every frame, compressed (~7 MB): frame 0 first (the pose it starts and ends in), then coarse to fine, so any angle
-// soon has one near it. Loaded once per page, by the loading screen (preloadModels) or the first HeroTurn.
+// soon has one near it. Loaded once per page, by the loading screen (preloadModels) or the first HeroTurn; the first
+// frames of the rise are decoded too, so it starts without a decode.
 const blobs: (Blob | undefined)[] = [];
 const arrived = new Set<() => void>();
 const ORDER = [...new Set([24, 12, 6, 3, 1].flatMap((step) => Array.from({ length: STEPS / step }, (_, k) => k * step)))];
 let loading: Promise<void> | null = null;
-export function loadFrames() {
+export function loadFrames(onProgress?: (fraction: number) => void) {
+  if (onProgress) arrived.add(() => onProgress(blobs.filter(Boolean).length / STEPS));
   loading ??= (async () => {
     const queue = [...ORDER];
     const worker = async () => {
@@ -37,6 +39,7 @@ export function loadFrames() {
       }
     };
     await Promise.all(Array.from({ length: 4 }, worker));
+    for (let i = 0; i < KEEP; i++) if (blobs[i]) await decode(i); // scrolling down turns it 0° → 3° → …
   })();
   return loading;
 }
@@ -76,6 +79,7 @@ export default function HeroTurn({ rotY, onReady }: { rotY: MotionValue<number>;
   const canvas = useRef<HTMLCanvasElement>(null);
   const want = useRef(-1); // the frame being decoded for the current angle
   const shown = useRef(-1); // the frame on the canvas
+  const last = useRef(0); // the previous angle: which way it is turning
 
   const paint = (i: number, b: ImageBitmap) => {
     const c = canvas.current;
@@ -88,17 +92,26 @@ export default function HeroTurn({ rotY, onReady }: { rotY: MotionValue<number>;
   };
   // the frame for this angle, or the nearest one loaded; while it decodes, the nearest decoded one stays up
   const show = (deg: number) => {
+    const dir = deg >= last.current ? 1 : -1;
+    last.current = deg;
     const at = frameOf(deg);
     let j = -1;
     for (let d = 0; d <= STEPS / 2 && j < 0; d++) j = blobs[(at + d) % STEPS] ? (at + d) % STEPS : blobs[(at - d + STEPS) % STEPS] ? (at - d + STEPS) % STEPS : -1;
     if (j < 0 || j === shown.current) return;
     want.current = j;
     const hit = decoded.get(j);
-    if (hit) return paint(j, hit);
-    let near: number | null = null;
-    for (const k of decoded.keys()) if (near === null || gap(k, j) < gap(near, j)) near = k;
-    if (near !== null && near !== shown.current && (shown.current < 0 || gap(near, j) < gap(shown.current, j))) paint(near, decoded.get(near)!);
-    void decode(j).then((b) => b && want.current === j && paint(j, b));
+    if (hit) paint(j, hit);
+    else {
+      let near: number | null = null;
+      for (const k of decoded.keys()) if (near === null || gap(k, j) < gap(near, j)) near = k;
+      if (near !== null && near !== shown.current && (shown.current < 0 || gap(near, j) < gap(shown.current, j))) paint(near, decoded.get(near)!);
+      void decode(j).then((b) => b && want.current === j && paint(j, b));
+    }
+    // then the next few frames in the direction it is turning, decoded ahead so the spin never waits on one
+    for (let k = 1; k <= 3; k++) {
+      const n = (j + dir * k + STEPS) % STEPS;
+      if (blobs[n] && !decoded.has(n)) void decode(n);
+    }
   };
 
   useMotionValueEvent(rotY, "change", show);

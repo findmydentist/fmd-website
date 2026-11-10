@@ -57,6 +57,29 @@ const VIDEOS = typeof window !== "undefined" && window.matchMedia("(hover: none)
 // served from web/public (not uploaded to Cloudinary, unlike the models)
 const videoOf = (model: string) => `/models/videos/${model.split("/").pop()!.split("?")[0].replace(".glb", ".webm")}?v=${VIDEO_V}`;
 const playsVideo = (url?: string) => VIDEOS && !!url && !url.includes("/tooth.glb");
+// Each box on the page registers its video; the loading screen fetches them all whole (loadVideos), so a box plays its
+// video from memory the moment it scrolls in: no buffering, no poster flash. A box that mounts later joins straight away.
+const wanted = new Set<string>();
+const fetched = new Map<string, Promise<string>>(); // video url → object URL of the whole file (the url if that failed)
+const fetchVideo = (u: string) => {
+  let p = fetched.get(u);
+  if (!p) {
+    p = fetch(u)
+      .then((r) => (r.ok ? r.blob() : Promise.reject()))
+      .then((b) => URL.createObjectURL(b), () => u); // that box streams its video instead
+    fetched.set(u, p);
+  }
+  return p;
+};
+let videosStarted = false;
+/** how many videos the loading screen will fetch (registered by the boxes on the page) */
+export const videoCount = () => wanted.size;
+export function loadVideos(onProgress: (fraction: number) => void = () => {}) {
+  videosStarted = true;
+  const list = [...wanted];
+  let done = 0;
+  return Promise.all(list.map((u) => fetchVideo(u).then(() => onProgress(++done / list.length)))).then(() => {});
+}
 const noSubscribe = () => () => {};
 
 /** every model the page can show (and the walkthrough's mirrored guide): the loading screen fetches them up front */
@@ -155,15 +178,40 @@ export default function MascotArt({ src, model, sizes, className = "object-conta
   const videos = useSyncExternalStore(noSubscribe, () => playsVideo(url), () => false);
   const vid = useRef<HTMLVideoElement>(null);
 
-  // phones: the video plays while near the screen (it loads then too), pauses once scrolled away; the still stays
-  // as its poster until the first frame, and for good with reduced motion
+  // phones: register this box's video for the loading screen (module flag: right from the first effect)
+  useEffect(() => {
+    if (!playsVideo(url)) return;
+    wanted.add(videoOf(url!));
+    if (videosStarted) void fetchVideo(videoOf(url!));
+  }, [url]);
+
+  // phones: the video plays while near the screen, from memory (waiting for its fetch if that is still running: never a
+  // second, streamed copy), pauses once scrolled away; the still stays as its poster until the first frame, and for good
+  // with reduced motion
   useEffect(() => {
     const v = vid.current;
     if (!videos || !v || !box.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const io = new IntersectionObserver(([e]) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause()), { rootMargin: "200px 0px" });
+    const src = videoOf(url!);
+    let near = false;
+    let alive = true;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        near = e.isIntersecting;
+        if (!near) return v.pause();
+        void (fetched.get(src) ?? Promise.resolve(src)).then((use) => {
+          if (!alive || !near) return;
+          if (v.getAttribute("src") !== use) v.src = use;
+          v.play().catch(() => {});
+        });
+      },
+      { rootMargin: "200px 0px" },
+    );
     io.observe(box.current);
-    return () => io.disconnect();
-  }, [videos]);
+    return () => {
+      alive = false;
+      io.disconnect();
+    };
+  }, [videos, url]);
 
   useEffect(() => {
     if (!url || !box.current || playsVideo(url)) return;
@@ -233,7 +281,6 @@ export default function MascotArt({ src, model, sizes, className = "object-conta
       <div ref={box} className="absolute inset-0">
         <video
           ref={vid}
-          src={videoOf(url!)}
           poster={stillOf(url!)}
           muted
           loop
