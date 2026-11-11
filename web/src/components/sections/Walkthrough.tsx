@@ -262,6 +262,10 @@ export default function Walkthrough() {
   const [active, select] = useState(0);
   const step = STEPS[active];
   const reduced = useReducedMotion();
+  // the wave's swells run only near the screen: an SVG mask animation re-lays out and repaints every frame, on screen
+  // or not (phones dropped to ~28 fps); paused off screen, they carry on from where they were
+  const wave = useRef<HTMLDivElement>(null);
+  const waveNear = useInView(wave, { margin: "200px 0px" });
 
   // the nav's "Treatments" link lands here: open the Explore step
   useEffect(() => {
@@ -303,7 +307,7 @@ export default function Walkthrough() {
         </div>
 
         {/* the six steps on the wave */}
-        <div className="relative mt-10 pb-14 md:mt-12 md:pb-[88px]">
+        <div ref={wave} className={`relative mt-10 pb-14 md:mt-12 md:pb-[88px] ${waveNear ? "" : "wt-paused"}`}>
           <div className="relative h-16 md:h-auto md:aspect-[var(--wt-ar)]" style={{ ["--wt-ar" as string]: `${W} / ${H}` }}>
             <svg aria-hidden className="absolute inset-0 hidden size-full overflow-visible md:block" viewBox={`0 0 ${W} ${H}`} fill="none">
               <defs>

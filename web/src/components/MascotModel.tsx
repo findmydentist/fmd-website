@@ -166,26 +166,40 @@ const bump = (t: number, period: number, at: number, width: number) => {
   const u = ((((t % period) + period) % period) - at) / width;
   return u > 0 && u < 1 ? Math.sin(Math.PI * u) ** 2 : 0;
 };
-const breathe = (t: number): Turn => ["spine", "x", 0.012 * wave(t, 5)];
+const breathe = (t: number, period = 5): Turn => ["spine", "x", 0.012 * wave(t, period)];
 
+// Every motion repeats exactly (its rhythms divide one loop: LOOPS), so phones can show it as a seamless video
+// (model/blender/mascots/render_stills.cjs VIDEO=1); retime a rhythm → keep it dividing its loop, re-render the videos.
+export const LOOPS: Record<string, number> = {
+  "guide.glb": 12,
+  "guide-left.glb": 13.5,
+  "butler.glb": 7,
+  "laptop.glb": 12,
+  "pin.glb": 5.2,
+  "scholar.glb": 4.2,
+  "vault.glb": 5,
+  "reading.glb": 14,
+  "heart.glb": 4,
+  "tooth.glb": 26, // one full turn, ten heartbeats
+};
 const MOTIONS: Record<string, Motion> = {
   // presenting the features: the open palm sweeps a little up and out, the head tilts towards it
   "guide.glb": {
     bones: (t) => [
-      breathe(t),
+      breathe(t, 6),
       ["hand.R", "z", 0.1 * wave(t, 4)],
       ["hand.R", "y", 0.06 * wave(t, 4, 0.25)],
       ["head", "z", -0.04 * wave(t, 4, 0.1)],
-      ["head", "x", 0.025 * wave(t, 3.2)],
+      ["head", "x", 0.025 * wave(t, 3)],
     ],
   },
   // offering the Care Core: the open hand rises gently under it, the head leans towards it
   "guide-left.glb": {
     bones: (t) => [
-      breathe(t),
+      breathe(t, 4.5),
       ["hand.L", "z", -0.09 * wave(t, 4.5)],
       ["head", "z", 0.045 * wave(t, 4.5, 0.15)],
-      ["head", "x", 0.02 * wave(t, 3.4)],
+      ["head", "x", 0.02 * wave(t, 3.375)],
     ],
   },
   // at your service: the bell hand bobs twice (a ring) every few seconds, then a slow polite bow
@@ -199,8 +213,8 @@ const MOTIONS: Record<string, Motion> = {
   // typing: the hands tap in turn; every few seconds a glance up at the viewer (the artwork is seen from its right)
   "laptop.glb": {
     bones: (t) => [
-      ["hand.L", "x", 0.05 * Math.max(0, wave(t, 0.36))],
-      ["hand.R", "x", 0.05 * Math.max(0, wave(t, 0.36, 0.5))],
+      ["hand.L", "x", 0.05 * Math.max(0, wave(t, 12 / 33))],
+      ["hand.R", "x", 0.05 * Math.max(0, wave(t, 12 / 33, 0.5))],
       ["head", "y", -0.22 * bump(t, 6, 3, 1.8)],
       ["head", "x", 0.03 * wave(t, 2.4) - 0.04 * bump(t, 6, 3, 1.8)],
     ],
@@ -208,7 +222,7 @@ const MOTIONS: Record<string, Motion> = {
   // dropping a pin: the marker hand hops, the pointing hand taps towards it, the head bobs along
   "pin.glb": {
     bones: (t) => [
-      breathe(t),
+      breathe(t, 5.2),
       ["hand.R", "x", -0.08 * bump(t, 2.6, 0, 0.9)],
       ["hand.L", "x", 0.05 * bump(t, 2.6, 1.1, 0.5)],
       ["head", "x", 0.025 * bump(t, 2.6, 0.1, 0.9)],
@@ -218,7 +232,7 @@ const MOTIONS: Record<string, Motion> = {
   // here's a tip: the raised finger wags, the head bobs as it talks
   "scholar.glb": {
     bones: (t) => [
-      breathe(t),
+      breathe(t, 4.2),
       ["hand.R", "z", 0.09 * wave(t, 1.4)],
       ["head", "x", 0.025 * wave(t, 0.7)],
       ["head", "z", 0.03 * wave(t, 4.2)],
@@ -236,8 +250,8 @@ const MOTIONS: Record<string, Motion> = {
   // reading: the eyes on the page, the book tilting with it, then a look up from it every few seconds
   "reading.glb": {
     bones: (t) => [
-      breathe(t),
-      ["hold", "x", 0.03 * wave(t, 5)],
+      breathe(t, 14 / 3),
+      ["hold", "x", 0.03 * wave(t, 14 / 3)],
       ["head", "x", 0.04 - 0.07 * bump(t, 7, 4, 2)],
       ["head", "z", 0.02 * wave(t, 3.5)],
     ],
@@ -245,13 +259,13 @@ const MOTIONS: Record<string, Motion> = {
   // a promise: the hand pats the heart twice, a slow warm nod
   "heart.glb": {
     bones: (t) => [
-      breathe(t),
+      breathe(t, 4),
       ["hand.L", "y", -0.05 * (bump(t, 4, 0.5, 0.45) + bump(t, 4, 1.05, 0.45))],
       ["head", "x", 0.04 * bump(t, 4, 0.4, 1.6)],
     ],
   },
   // the Care Core: a slow turn, its core glowing like a heartbeat
-  "tooth.glb": { spin: 0.25, pulse: [0.25, 2.6] },
+  "tooth.glb": { spin: TAU / 26, pulse: [0.25, 2.6] },
 };
 
 /**

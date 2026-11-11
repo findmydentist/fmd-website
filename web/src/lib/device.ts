@@ -9,3 +9,6 @@ export const LIGHT_DEVICE =
 
 /** A section mascot's path under web/public: the phone build on light devices. */
 export const rigPath = (name: string) => `/models/${LIGHT_DEVICE ? "rig-mobile" : "rig"}/${name}.glb`;
+
+/** Touch-only devices (phones, tablets): the hero's rising mascot is a turntable of frames there (hero/HeroTurn.tsx). */
+export const TOUCH = typeof window !== "undefined" && window.matchMedia("(hover: none) and (pointer: coarse)").matches;

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { rigPath } from "@/lib/device";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Contain from "./Contain";
 import { model } from "@/lib/models";
 
@@ -42,8 +42,53 @@ const MODELS: Record<string, Art> = {
  */
 const STILL_V = 3;
 const stillOf = (model: string) => `/models/stills/${model.split("/").pop()!.split("?")[0].replace(".glb", ".webp")}?v=${STILL_V}`;
+/*
+ * Phones play each model as a transparent looping video instead (public/models/videos: one exact loop of its motion,
+ * rendered from the same scene by model/blender/mascots/encode_videos.sh): no WebGL canvases to juggle, no warm-up.
+ * WebM's transparency doesn't show on iOS (all its browsers are Safari underneath), so iPhones and iPads keep the live
+ * models until there are HEVC-with-alpha copies. FMD AI's mascot plays one per mood the same way (AssistantMascot).
+ * Bump VIDEO_V when the videos are re-rendered.
+ */
+const VIDEO_V = 1;
+const IOS =
+  typeof navigator !== "undefined" &&
+  (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1));
+export const VIDEOS = typeof window !== "undefined" && window.matchMedia("(hover: none) and (pointer: coarse)").matches && !IOS;
+// served from web/public (not uploaded to Cloudinary, unlike the models)
+const videoOf = (model: string) => `/models/videos/${model.split("/").pop()!.split("?")[0].replace(".glb", ".webm")}?v=${VIDEO_V}`;
+const playsVideo = (url?: string) => VIDEOS && !!url;
+// Each box on the page registers its video; the loading screen fetches them all whole (loadVideos), so a box plays its
+// video from memory the moment it scrolls in: no buffering, no poster flash. A box that mounts later joins straight away.
+const wanted = new Set<string>();
+const fetched = new Map<string, Promise<string>>(); // video url → object URL of the whole file (the url if that failed)
+export const fetchVideo = (u: string) => {
+  let p = fetched.get(u);
+  if (!p) {
+    p = fetch(u)
+      .then((r) => (r.ok ? r.blob() : Promise.reject()))
+      .then((b) => URL.createObjectURL(b), () => u); // that box streams its video instead
+    fetched.set(u, p);
+  }
+  return p;
+};
+let videosStarted = false;
+/** a video the page will play: the loading screen fetches it (or, once that has started, it is fetched now) */
+export function wantVideo(u: string) {
+  wanted.add(u);
+  if (videosStarted) void fetchVideo(u);
+}
+/** how many videos the loading screen will fetch (registered by the boxes on the page) */
+export const videoCount = () => wanted.size;
+export function loadVideos(onProgress: (fraction: number) => void = () => {}) {
+  videosStarted = true;
+  const list = [...wanted];
+  let done = 0;
+  return Promise.all(list.map((u) => fetchVideo(u).then(() => onProgress(++done / list.length)))).then(() => {});
+}
+const noSubscribe = () => () => {};
+
 /** every model the page can show (and the walkthrough's mirrored guide): the loading screen fetches them up front */
-export const MODEL_URLS = [...new Set([...Object.values(MODELS).map((a) => a.model), M("guide-left")])];
+export const MODEL_URLS = [...new Set([...Object.values(MODELS).map((a) => a.model), M("guide-left")])].filter((u) => !playsVideo(u));
 
 /**
  * Live canvases: once a model has appeared its canvas stays (paused while off screen), so coming back to it is instant.
@@ -135,9 +180,44 @@ export default function MascotArt({ src, model, sizes, className = "object-conta
   const [, snapped] = useState(0); // re-render once a snapshot exists
   const warmTurn = useRef<(() => void) | null>(null); // set while this box is the one warming up
   const lost = useRef<() => void>(() => {}); // the browser killed this box's canvas: drop it, its picture shows
+  const videos = useSyncExternalStore(noSubscribe, () => playsVideo(url), () => false);
+  const vid = useRef<HTMLVideoElement>(null);
+
+  // phones: register this box's video for the loading screen (module flag: right from the first effect)
+  useEffect(() => {
+    if (playsVideo(url)) wantVideo(videoOf(url!));
+  }, [url]);
+
+  // phones: the video plays while near the screen, from memory (waiting for its fetch if that is still running: never a
+  // second, streamed copy), pauses once scrolled away; the still stays as its poster until the first frame, and for good
+  // with reduced motion
+  useEffect(() => {
+    const v = vid.current;
+    if (!videos || !v || !box.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const src = videoOf(url!);
+    let near = false;
+    let alive = true;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        near = e.isIntersecting;
+        if (!near) return v.pause();
+        void (fetched.get(src) ?? Promise.resolve(src)).then((use) => {
+          if (!alive || !near) return;
+          if (v.getAttribute("src") !== use) v.src = use;
+          v.play().catch(() => {});
+        });
+      },
+      { rootMargin: "200px 0px" },
+    );
+    io.observe(box.current);
+    return () => {
+      alive = false;
+      io.disconnect();
+    };
+  }, [videos, url]);
 
   useEffect(() => {
-    if (!url || !box.current) return;
+    if (!url || !box.current || playsVideo(url)) return;
     const id = nextId++;
     const el = box.current;
     let alive = true;
@@ -199,6 +279,26 @@ export default function MascotArt({ src, model, sizes, className = "object-conta
 
   const shown = ready === url;
   const still = snapshots.get(key); // this model's own frame, once it has rendered
+  if (videos)
+    return (
+      <div ref={box} className="absolute inset-0">
+        <video
+          ref={vid}
+          poster={stillOf(url!)}
+          muted
+          loop
+          playsInline
+          preload="none"
+          disablePictureInPicture
+          aria-hidden
+          className="absolute inset-0 size-full object-contain"
+        />
+        {art?.overlay && !model && (
+          // eslint-disable-next-line @next/next/no-img-element -- a small SVG, nothing to optimise
+          <img src={art.overlay.src} alt="" className="mascot-float absolute h-auto" style={art.overlay.style} />
+        )}
+      </div>
+    );
   return (
     <div ref={box} className="absolute inset-0">
       {still && url ? (

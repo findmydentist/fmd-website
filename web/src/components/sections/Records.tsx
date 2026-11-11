@@ -2,8 +2,8 @@
 "use client";
 
 import { CircleCheck, Clock3, FileText, History, Image as ImageIcon, KeyRound, Lock, Pill, ScanLine, Share2, ClipboardList } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/react";
+import { useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import MascotArt from "@/components/MascotArt";
 import Image from "next/image";
 import Link from "next/link";
@@ -227,10 +227,13 @@ function AmbientParticles() {
   const reduced = useReducedMotion();
   // false on the server and while hydrating, true in the browser after: React switches over without an effect
   const mounted = useSyncExternalStore(noSubscribe, () => true, () => false);
-  if (!mounted || reduced) return null;
+  // only near the screen: off screen they'd still be restyled and repainted every frame (phones dropped to ~28 fps);
+  // they fade in from nothing, so starting over as the section comes back is invisible
+  const box = useRef<HTMLDivElement>(null);
+  const near = useInView(box, { margin: "200px 0px" });
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 -z-[5] overflow-hidden">
-      {PARTICLES.map((p, i) => (
+    <div ref={box} aria-hidden className="pointer-events-none absolute inset-0 -z-[5] overflow-hidden">
+      {mounted && !reduced && near && PARTICLES.map((p, i) => (
         <motion.div
           key={i}
           className="absolute rounded-full bg-blue-100"

@@ -20,6 +20,7 @@ import Contain from "../Contain";
 import { ChatThread, useAssistant } from "./Assistant";
 import type { Mood } from "./AssistantMascot";
 import { MASCOT_KEYS, MASCOT_OPACITY, PHASES } from "./phases";
+import { TOUCH } from "@/lib/device";
 import { RIM, RIM_APEX, RIM_H, RIM_W, rimPath, rimYAt } from "./rim";
 
 /**
@@ -59,6 +60,8 @@ const stageVars = (height: string) =>
 // WebGL can't render on the server; the sprite stays visible until the model has loaded
 const Mascot3D = dynamic(() => import("./Mascot3D"), { ssr: false });
 const AssistantMascot = dynamic(() => import("./AssistantMascot"), { ssr: false });
+// touch devices: the rising mascot as a turntable of frames instead (./HeroTurn)
+const HeroTurn = dynamic(() => import("./HeroTurn"), { ssr: false });
 
 const noop = () => () => {};
 function useReducedMotionSafe() {
@@ -123,6 +126,8 @@ function CinematicHero() {
   const [mascotOn, setMascotOn] = useState(false);
   const [mascotReady, setMascotReady] = useState(false);
   const onMascotReady = useCallback(() => setMascotReady(true), []);
+  // null until the client knows (the still shows meanwhile): phones never start loading the 3D model
+  const touch = useSyncExternalStore(noop, () => TOUCH, () => null);
   useMotionValueEvent(p, "change", (v) => {
     const on = v > a0 + 0.02;
     if (on !== aiActive) setAiActive(on); // each flag flips only at its own threshold
@@ -173,10 +178,15 @@ function CinematicHero() {
               {/* wider than the sprite box: room for the arms */}
               <div className="absolute inset-y-0 left-1/2 w-[170%] -translate-x-1/2">
                 {/* a model that can't load leaves the sprite (it never reports ready) */}
-                {/* eslint-disable-next-line @next/next/no-img-element -- versioned still, same framing as this box */}
-                <Contain fallback={<img src="/models/stills/hero-sitting.webp?v=2" alt="" decoding="async" className="absolute inset-0 size-full" />}>
-                  <Mascot3D active={mascotOn} base={settled ? "Meditate" : "Fly"} rotY={rotY} onReady={onMascotReady} />
-                </Contain>
+                {/* phones: frames that can't load leave the sprite too (frame 0 reports ready) */}
+                {touch === null ? null : touch ? (
+                  <HeroTurn rotY={rotY} onReady={onMascotReady} />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element -- versioned still, same framing as this box
+                  <Contain fallback={<img src="/models/stills/hero-sitting.webp?v=2" alt="" decoding="async" className="absolute inset-0 size-full" />}>
+                    <Mascot3D active={mascotOn} base={settled ? "Meditate" : "Fly"} rotY={rotY} onReady={onMascotReady} />
+                  </Contain>
+                )}
               </div>
               <SpeechBubble show={speaking} text="Let me take over…" />
             </div>
