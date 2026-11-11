@@ -9,6 +9,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { PHONE, PORCELAIN } from "../MascotModel";
+import { VIDEOS, fetchVideo, wantVideo } from "../MascotArt";
 
 /**
  * FMD AI's mascot beside the search bar: the guide (web/public/models/assistant.glb, built by
@@ -17,10 +18,18 @@ import { PHONE, PORCELAIN } from "../MascotModel";
  * the chin, while the answer comes, with a "…" thought bubble by its head) and explaining (presenting with both hands
  * and talking, while it types out). It blinks now and then over all of them, and turns: towards the visitor while it
  * waits or listens, towards the chat on its right as it explains. Bump ?v= when the GLB is rebuilt.
+ *
+ * Phones (as MascotArt's section mascots, not iOS) play a transparent video of each mood instead: its clip twice over, at
+ * its turn, blinks baked in, from the full GLB (model/blender/mascots/encode_videos.sh assistant-idle …). Bump MOOD_V
+ * when they are re-rendered.
  */
 export const ASSISTANT_URL = model(LIGHT_DEVICE ? "/models/assistant-mobile.glb" : "/models/assistant.glb"); // phones: lighter build (lib/device.ts)
 
 export type Mood = "idle" | "listening" | "thinking" | "explaining";
+const MOODS: Mood[] = ["idle", "listening", "thinking", "explaining"];
+const MOOD_V = 1;
+const moodVideo = (m: Mood) => `/models/videos/assistant-${m}.webm?v=${MOOD_V}`;
+if (VIDEOS) MOODS.forEach((m) => wantVideo(moodVideo(m))); // the loading screen fetches them (preloadModels imports this)
 
 const FADE = 0.5;
 const FOV = 20;
@@ -152,6 +161,56 @@ function Model({ mood, onReady }: { mood: Mood; onReady: () => void }) {
   );
 }
 
+/** Phones: every mood's video stacked, played from memory; a new mood starts its video from the top (as its clip does
+ *  live) and fades in over the last, which fades out just behind it and then pauses */
+function MoodVideos({ mood, active, onReady }: { mood: Mood; active: boolean; onReady: () => void }) {
+  const vids = useRef<Partial<Record<Mood, HTMLVideoElement | null>>>({});
+  const still = useReducedMotion(); // reduced motion: each mood's first frame
+  const playing = useRef<Mood | null>(null);
+  const play = (m: Mood) => {
+    const v = vids.current[m];
+    if (!v?.getAttribute("src")) return;
+    v.currentTime = 0;
+    void v.play().catch(() => {});
+  };
+  useEffect(() => {
+    let alive = true;
+    for (const m of MOODS)
+      void fetchVideo(moodVideo(m)).then((u) => {
+        const v = vids.current[m];
+        if (!alive || !v || v.getAttribute("src") === u) return;
+        v.src = u;
+        if (playing.current === m) play(m);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useEffect(() => {
+    playing.current = active && !still ? mood : null;
+    if (!playing.current) return MOODS.forEach((m) => vids.current[m]?.pause());
+    play(mood);
+    const t = setTimeout(() => MOODS.forEach((m) => m !== mood && vids.current[m]?.pause()), 700);
+    return () => clearTimeout(t);
+  }, [mood, active, still]);
+  return MOODS.map((m) => (
+    <video
+      key={m}
+      ref={(v) => {
+        vids.current[m] = v;
+      }}
+      muted
+      loop
+      playsInline
+      preload="auto"
+      disablePictureInPicture
+      onLoadedData={m === "idle" ? onReady : undefined}
+      className="absolute inset-0 size-full object-contain transition-opacity duration-[400ms]"
+      style={{ opacity: m === mood ? 1 : 0, zIndex: m === mood ? 1 : 0, transitionDelay: m === mood ? "0ms" : "150ms" }}
+    />
+  ));
+}
+
 /** `active`: the chat is on screen (it renders only then, at the display's rate) */
 export default function AssistantMascot({ mood, active }: { mood: Mood; active: boolean }) {
   const still = useReducedMotion();
@@ -166,32 +225,36 @@ export default function AssistantMascot({ mood, active }: { mood: Mood; active: 
   const look = PORCELAIN;
   return (
     <div aria-hidden className={`relative size-full transition-opacity duration-700 ${ready ? "opacity-100" : "opacity-0"}`}>
-      <Canvas
-        frameloop={active && !still ? "always" : "demand"}
-        dpr={PHONE ? [1, 1.5] : [1, 2]} // phones: less GPU memory, see MascotModel
-        camera={{ position: [0, 0.12, dist], fov: FOV }}
-        gl={{ antialias: true, alpha: true }}
-        onCreated={({ gl }) => {
-          gl.toneMapping = THREE.NeutralToneMapping;
-          gl.toneMappingExposure = look.exposure;
-          gl.domElement.addEventListener("webglcontextlost", () => setLost(true), { once: true });
-        }}
-        style={{ pointerEvents: "none" }}
-      >
-        {look.ambient && <ambientLight intensity={look.ambient[1]} color={look.ambient[0]} />}
-        {look.ground && <hemisphereLight args={["#000000", look.ground[0], look.ground[1]]} />}
-        {look.dirs.map(([p, i, c], k) => (
-          <directionalLight key={k} position={p} intensity={i} color={c} />
-        ))}
-        <Suspense fallback={null}>
-          <Model mood={mood} onReady={onReady} />
-          <Environment resolution={256}>
-            {look.panels.map(([p, s, i, c], k) => (
-              <Lightformer key={k} form="rect" position={p} scale={s} intensity={i} color={c} />
-            ))}
-          </Environment>
-        </Suspense>
-      </Canvas>
+      {VIDEOS ? (
+        <MoodVideos mood={mood} active={active} onReady={onReady} />
+      ) : (
+        <Canvas
+          frameloop={active && !still ? "always" : "demand"}
+          dpr={PHONE ? [1, 1.5] : [1, 2]} // phones: less GPU memory, see MascotModel
+          camera={{ position: [0, 0.12, dist], fov: FOV }}
+          gl={{ antialias: true, alpha: true }}
+          onCreated={({ gl }) => {
+            gl.toneMapping = THREE.NeutralToneMapping;
+            gl.toneMappingExposure = look.exposure;
+            gl.domElement.addEventListener("webglcontextlost", () => setLost(true), { once: true });
+          }}
+          style={{ pointerEvents: "none" }}
+        >
+          {look.ambient && <ambientLight intensity={look.ambient[1]} color={look.ambient[0]} />}
+          {look.ground && <hemisphereLight args={["#000000", look.ground[0], look.ground[1]]} />}
+          {look.dirs.map(([p, i, c], k) => (
+            <directionalLight key={k} position={p} intensity={i} color={c} />
+          ))}
+          <Suspense fallback={null}>
+            <Model mood={mood} onReady={onReady} />
+            <Environment resolution={256}>
+              {look.panels.map(([p, s, i, c], k) => (
+                <Lightformer key={k} form="rect" position={p} scale={s} intensity={i} color={c} />
+              ))}
+            </Environment>
+          </Suspense>
+        </Canvas>
+      )}
       {/* thinking: a "…" by its head, its dots rising in turn */}
       <AnimatePresence>
         {mood === "thinking" && (

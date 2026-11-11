@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { useGLTF } from "@react-three/drei";
-import { MODEL_URLS, loadVideos, videoCount } from "./MascotArt";
+import { MODEL_URLS, VIDEOS, loadVideos, videoCount } from "./MascotArt";
 import { ASSISTANT_URL } from "./hero/AssistantMascot";
 import { TOUCH } from "@/lib/device";
 
@@ -11,7 +11,7 @@ import { TOUCH } from "@/lib/device";
  * instead of its model, and phones the section mascots' videos (MascotArt).
  */
 export function preloadModels(onProgress: (fraction: number) => void): Promise<void> {
-  const urls = [ASSISTANT_URL, ...MODEL_URLS];
+  const urls = [...(VIDEOS ? [] : [ASSISTANT_URL]), ...MODEL_URLS]; // phones: the assistant's mood videos instead
   // the bar: each part's share by its rough size in MB (a model ~1, the hero's frames 7.3, a video ~1.6)
   const parts: { w: number; f: number }[] = [];
   const part = (w: number) => {
@@ -28,6 +28,7 @@ export function preloadModels(onProgress: (fraction: number) => void): Promise<v
   const frames = frameBar && import("./hero/HeroTurn").then((m) => m.loadFrames(frameBar));
   const videos = videoBar && loadVideos(videoBar);
   const models = new Promise<void>((resolve) => {
+    if (!urls.length) return resolve(); // Android: every model is a video or the hero's frames
     const m = THREE.DefaultLoadingManager;
     m.onProgress = (_url, loaded, total) => {
       modelBar(total ? loaded / total : 0);

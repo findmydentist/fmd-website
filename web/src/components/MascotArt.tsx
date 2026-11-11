@@ -46,22 +46,22 @@ const stillOf = (model: string) => `/models/stills/${model.split("/").pop()!.spl
  * Phones play each model as a transparent looping video instead (public/models/videos: one exact loop of its motion,
  * rendered from the same scene by model/blender/mascots/encode_videos.sh): no WebGL canvases to juggle, no warm-up.
  * WebM's transparency doesn't show on iOS (all its browsers are Safari underneath), so iPhones and iPads keep the live
- * models until there are HEVC-with-alpha copies. The glass tooth stays live everywhere: a full turn of see-through glass
- * changes every pixel every frame (a 7+ MB video against a 0.47 MB model). Bump VIDEO_V when the videos are re-rendered.
+ * models until there are HEVC-with-alpha copies. FMD AI's mascot plays one per mood the same way (AssistantMascot).
+ * Bump VIDEO_V when the videos are re-rendered.
  */
 const VIDEO_V = 1;
 const IOS =
   typeof navigator !== "undefined" &&
   (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1));
-const VIDEOS = typeof window !== "undefined" && window.matchMedia("(hover: none) and (pointer: coarse)").matches && !IOS;
+export const VIDEOS = typeof window !== "undefined" && window.matchMedia("(hover: none) and (pointer: coarse)").matches && !IOS;
 // served from web/public (not uploaded to Cloudinary, unlike the models)
 const videoOf = (model: string) => `/models/videos/${model.split("/").pop()!.split("?")[0].replace(".glb", ".webm")}?v=${VIDEO_V}`;
-const playsVideo = (url?: string) => VIDEOS && !!url && !url.includes("/tooth.glb");
+const playsVideo = (url?: string) => VIDEOS && !!url;
 // Each box on the page registers its video; the loading screen fetches them all whole (loadVideos), so a box plays its
 // video from memory the moment it scrolls in: no buffering, no poster flash. A box that mounts later joins straight away.
 const wanted = new Set<string>();
 const fetched = new Map<string, Promise<string>>(); // video url → object URL of the whole file (the url if that failed)
-const fetchVideo = (u: string) => {
+export const fetchVideo = (u: string) => {
   let p = fetched.get(u);
   if (!p) {
     p = fetch(u)
@@ -72,6 +72,11 @@ const fetchVideo = (u: string) => {
   return p;
 };
 let videosStarted = false;
+/** a video the page will play: the loading screen fetches it (or, once that has started, it is fetched now) */
+export function wantVideo(u: string) {
+  wanted.add(u);
+  if (videosStarted) void fetchVideo(u);
+}
 /** how many videos the loading screen will fetch (registered by the boxes on the page) */
 export const videoCount = () => wanted.size;
 export function loadVideos(onProgress: (fraction: number) => void = () => {}) {
@@ -180,9 +185,7 @@ export default function MascotArt({ src, model, sizes, className = "object-conta
 
   // phones: register this box's video for the loading screen (module flag: right from the first effect)
   useEffect(() => {
-    if (!playsVideo(url)) return;
-    wanted.add(videoOf(url!));
-    if (videosStarted) void fetchVideo(videoOf(url!));
+    if (playsVideo(url)) wantVideo(videoOf(url!));
   }, [url]);
 
   // phones: the video plays while near the screen, from memory (waiting for its fetch if that is still running: never a
