@@ -1085,6 +1085,8 @@ html.theme-anim *::after {
   from { transform: translateX(-60px); }
   to { transform: translateX(660px); }
 }
+.wt-paused .wt-swell,
+.wt-paused .wt-swell-m { animation-play-state: paused; }
 
 /* Site-wide cursor light (CursorFx): a small, soft sapphire/cyan spotlight that trails the pointer. Fixed, under the
    nav and dialogs, never catches a click. Kept cheap on purpose: a plain translucent gradient (no blend mode, no blur
@@ -1286,6 +1288,11 @@ html.theme-anim *::after {
   100% { clip-path: inset(0 0 0 0); opacity: 0; }
 }
 .bento-type { animation: bento-type 3.4s ease-out infinite; }
+/* off screen (Universe's in-view flag): held where they are, so they aren't restyled and repainted every frame */
+.bento-paused .bento-sheen::before,
+.bento-paused .bento-float,
+.bento-paused .bento-wave > span,
+.bento-paused .bento-type { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
   .bento-sheen::before { animation: none; opacity: 0; }
   .bento-float, .bento-wave > span, .bento-type { animation: none; }

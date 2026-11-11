@@ -489,7 +489,7 @@ export default function Universe() {
           <div className="lg:sticky lg:top-[90px]">
             <div
               ref={grid}
-              className="relative grid grid-cols-[minmax(0,1fr)] gap-3 [perspective:1600px] sm:grid-cols-2 lg:auto-rows-[200px] lg:grid-cols-6"
+              className={`${live ? "" : "bento-paused"} relative grid grid-cols-[minmax(0,1fr)] gap-3 [perspective:1600px] sm:grid-cols-2 lg:auto-rows-[200px] lg:grid-cols-6`}
             >
               {/* FMD ONE: the phone, floating, bleeding off the tile */}
               <Tile
