@@ -1,11 +1,11 @@
 "use client";
 
-import { AnimatePresence, motion, useAnimate, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
+import { AnimatePresence, motion, useAnimate, useInView, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
 import { ArrowRight, Check, Info, Mail, MapPin, MessageCircle, Phone, Sparkles } from "lucide-react";
 import MascotArt from "@/components/MascotArt";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { api, useMe } from "@/lib/me";
 import { Container, Reveal } from "../ui";
 import { Atmosphere } from "./LowerWorld";
@@ -111,32 +111,41 @@ function Ambience({ reduced, mx, my }: { reduced: boolean | null; mx: MotionValu
       transition={{ duration: p.d, ease: "easeInOut", repeat: Infinity, repeatType: "mirror", delay: (i % 5) * 1.2 }}
     />
   );
+  // only near the screen: off screen the drifting, blurred orbs and the turning ring would still be restyled and
+  // repainted every frame (phones dropped to ~28 fps); they're set up again just before the section scrolls in
+  const box = useRef<HTMLDivElement>(null);
+  const near = useInView(box, { margin: "200px 0px" });
   return (
     <div
+      ref={box}
       aria-hidden
       className="pointer-events-none absolute inset-0 -z-10 overflow-hidden [mask-image:linear-gradient(180deg,transparent,#000_14%,#000_86%,transparent)]"
     >
-      {/* arcs (farthest plane): one 2400px square centred on the card's top-right corner (container edge, top of the panel) */}
-      <Plane mx={mx} my={my} depth={14}>
-        <motion.svg
-          viewBox="-1200 -1200 2400 2400"
-          className="absolute size-[2400px] -translate-x-1/2 -translate-y-1/2 left-[calc(50%+min(600px,46vw))] top-28 sm:top-40"
-          fill="none"
-          animate={reduced ? undefined : { rotate: 360 }}
-          transition={{ duration: 240, ease: "linear", repeat: Infinity }}
-        >
-          {RINGS.map((g) => (
-            <circle key={g.r} r={g.r} stroke={`rgba(218,165,32,${g.o})`} strokeWidth={2} strokeDasharray={g.dash} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-          ))}
-        </motion.svg>
-      </Plane>
-      {/* far orbs (the small specks) drift a little more, near orbs (large, soft) the most */}
-      <Plane mx={mx} my={my} depth={24}>
-        {BOKEH.map((p, i) => (p.s < 24 ? orb(p, i) : null))}
-      </Plane>
-      <Plane mx={mx} my={my} depth={40}>
-        {BOKEH.map((p, i) => (p.s >= 24 ? orb(p, i) : null))}
-      </Plane>
+      {near && (
+        <>
+          {/* arcs (farthest plane): one 2400px square centred on the card's top-right corner (container edge, top of the panel) */}
+          <Plane mx={mx} my={my} depth={14}>
+            <motion.svg
+              viewBox="-1200 -1200 2400 2400"
+              className="absolute size-[2400px] -translate-x-1/2 -translate-y-1/2 left-[calc(50%+min(600px,46vw))] top-28 sm:top-40"
+              fill="none"
+              animate={reduced ? undefined : { rotate: 360 }}
+              transition={{ duration: 240, ease: "linear", repeat: Infinity }}
+            >
+              {RINGS.map((g) => (
+                <circle key={g.r} r={g.r} stroke={`rgba(218,165,32,${g.o})`} strokeWidth={2} strokeDasharray={g.dash} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+              ))}
+            </motion.svg>
+          </Plane>
+          {/* far orbs (the small specks) drift a little more, near orbs (large, soft) the most */}
+          <Plane mx={mx} my={my} depth={24}>
+            {BOKEH.map((p, i) => (p.s < 24 ? orb(p, i) : null))}
+          </Plane>
+          <Plane mx={mx} my={my} depth={40}>
+            {BOKEH.map((p, i) => (p.s >= 24 ? orb(p, i) : null))}
+          </Plane>
+        </>
+      )}
     </div>
   );
 }

@@ -22,24 +22,25 @@ const SOCIALS = [
       </svg>
     ),
   },
-  {
-    label: "X",
-    href: "https://x.com/findmydentist.io",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-5 w-5">
-        <path d="M18.244 2H21.5l-7.36 8.41L22.75 22h-6.79l-5.32-6.96L4.53 22H1.27l7.87-9L1.25 2h6.96l4.81 6.36L18.244 2zm-1.19 18h1.88L7.03 3.9H5.02l12.034 16.1z" />
-      </svg>
-    ),
-  },
-  {
-    label: "Facebook",
-    href: "https://www.facebook.com/findmydentist.io",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-5 w-5">
-        <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.52 1.5-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.9h2.78l-.45 2.9h-2.33V22c4.78-.76 8.44-4.92 8.44-9.94z" />
-      </svg>
-    ),
-  },
+  // X and Facebook: hidden for now; uncomment to show them again
+  // {
+  //   label: "X",
+  //   href: "https://x.com/findmydentist.io",
+  //   icon: (
+  //     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-5 w-5">
+  //       <path d="M18.244 2H21.5l-7.36 8.41L22.75 22h-6.79l-5.32-6.96L4.53 22H1.27l7.87-9L1.25 2h6.96l4.81 6.36L18.244 2zm-1.19 18h1.88L7.03 3.9H5.02l12.034 16.1z" />
+  //     </svg>
+  //   ),
+  // },
+  // {
+  //   label: "Facebook",
+  //   href: "https://www.facebook.com/findmydentist.io",
+  //   icon: (
+  //     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-5 w-5">
+  //       <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.52 1.5-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.9h2.78l-.45 2.9h-2.33V22c4.78-.76 8.44-4.92 8.44-9.94z" />
+  //     </svg>
+  //   ),
+  // },
   {
     label: "Email",
     href: "mailto:support@findmydentist.io",
