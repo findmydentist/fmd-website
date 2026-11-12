@@ -4,7 +4,11 @@
  * Kept free of React so it can be tested with node --test.
  */
 
+import { demoFetch } from "./fmdDemo.ts";
+
 const BASE = "/api/v1";
+/** No backend: answer from the in-browser demo accounts in fmdDemo.ts. */
+const DEMO = process.env.NEXT_PUBLIC_FMD_DEMO === "1";
 
 /** UserRead in server/app/schemas/user.py */
 export type User = {
@@ -73,7 +77,7 @@ type Init = { method?: string; body?: unknown };
 export async function fmd<T>(path: string, init: Init = {}, retry = true): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(BASE + path, {
+    res = DEMO ? demoFetch(path, init) : await fetch(BASE + path, {
       method: init.method ?? (init.body === undefined ? "GET" : "POST"),
       headers: init.body === undefined ? undefined : { "content-type": "application/json" },
       body: init.body === undefined ? undefined : JSON.stringify(init.body),

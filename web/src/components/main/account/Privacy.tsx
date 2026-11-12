@@ -50,8 +50,8 @@ export function PrivacyPage() {
 
   return (
     <div className="grid gap-5">
-      <Link href="/account" className="inline-flex w-fit items-center gap-1.5 text-[14px] text-ink-3 hover:text-ink">
-        <ArrowLeft className="size-4" strokeWidth={1.5} /> Account
+      <Link href="/account/settings" className="inline-flex w-fit items-center gap-1.5 text-[14px] text-ink-3 hover:text-ink">
+        <ArrowLeft className="size-4" strokeWidth={1.5} /> Settings
       </Link>
       <div>
         <h1 className="flex flex-wrap items-center gap-3 text-[24px] font-medium text-ink">
@@ -159,7 +159,7 @@ function Messages({ me, marketing }: { me: Me; marketing: boolean }) {
       {!emailOk && (
         <p className="text-[13.5px] text-ink-3">
           To get email messages,{" "}
-          <Link href="/account" className="font-medium text-ink underline underline-offset-4">
+          <Link href="/account/settings#security" className="font-medium text-ink underline underline-offset-4">
             add and verify an email
           </Link>{" "}
           first.

@@ -8,6 +8,12 @@
 import { read, write } from "./store.ts";
 
 export type ClinicLink = { name: string; area: string; city: string };
+/** a degree, diploma or fellowship: what, in what, where and when */
+export type Education = { degree: string; specialisation: string; college: string; university: string; year: number | null };
+/** a past or current job; `to` is null while `current` */
+export type Experience = { role: string; place: string; city: string; from: number | null; to: number | null; current: boolean; about: string };
+
+export const DEGREES = ["BDS", "MDS", "PG Diploma", "Fellowship", "Certificate course", "PhD", "Other"] as const;
 
 export type PublicProfile = {
   /** small JPEG data URL here; a storage URL from the backend */
@@ -19,13 +25,22 @@ export type PublicProfile = {
   clinics: ClinicLink[];
   fee_min: number | null;
   fee_max: number | null;
+  education: Education[];
+  experience: Experience[];
+  /** professional bodies (e.g. Indian Dental Association), awards, publications */
+  memberships: string;
 };
 
 export type VerificationDoc = { name: string; size: number; uploaded_at: string; status: "submitted" };
 
-export const EMPTY_PROFILE: PublicProfile = { photo: null, about: "", years_experience: null, languages: [], services: [], clinics: [], fee_min: null, fee_max: null };
+export const EMPTY_PROFILE: PublicProfile = {
+  photo: null, about: "", years_experience: null, languages: [], services: [], clinics: [], fee_min: null, fee_max: null, education: [], experience: [], memberships: "",
+};
+export const newEducation = (): Education => ({ degree: "BDS", specialisation: "", college: "", university: "", year: null });
+export const newExperience = (): Experience => ({ role: "", place: "", city: "", from: null, to: null, current: false, about: "" });
 
-export const LIMITS = { about: 600, clinics: 5, years: 60, fee: 100000, docBytes: 5 * 1024 * 1024 } as const;
+export const LIMITS = { about: 600, clinics: 5, years: 60, fee: 100000, docBytes: 5 * 1024 * 1024, education: 6, experience: 10, memberships: 400, jobAbout: 300 } as const;
+const FIRST_YEAR = 1960;
 export const DOC_TYPES = ["application/pdf", "image/jpeg", "image/png"];
 
 /** The first problem with a profile, or null. The backend should enforce the same rules. */
@@ -38,6 +53,17 @@ export function checkPublicProfile(p: PublicProfile): string | null {
   const { fee_min: lo, fee_max: hi } = p;
   if ((lo === null) !== (hi === null)) return "Enter both the lowest and highest consultation fee, or neither.";
   if (lo !== null && hi !== null && (lo < 0 || hi < lo || hi > LIMITS.fee)) return `Fees must run from ₹0 up to ₹${LIMITS.fee.toLocaleString("en-IN")}, lowest first.`;
+  const thisYear = new Date().getFullYear();
+  const badYear = (y: number | null) => y !== null && (!Number.isInteger(y) || y < FIRST_YEAR || y > thisYear + 1);
+  if (p.education.length > LIMITS.education) return `Add up to ${LIMITS.education} qualifications.`;
+  if (p.education.some((e) => !e.degree.trim() || !e.college.trim())) return "Each qualification needs a degree and a college.";
+  if (p.education.some((e) => badYear(e.year))) return `Year of passing must be between ${FIRST_YEAR} and ${thisYear + 1}.`;
+  if (p.experience.length > LIMITS.experience) return `Add up to ${LIMITS.experience} jobs.`;
+  if (p.experience.some((x) => !x.role.trim() || !x.place.trim())) return "Each job needs a role and a clinic or hospital.";
+  if (p.experience.some((x) => badYear(x.from) || badYear(x.to))) return `Years must be between ${FIRST_YEAR} and ${thisYear + 1}.`;
+  if (p.experience.some((x) => !x.current && x.from !== null && x.to !== null && x.to < x.from)) return "A job can't end before it starts.";
+  if (p.experience.some((x) => x.about.length > LIMITS.jobAbout)) return `Keep each job's description under ${LIMITS.jobAbout} characters.`;
+  if (p.memberships.length > LIMITS.memberships) return `Keep memberships and awards under ${LIMITS.memberships} characters.`;
   return null;
 }
 
@@ -57,7 +83,14 @@ export async function getPublicProfile(userId: string): Promise<PublicProfile> {
 export async function savePublicProfile(userId: string, p: PublicProfile): Promise<PublicProfile> {
   const problem = checkPublicProfile(p);
   if (problem) throw new Error(problem);
-  const clean = { ...p, about: p.about.trim(), clinics: p.clinics.map((c) => ({ name: c.name.trim(), area: c.area.trim(), city: c.city.trim() })) };
+  const clean: PublicProfile = {
+    ...p,
+    about: p.about.trim(),
+    clinics: p.clinics.map((c) => ({ name: c.name.trim(), area: c.area.trim(), city: c.city.trim() })),
+    education: p.education.map((e) => ({ ...e, degree: e.degree.trim(), specialisation: e.specialisation.trim(), college: e.college.trim(), university: e.university.trim() })),
+    experience: p.experience.map((x) => ({ ...x, role: x.role.trim(), place: x.place.trim(), city: x.city.trim(), about: x.about.trim(), to: x.current ? null : x.to })),
+    memberships: p.memberships.trim(),
+  };
   write(pKey(userId), clean);
   return clean;
 }

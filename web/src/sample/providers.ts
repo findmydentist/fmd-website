@@ -59,7 +59,7 @@ export type Filters = {
 
 export type SearchResult = { items: ProviderCard[]; sponsored: ProviderCard[]; total: number; page: number; pages: number; suggestions: string[] };
 
-export const PAGE_SIZE = 8;
+export const PAGE_SIZE = 18; // at least 15 on screen at once, in full rows of 3
 const CHECK = "Demo profile: no real verification has been performed.";
 
 /* ---------------- the demo directory ---------------- */
@@ -100,25 +100,21 @@ type Row = {
 };
 
 const ROWS: Row[] = [
-  { id: "aditi-sharma", name: "Dr. Aditi Sharma", photo: "/img/dr-1.png", g: "female", sp: "General Dentist", y: 11, q: ["BDS", "MDS (Conservative Dentistry)"], l: ["English", "Hindi", "Kannada"], s: ["Consultation", "Teeth Cleaning", "Fillings", "Root Canal Treatment"], c: "kor", fee: [500, 500], v: "verified", next: 3 },
-  { id: "rohan-mehta", name: "Dr. Rohan Mehta", photo: "/img/dr-2.png", g: "male", sp: "Orthodontist", y: 9, q: ["BDS", "MDS (Orthodontics)"], l: ["English", "Hindi"], s: ["Consultation", "Braces", "Clear Aligners"], c: "hsr", fee: [700, 900], v: "verified", sponsor: "Demo Aligner Brand" },
-  { id: "sneha-iyer", name: "Dr. Sneha Iyer", photo: "/img/dr-3.png", g: "female", sp: "Implantologist", y: 14, q: ["BDS", "MDS (Prosthodontics)", "Fellowship in Implantology"], l: ["English", "Tamil", "Kannada"], s: ["Consultation", "Dental Implants", "Extraction", "Crowns & Bridges"], c: "jay", fee: [800, 1000], v: "verified", next: 26 },
-  { id: "karan-malhotra", name: "Dr. Karan Malhotra", photo: "/img/dr-4.png", g: "male", sp: "Cosmetic Dentist", y: 7, q: ["BDS", "Certificate in Aesthetic Dentistry"], l: ["English", "Hindi", "Telugu"], s: ["Consultation", "Smile Design", "Veneers", "Teeth Whitening"], c: "ind", v: "unverified" },
-  { id: "farah-khan", name: "Dr. Farah Khan", g: "female", sp: "Pediatric Dentist", y: 8, q: ["BDS", "MDS (Pedodontics)"], l: ["English", "Hindi", "Kannada"], s: ["Consultation", "Kids Dentistry", "Fillings", "Teeth Cleaning"], c: "whf", fee: [600, 600], v: "verified" },
-  { id: "venkat-rao", name: "Dr. Venkat Rao", g: "male", sp: "Endodontist", y: 16, q: ["BDS", "MDS (Endodontics)"], l: ["English", "Telugu", "Kannada"], s: ["Consultation", "Root Canal Treatment", "Fillings"], c: "kor", fee: [600, 800], v: "pending", next: 50 },
-  { id: "meenakshi-pillai", name: "Dr. Meenakshi Pillai", g: "female", sp: "Periodontist", y: 12, q: ["BDS", "MDS (Periodontics)"], l: ["English", "Malayalam", "Tamil"], s: ["Consultation", "Gum Treatment", "Teeth Cleaning"], c: "jay", fee: [600, 700], v: "verified", next: 5 },
-  { id: "arjun-desai", name: "Dr. Arjun Desai", g: "male", sp: "Oral Surgeon", y: 10, q: ["BDS", "MDS (Oral & Maxillofacial Surgery)"], l: ["English", "Hindi", "Marathi"], s: ["Consultation", "Extraction", "Dental Implants"], c: "whf", v: "unverified" },
-  { id: "kavya-reddy", name: "Dr. Kavya Reddy", g: "female", sp: "Prosthodontist", y: 6, q: ["BDS", "MDS (Prosthodontics)"], l: ["English", "Telugu", "Hindi"], s: ["Consultation", "Dentures", "Crowns & Bridges"], c: "ind", fee: [500, 600], v: "verified" },
-  { id: "nikhil-joshi", name: "Dr. Nikhil Joshi", g: "male", sp: "General Dentist", y: 13, q: ["BDS"], l: ["English", "Hindi", "Marathi"], s: ["Consultation", "Teeth Cleaning", "Fillings", "Extraction"], c: "bnd", fee: [600, 800], v: "verified", next: 4 },
-  { id: "priyanka-shah", name: "Dr. Priyanka Shah", g: "female", sp: "Implantologist", y: 15, q: ["BDS", "MDS (Prosthodontics)"], l: ["English", "Hindi", "Marathi"], s: ["Consultation", "Dental Implants", "Crowns & Bridges"], c: "bnd", fee: [900, 1200], v: "verified", sponsor: "Demo Implant Systems", next: 30 },
-  { id: "imran-sheikh", name: "Dr. Imran Sheikh", g: "male", sp: "Orthodontist", y: 8, q: ["BDS", "MDS (Orthodontics)"], l: ["English", "Hindi"], s: ["Consultation", "Braces", "Clear Aligners"], c: "and", v: "pending" },
-  { id: "lakshmi-narayan", name: "Dr. Lakshmi Narayan", g: "female", sp: "Endodontist", y: 18, q: ["BDS", "MDS (Endodontics)"], l: ["English", "Telugu"], s: ["Consultation", "Root Canal Treatment", "Fillings"], c: "bjh", fee: [700, 900], v: "verified", next: 2 },
-  { id: "rahul-varma", name: "Dr. Rahul Varma", g: "male", sp: "Cosmetic Dentist", y: 5, q: ["BDS"], l: ["English", "Telugu", "Hindi"], s: ["Consultation", "Teeth Whitening", "Veneers", "Smile Design"], c: "gcb", fee: [500, 1500], v: "unverified" },
-  { id: "deepa-krishnan", name: "Dr. Deepa Krishnan", g: "female", sp: "Pediatric Dentist", y: 9, q: ["BDS", "MDS (Pedodontics)"], l: ["English", "Tamil"], s: ["Consultation", "Kids Dentistry", "Fillings"], c: "tng", fee: [500, 600], v: "verified" },
-  { id: "suresh-babu", name: "Dr. Suresh Babu", g: "male", sp: "Periodontist", y: 20, q: ["BDS", "MDS (Periodontics)"], l: ["English", "Tamil", "Telugu"], s: ["Consultation", "Gum Treatment", "Teeth Cleaning"], c: "ady", fee: [700, 700], v: "verified" },
-  { id: "ananya-gupta", name: "Dr. Ananya Gupta", g: "female", sp: "General Dentist", y: 7, q: ["BDS"], l: ["English", "Hindi"], s: ["Consultation", "Teeth Cleaning", "Fillings", "Teeth Whitening"], c: "skt", fee: [500, 700], v: "verified", next: 20 },
-  { id: "vikram-singh", name: "Dr. Vikram Singh", g: "male", sp: "Oral Surgeon", y: 17, q: ["BDS", "MDS (Oral & Maxillofacial Surgery)"], l: ["English", "Hindi"], s: ["Consultation", "Extraction", "Dental Implants"], c: "ggn", fee: [1000, 1500], v: "pending" },
-  { id: "sanjana-kulkarni", name: "Dr. Sanjana Kulkarni", g: "female", sp: "Orthodontist", y: 10, q: ["BDS", "MDS (Orthodontics)"], l: ["English", "Marathi", "Hindi"], s: ["Consultation", "Braces", "Clear Aligners"], c: "kgp", fee: [600, 800], v: "verified" },
+  { id: "aditi-sharma", name: "Dr. Aditi Sharma", photo: "/dentists-pics/aditi-sharma.jpg", g: "female", sp: "General Dentist", y: 11, q: ["BDS", "MDS (Conservative Dentistry)"], l: ["English", "Hindi", "Kannada"], s: ["Consultation", "Teeth Cleaning", "Fillings", "Root Canal Treatment"], c: "kor", fee: [500, 500], v: "verified", next: 3 },
+  { id: "rohan-mehta", name: "Dr. Rohan Mehta", photo: "/dentists-pics/rohan-mehta.jpg", g: "male", sp: "Orthodontist", y: 9, q: ["BDS", "MDS (Orthodontics)"], l: ["English", "Hindi"], s: ["Consultation", "Braces", "Clear Aligners"], c: "hsr", fee: [700, 900], v: "verified", sponsor: "Demo Aligner Brand" },
+  { id: "sneha-iyer", name: "Dr. Sneha Iyer", photo: "/img/dr-1.png", g: "female", sp: "Implantologist", y: 14, q: ["BDS", "MDS (Prosthodontics)", "Fellowship in Implantology"], l: ["English", "Tamil", "Kannada"], s: ["Consultation", "Dental Implants", "Extraction", "Crowns & Bridges"], c: "jay", fee: [800, 1000], v: "verified", next: 26 },
+  { id: "karan-malhotra", name: "Dr. Karan Malhotra", photo: "/dentists-pics/karan-malhotra.jpg", g: "male", sp: "Cosmetic Dentist", y: 7, q: ["BDS", "Certificate in Aesthetic Dentistry"], l: ["English", "Hindi", "Telugu"], s: ["Consultation", "Smile Design", "Veneers", "Teeth Whitening"], c: "ind", v: "unverified" },
+  { id: "farah-khan", name: "Dr. Farah Khan", photo: "/dentists-pics/farah-khan.jpg", g: "female", sp: "Pediatric Dentist", y: 8, q: ["BDS", "MDS (Pedodontics)"], l: ["English", "Hindi", "Kannada"], s: ["Consultation", "Kids Dentistry", "Fillings", "Teeth Cleaning"], c: "whf", fee: [600, 600], v: "verified" },
+  { id: "venkat-rao", name: "Dr. Venkat Rao", photo: "/img/dr-4.png", g: "male", sp: "Endodontist", y: 16, q: ["BDS", "MDS (Endodontics)"], l: ["English", "Telugu", "Kannada"], s: ["Consultation", "Root Canal Treatment", "Fillings"], c: "kor", fee: [600, 800], v: "pending", next: 50 },
+  { id: "arjun-desai", name: "Dr. Arjun Desai", photo: "/dentists-pics/arjun-desai.jpg", g: "male", sp: "Oral Surgeon", y: 10, q: ["BDS", "MDS (Oral & Maxillofacial Surgery)"], l: ["English", "Hindi", "Marathi"], s: ["Consultation", "Extraction", "Dental Implants"], c: "whf", v: "unverified" },
+  { id: "kavya-reddy", name: "Dr. Kavya Reddy", photo: "/dentists-pics/kavya-reddy.jpg", g: "female", sp: "Prosthodontist", y: 6, q: ["BDS", "MDS (Prosthodontics)"], l: ["English", "Telugu", "Hindi"], s: ["Consultation", "Dentures", "Crowns & Bridges"], c: "ind", fee: [500, 600], v: "verified" },
+  { id: "nikhil-joshi", name: "Dr. Nikhil Joshi", photo: "/dentists-pics/nikhil-joshi.jpg", g: "male", sp: "General Dentist", y: 13, q: ["BDS"], l: ["English", "Hindi", "Marathi"], s: ["Consultation", "Teeth Cleaning", "Fillings", "Extraction"], c: "bnd", fee: [600, 800], v: "verified", next: 4 },
+  { id: "priyanka-shah", name: "Dr. Priyanka Shah", photo: "/dentists-pics/priyanka-shah.jpg", g: "female", sp: "Implantologist", y: 15, q: ["BDS", "MDS (Prosthodontics)"], l: ["English", "Hindi", "Marathi"], s: ["Consultation", "Dental Implants", "Crowns & Bridges"], c: "bnd", fee: [900, 1200], v: "verified", sponsor: "Demo Implant Systems", next: 30 },
+  { id: "imran-sheikh", name: "Dr. Imran Sheikh", photo: "/dentists-pics/imran-sheikh.jpg", g: "male", sp: "Orthodontist", y: 8, q: ["BDS", "MDS (Orthodontics)"], l: ["English", "Hindi"], s: ["Consultation", "Braces", "Clear Aligners"], c: "and", v: "pending" },
+  { id: "rahul-varma", name: "Dr. Rahul Varma", photo: "/img/dr-2.png", g: "male", sp: "Cosmetic Dentist", y: 5, q: ["BDS"], l: ["English", "Telugu", "Hindi"], s: ["Consultation", "Teeth Whitening", "Veneers", "Smile Design"], c: "gcb", fee: [500, 1500], v: "unverified" },
+  { id: "deepa-krishnan", name: "Dr. Deepa Krishnan", photo: "/dentists-pics/deepa-krishnan.jpg", g: "female", sp: "Pediatric Dentist", y: 9, q: ["BDS", "MDS (Pedodontics)"], l: ["English", "Tamil"], s: ["Consultation", "Kids Dentistry", "Fillings"], c: "tng", fee: [500, 600], v: "verified" },
+  { id: "ananya-gupta", name: "Dr. Ananya Gupta", photo: "/dentists-pics/ananya-gupta.jpg", g: "female", sp: "General Dentist", y: 7, q: ["BDS"], l: ["English", "Hindi"], s: ["Consultation", "Teeth Cleaning", "Fillings", "Teeth Whitening"], c: "skt", fee: [500, 700], v: "verified", next: 20 },
+  { id: "sanjana-kulkarni", name: "Dr. Sanjana Kulkarni", photo: "/img/dr-3.png", g: "female", sp: "Orthodontist", y: 10, q: ["BDS", "MDS (Orthodontics)"], l: ["English", "Marathi", "Hindi"], s: ["Consultation", "Braces", "Clear Aligners"], c: "kgp", fee: [600, 800], v: "verified" },
 ];
 
 /* ---------------- matching ---------------- */
@@ -260,6 +256,8 @@ export const POLICY = { minNoticeHours: 2, freeCancelHours: 4, slotMinutes: 30, 
 export const CANCEL_TERMS = `Free to cancel or change up to ${POLICY.freeCancelHours} hours before. After that, the clinic may charge a late-cancellation fee. (Demo terms.)`;
 
 const rowOf = (id: string) => ROWS.find((r) => r.id === id);
+/** A demo dentist's photo, for places that only know their id (Explore stories and posts, messages). */
+export const photoOf = (id: string) => rowOf(id)?.photo || null;
 export function hash(s: string) {
   let h = 0;
   for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) | 0;

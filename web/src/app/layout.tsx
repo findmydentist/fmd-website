@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import CursorFx from "@/components/CursorFx";
+import { PageTransition } from "@/components/PageTransition";
 import { SITE } from "@/lib/site";
 import { noFlashScript } from "@/lib/themes";
 import "./globals.css";
@@ -94,7 +95,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       </head>
       <body className="min-h-dvh">
-        {children}
+        <PageTransition>{children}</PageTransition>
         <CursorFx />
       </body>
     </html>

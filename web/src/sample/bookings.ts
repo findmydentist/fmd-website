@@ -123,7 +123,7 @@ async function seed(now: number): Promise<Booking[]> {
       { at: iso(past - 5 * day), type: "confirmed", by: "clinic" },
       { at: iso(past + 30 * 60_000), type: "completed", by: "clinic" },
     ]),
-    await make("demo-cncl-02", "meenakshi-pillai", "cleaning", cancelled, "cancelled_by_clinic", [
+    await make("demo-cncl-02", "ananya-gupta", "cleaning", cancelled, "cancelled_by_clinic", [
       { at: iso(cancelled - 4 * day), type: "requested", by: "you" },
       { at: iso(cancelled - 4 * day), type: "confirmed", by: "clinic" },
       { at: iso(cancelled - day), type: "cancelled", by: "clinic", note: "The dentist is unwell that day. Sorry: please book another time." },

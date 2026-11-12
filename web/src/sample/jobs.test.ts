@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canPostJobs, checkJob, cleanApply, closeJob, getJob, jobState, myJobs, postJob, renewJob, reportJob, searchJobs, type JobInput } from "./jobs.ts";
+import { canPostJobs, checkJob, cleanApply, closeJob, getJob, jobState, myJobs, postJob, renewJob, reportJob, ROLES, roleGroup, searchJobs, type JobInput, type Role } from "./jobs.ts";
 
 const NOW = Date.parse("2026-11-10T11:00:00+05:30");
 const input: JobInput = { title: "Associate dentist", role: "associate", type: "full_time", employer: "Smile Studio", city: "Bengaluru", area: "Indiranagar", description: "General practice, 5 days a week, with mentoring.", requirements: "BDS\nRegistered", min_years: 1, salary: { min: 40000, max: 60000 }, apply: { method: "phone", value: "98765 43210" } };
@@ -42,4 +42,12 @@ test("reporting a job", async () => {
   await assert.rejects(reportJob(null, "job-intern-ady", "fake", ""), /Log in/);
   await reportJob("j2", "job-intern-ady", "fees", "");
   await assert.rejects(reportJob("j2", "job-intern-ady", "fake", ""), /already/);
+});
+
+test("every role falls in one of the two tabs, and both tabs have demo jobs", async () => {
+  assert.equal(roleGroup("associate"), "dentist");
+  assert.equal(roleGroup("front_desk"), "staff");
+  const { items } = await searchJobs(null, {});
+  for (const g of ["dentist", "staff"]) assert.ok(items.filter((j) => roleGroup(j.role) === g).length >= 8, g);
+  assert.ok((Object.keys(ROLES) as Role[]).every((r) => ["dentist", "staff"].includes(roleGroup(r))));
 });

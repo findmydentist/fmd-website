@@ -96,7 +96,6 @@ export function Onboarding() {
                       </span>
                       {on && <Check className="size-4 text-ink" strokeWidth={2} aria-hidden />}
                     </span>
-                    <span className="text-[13.5px] font-medium text-ink-2">{ACCOUNT_TYPES[t].price}</span>
                     <span className="text-[13.5px] text-ink-3">{ACCOUNT_TYPES[t].blurb}</span>
                   </label>
                 );

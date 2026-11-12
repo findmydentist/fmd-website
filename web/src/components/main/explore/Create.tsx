@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, Plus, X } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Bookmark, Briefcase, Lock, Plus, Stethoscope, UserRound, X, type LucideIcon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Button, ButtonLink, Chips, IconButton, Panel, Tag, type Tone } from "@/components/app/kit";
 import { Field, fieldCls } from "@/components/app/Sheet";
 import { Notice } from "@/components/Page";
@@ -12,11 +13,12 @@ import { when } from "@/lib/format";
 import { useRequireMe } from "@/lib/me";
 import { following as listFollowing, myPosts, saveDraft, DEID_CHECKS, deleteDraft, importPreview, newDraft, toggleFollow, feed, type Author, type Draft, type DraftStatus, type FeedItem, type Kind } from "@/sample/content";
 import { getSaved } from "@/sample/saved";
-import { cardsFor, type ProviderCard } from "@/sample/providers";
+import { cardsFor, photoOf, type ProviderCard } from "@/sample/providers";
+import { initials } from "@/lib/fmd";
 import { cardsForJobs, type Job } from "@/sample/jobs";
 import { JobCard } from "../jobs/Jobs";
-import { DentistCard } from "../dentists/Search";
-import { PostCard, Section } from "./Explore";
+import { coverOf, PostCard, Ring, Section } from "./Explore";
+import { PostGrid } from "../dentists/Profile";
 
 const KINDS: [Kind, string][] = [
   ["article", "Article"],
@@ -331,11 +333,22 @@ export function MyPostsPage() {
   );
 }
 
-/* ---------------- /saved ---------------- */
+/* ---------------- /saved: Instagram's Saved, collections first ---------------- */
+
+type SavedTab = "posts" | "dentists" | "jobs" | "following";
+
+/** one square of a collection's 2×2 cover */
+function Thumb({ photo, cover, children }: { photo?: string | null; cover?: string; children?: ReactNode }) {
+  return (
+    <span className={`relative grid place-items-center overflow-hidden bg-gradient-to-br ${cover ?? "from-white/[0.06] via-white/[0.03]"} to-[var(--surface-elevated)] text-ink-3`}>
+      {photo ? <Image src={photo} alt="" fill sizes="120px" className="object-cover object-[center_20%]" /> : children}
+    </span>
+  );
+}
 
 export function SavedPage() {
   const me = useRequireMe();
-  const [tab, setTab] = useState<"posts" | "dentists" | "jobs" | "following">("posts");
+  const [tab, setTab] = useState<SavedTab>("posts");
   const [posts, setPosts] = useState<FeedItem[]>([]);
   const [dentists, setDentists] = useState<ProviderCard[]>([]);
   const [follows, setFollows] = useState<Author[]>([]);
@@ -352,91 +365,179 @@ export function SavedPage() {
   }, [userId]);
   useEffect(load, [load]);
   if (!me) return <div className="app-panel h-48 animate-pulse" aria-busy />;
-  const tabs: [typeof tab, string][] = [
-    ["posts", `Posts (${posts.length})`],
-    ["dentists", `Dentists (${dentists.length})`],
-    ["jobs", `Jobs (${jobs.length})`],
-    ["following", `Following (${follows.length})`],
+
+  // each collection: its name, count and four squares for its cover
+  const empty = (n: number) => Array.from({ length: Math.max(0, 4 - n) }, (_, i) => <Thumb key={`e${i}`} />);
+  const collections: [SavedTab, string, number, ReactNode[]][] = [
+    [
+      "posts",
+      "Posts",
+      posts.length,
+      [
+        ...posts.slice(0, 4).map((p) => (
+          <Thumb key={p.id} cover={coverOf(p.topic)}>
+            <span className="line-clamp-3 px-1.5 text-center text-[9.5px] font-semibold leading-tight text-ink">{p.title}</span>
+          </Thumb>
+        )),
+        ...empty(posts.length),
+      ],
+    ],
+    ["dentists", "Dentists", dentists.length, [...dentists.slice(0, 4).map((d) => <Thumb key={d.id} photo={d.photo || null} />), ...empty(dentists.length)]],
+    [
+      "jobs",
+      "Jobs",
+      jobs.length,
+      [
+        ...jobs.slice(0, 4).map((j) => (
+          <Thumb key={j.id} cover={coverOf(j.title)}>
+            <Briefcase className="size-5 text-ink-2" strokeWidth={1.5} />
+          </Thumb>
+        )),
+        ...empty(jobs.length),
+      ],
+    ],
+    ["following", "Following", follows.length, [...follows.slice(0, 4).map((a) => <Thumb key={a.id} photo={photoOf(a.id)} />), ...empty(follows.length)]],
   ];
+
   return (
-    <div className="grid gap-5">
-      <h1 className="flex flex-wrap items-center gap-3 text-[24px] font-medium text-ink">
-        Saved <Tag tone="muted">Demo</Tag>
-      </h1>
-      <div role="tablist" aria-label="Saved" className="flex w-fit flex-wrap gap-1 rounded-full border border-line bg-[var(--surface-glass)] p-1">
-        {tabs.map(([t, label]) => (
-          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`h-9 rounded-full px-4 text-[13.5px] font-medium ${tab === t ? "bg-[var(--accent-soft)] text-ink" : "text-ink-3 hover:text-ink"}`}>
-            {label}
+    <div className="mx-auto grid w-full max-w-[935px] gap-6">
+      <div className="flex items-center gap-2">
+        <Link href="/account" aria-label="Back to your profile" title="Your profile" className="-ml-2 grid size-10 place-items-center rounded-full text-ink hover:bg-[var(--surface-glass)]">
+          <ArrowLeft className="size-5" strokeWidth={1.75} />
+        </Link>
+        <h1 className="flex items-center gap-3 text-[22px] font-semibold text-ink">
+          Saved <Tag tone="muted">Demo</Tag>
+        </h1>
+      </div>
+      <p className="-mt-3 flex items-center gap-1.5 text-[13.5px] text-ink-3">
+        <Lock className="size-3.5" strokeWidth={1.75} /> Only you can see what you&apos;ve saved.
+      </p>
+
+      {/* collections, each a 2×2 cover */}
+      <div role="tablist" aria-label="Saved" className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        {collections.map(([t, label, n, squares]) => (
+          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className="group grid gap-2 text-left">
+            <span
+              className={`grid aspect-square grid-cols-2 grid-rows-2 gap-px overflow-hidden rounded-xl bg-[var(--border)] transition-[box-shadow,transform] duration-300 group-hover:-translate-y-0.5 ${
+                tab === t ? "ring-2 ring-sky-400 ring-offset-2 ring-offset-[var(--background)]" : ""
+              }`}
+            >
+              {squares}
+            </span>
+            <span className="flex items-baseline justify-between gap-2 px-0.5">
+              <span className={`text-[15px] font-semibold ${tab === t ? "text-ink" : "text-ink-2"}`}>{label}</span>
+              <span className="text-[13px] text-ink-3">{n}</span>
+            </span>
           </button>
         ))}
       </div>
-      {tab === "posts" &&
-        (posts.length ? (
-          <ul className="mx-auto grid w-full max-w-[720px] gap-5">
-            {posts.map((p) => (
-              <li key={p.id}>
-                <PostCard p={p} userId={me.id} onChange={load} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Empty text="Posts you save in Explore appear here." href="/explore" cta="Go to Explore" />
-        ))}
-      {tab === "dentists" &&
-        (dentists.length ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {dentists.map((d) => (
-              <DentistCard key={d.id} p={d} />
-            ))}
-          </div>
-        ) : (
-          <Empty text="Dentists you save from their profiles appear here." href="/dentists" cta="Find a dentist" />
-        ))}
-      {tab === "jobs" &&
-        (jobs.length ? (
-          <ul className="grid gap-3 lg:grid-cols-2">
-            {jobs.map((j) => (
-              <li key={j.id}>
-                <JobCard j={j} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Empty text="Jobs you save appear here." href="/jobs" cta="Dental jobs" />
-        ))}
-      {tab === "following" &&
-        (follows.length ? (
-          <Panel className="overflow-hidden">
-            <ul className="divide-y divide-[var(--border)]">
-              {follows.map((a) => (
-                <li key={a.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
-                  <Link href={`/dentists/${a.id}`} className="min-w-0 flex-1">
-                    <span className="block text-[14.5px] font-medium text-ink">{a.name}</span>
-                    <span className="block text-[13px] text-ink-3">{a.specialty}</span>
+
+      <div key={tab} role="tabpanel" className="fmd-enter grid gap-4 border-t border-line pt-5">
+        {tab === "posts" &&
+          (posts.length ? (
+            <PostGrid posts={posts} />
+          ) : (
+            <Empty icon={Bookmark} title="Save posts" text="Posts you save in Explore appear here." href="/explore" cta="Go to Explore" />
+          ))}
+
+        {tab === "dentists" &&
+          (dentists.length ? (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {dentists.map((d) => (
+                <li key={d.id}>
+                  <Link href={`/dentists/${d.id}`} className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-[var(--surface-elevated)]">
+                    {d.photo ? (
+                      <Image src={d.photo} alt={`${d.name} (demo profile)`} fill sizes="(min-width: 640px) 300px, 50vw" className="object-cover object-[center_20%] transition-transform duration-500 group-hover:scale-105" />
+                    ) : (
+                      <span className="grid size-full place-items-center text-[32px] font-light text-ink-3">{d.name.replace(/^Dr\.?\s*/, "").split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
+                    )}
+                    <span className="absolute inset-x-0 bottom-0 grid gap-0.5 bg-gradient-to-t from-black/85 via-black/50 to-transparent p-3 pt-10 text-white">
+                      <span className="flex items-center gap-1 truncate text-[14.5px] font-semibold">
+                        {d.name}
+                        {d.verification.status === "verified" && <BadgeCheck className="size-4 shrink-0 text-sky-400" strokeWidth={2} aria-label="Verified" />}
+                      </span>
+                      <span className="truncate text-[12.5px] text-white/80">
+                        {d.specialty} · {d.clinic.area}
+                      </span>
+                    </span>
                   </Link>
-                  <Button variant="secondary" size="sm" onClick={() => toggleFollow(me.id, a.id).then(load)} aria-label={`Unfollow ${a.name}`}>
-                    Unfollow
-                  </Button>
                 </li>
               ))}
             </ul>
-          </Panel>
-        ) : (
-          <Empty text="Follow dentists from their posts in Explore." href="/explore" cta="Go to Explore" />
-        ))}
+          ) : (
+            <Empty icon={Stethoscope} title="Save dentists" text="Dentists you save from their profiles appear here." href="/dentists" cta="Find a dentist" />
+          ))}
+
+        {tab === "jobs" &&
+          (jobs.length ? (
+            <ul className="grid gap-3 lg:grid-cols-2">
+              {jobs.map((j) => (
+                <li key={j.id}>
+                  <JobCard j={j} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Empty icon={Briefcase} title="Save jobs" text="Jobs you save appear here." href="/jobs" cta="Dental jobs" />
+          ))}
+
+        {tab === "following" &&
+          (follows.length ? (
+            <ul className="mx-auto grid w-full max-w-[560px] gap-1">
+              {follows.map((a) => {
+                const photo = photoOf(a.id);
+                return (
+                  <li key={a.id} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-[var(--surface-glass)]">
+                    <Link href={`/dentists/${a.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+                      <Ring>
+                        {photo ? (
+                          <span className="relative block size-11 overflow-hidden rounded-full">
+                            <Image src={photo} alt="" fill sizes="44px" className="object-cover object-[center_20%]" />
+                          </span>
+                        ) : (
+                          <span className="grid size-11 place-items-center rounded-full bg-[var(--surface-elevated)] text-[13px] font-semibold text-ink">{initials(a.name)}</span>
+                        )}
+                      </Ring>
+                      <span className="min-w-0 leading-tight">
+                        <span className="block truncate text-[14.5px] font-semibold text-ink">{a.name}</span>
+                        <span className="block truncate text-[13px] text-ink-3">{a.specialty}</span>
+                      </span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => toggleFollow(me.id, a.id).then(load)}
+                      aria-label={`Unfollow ${a.name}`}
+                      className="group/btn h-9 rounded-lg bg-white/[0.08] px-4 text-[13.5px] font-semibold text-ink hover:bg-white/[0.12]"
+                    >
+                      <span className="group-hover/btn:hidden">Following</span>
+                      <span className="hidden group-hover/btn:inline">Unfollow</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <Empty icon={UserRound} title="Follow dentists" text="Follow dentists from their posts in Explore." href="/explore" cta="Go to Explore" />
+          ))}
+      </div>
     </div>
   );
 }
 
-function Empty({ text, href, cta }: { text: string; href?: string; cta?: string }) {
+/** an empty collection, Instagram style: a big outlined icon, a heading, a line, a link */
+function Empty({ icon: Icon, title, text, href, cta }: { icon: LucideIcon; title: string; text: string; href?: string; cta?: string }) {
   return (
-    <Panel className="grid justify-items-start gap-3 p-6">
-      <p className="text-[15px] text-ink-2">{text}</p>
+    <div className="grid justify-items-center gap-3 py-12 text-center">
+      <span className="grid size-16 place-items-center rounded-full border-2 border-ink text-ink">
+        <Icon className="size-7" strokeWidth={1.5} />
+      </span>
+      <p className="text-[20px] font-semibold text-ink">{title}</p>
+      <p className="max-w-[36ch] text-[14px] text-ink-3">{text}</p>
       {href && cta && (
-        <ButtonLink href={href} variant="secondary">
+        <Link href={href} className="text-[14px] font-semibold text-sky-400 hover:text-sky-300">
           {cta}
-        </ButtonLink>
+        </Link>
       )}
-    </Panel>
+    </div>
   );
 }

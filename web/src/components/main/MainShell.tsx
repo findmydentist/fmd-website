@@ -1,11 +1,13 @@
 "use client";
 
-import { Briefcase, CalendarDays, Compass, FolderLock, House, Search, Sparkles, UserRound, type LucideIcon } from "lucide-react";
+// CalendarDays and FolderLock come back with the Appointments and Records tabs
+import { Briefcase, Compass, House, Search, Send, Sparkles, UserRound, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { available, setLang, useT, type Lang, type MessageKey } from "@/lib/i18n";
+import { useMe } from "@/lib/me";
 import { SHOW_ACCOUNT } from "@/toggle";
 import { AccountMenu } from "./AccountMenu";
 import { NotificationsBell } from "./help/Support";
@@ -20,8 +22,10 @@ const TOP: Item[] = [
   { href: "/assistant", label: "nav.ai", Icon: Sparkles, ready: true },
   { href: "/dentists", label: "nav.find", Icon: Search, ready: true },
   { href: "/explore", label: "nav.explore", Icon: Compass, ready: true },
-  { href: "/records", label: "nav.records", Icon: FolderLock, ready: true },
-  { href: "/appointments", label: "nav.appointments", Icon: CalendarDays, ready: true },
+  // Records and Appointments are hidden for now; the pages still work at their URLs. To bring the tabs back, uncomment
+  // these (and CalendarDays, FolderLock in the import above):
+  // { href: "/records", label: "nav.records", Icon: FolderLock, ready: true },
+  // { href: "/appointments", label: "nav.appointments", Icon: CalendarDays, ready: true },
   { href: "/jobs", label: "nav.jobs", Icon: Briefcase, ready: true },
 ];
 
@@ -29,7 +33,10 @@ const TABS: Item[] = [
   { href: "/", label: "tab.home", Icon: House, ready: true },
   { href: "/dentists", label: "tab.find", Icon: Search, ready: true },
   { href: "/explore", label: "nav.explore", Icon: Compass, ready: true },
-  { href: "/records", label: "nav.records", Icon: FolderLock, ready: true },
+  // hidden for now, with Records in the top bar above
+  // { href: "/records", label: "nav.records", Icon: FolderLock, ready: true },
+  // Records' place: the Explore direct messages (desktop has them beside the feed)
+  { href: "/explore/messages", label: "tab.messages", Icon: Send, ready: true },
   { href: "/account", label: "tab.me", Icon: UserRound, ready: true },
 ];
 
@@ -40,8 +47,8 @@ function Soon() {
   return <span className="rounded-full border border-line px-1.5 text-[10.5px] uppercase tracking-[0.08em] text-ink-4">{t("soon")}</span>;
 }
 
-/** Legal links, and (development only, until a reviewed translation exists) the language switch. */
-function Footer() {
+/** Legal links, and (development only, until a reviewed translation exists) the language switch. Not shown for now. */
+export function MainFooter() {
   const { lang } = useT();
   const langs = available();
   return (
@@ -61,6 +68,25 @@ function Footer() {
         </label>
       )}
     </footer>
+  );
+}
+
+/** A one-tap way to your profile, left of the bell (signed in only); the initials menu still has everything else. */
+function ProfileButton() {
+  const me = useMe();
+  const path = usePathname();
+  if (!me) return null;
+  const on = path === "/account" || path.startsWith("/account/");
+  return (
+    <Link
+      href="/account"
+      aria-label="Your profile"
+      title="Your profile"
+      aria-current={on ? "page" : undefined}
+      className={`grid size-10 place-items-center rounded-full border border-line transition-colors ${on ? "bg-[var(--accent-soft)] text-ink" : "bg-[var(--surface-glass)] text-ink-2 hover:text-ink"}`}
+    >
+      <UserRound className="size-[18px]" strokeWidth={on ? 2 : 1.5} />
+    </Link>
   );
 }
 
@@ -99,14 +125,18 @@ export function MainShell({ children }: { children: ReactNode }) {
             </nav>
           )}
           <div className="ml-auto flex items-center gap-2">
+            {SHOW_ACCOUNT && <ProfileButton />}
             {SHOW_ACCOUNT && <NotificationsBell />}
             {SHOW_ACCOUNT && <AccountMenu />}
           </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1280px] px-3 py-6 sm:px-5 sm:py-8">{children}</main>
-      <Footer />
+      {/* FMD AI uses the full width of the screen on desktop, like other chat apps; every other page stays in the 1280px column */}
+      <main className={`mx-auto w-full px-3 py-6 sm:px-5 sm:py-8 ${path === "/assistant" ? "lg:max-w-none" : "max-w-[1280px]"}`}>
+          {children}
+      </main>
+      {/* No footer on FMD Main pages for now (no extra scrolling). To bring it back: <MainFooter /> here. */}
 
       {SHOW_ACCOUNT && (
         <nav
@@ -114,7 +144,8 @@ export function MainShell({ children }: { children: ReactNode }) {
           className="app-panel app-solid fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 rounded-b-none border-x-0 border-b-0 px-1 pb-[env(safe-area-inset-bottom)] lg:hidden"
         >
           {TABS.map(({ href, label, Icon, ready }) => {
-            const on = isOn(path, href);
+            // the most specific tab wins: on /explore/messages that's Messages, not Explore
+            const on = TABS.filter((x) => isOn(path, x.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href === href;
             const inner = (
               <>
                 <Icon className="size-5" strokeWidth={on ? 2 : 1.5} />
