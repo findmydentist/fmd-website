@@ -58,7 +58,7 @@ export async function listNotifications(userId: string, signedUpAt: string, now 
   for (const i of await feedbackInvites(userId, now))
     out.push({ id: `fb-${i.booking_id}`, kind: "booking", title: "How was your visit?", body: `Tell ${i.clinic} how it went. It takes a minute.`, at: new Date(Date.parse(i.visit) + 3_600_000 * 3).toISOString(), href: `/appointments/${i.booking_id}` });
 
-  out.push({ id: "sec-welcome", kind: "security", title: "New sign-in to your account", body: "If this wasn't you, sign out other devices in your account.", at: signedUpAt, href: "/account" });
+  out.push({ id: "sec-welcome", kind: "security", title: "New sign-in to your account", body: "If this wasn't you, sign out other devices in your account.", at: signedUpAt, href: "/account/settings#devices" });
 
   const seen = new Set(read<string[]>(key(userId)) ?? []);
   return out

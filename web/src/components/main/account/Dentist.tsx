@@ -48,8 +48,8 @@ export function DentistProfilePage() {
   if (!me) return <div className="app-panel h-40 animate-pulse" aria-busy />;
   return (
     <div className="grid gap-5">
-      <Link href="/account" className="inline-flex w-fit items-center gap-1.5 text-[14px] text-ink-3 hover:text-ink">
-        <ArrowLeft className="size-4" strokeWidth={1.5} /> Account
+      <Link href="/account/settings" className="inline-flex w-fit items-center gap-1.5 text-[14px] text-ink-3 hover:text-ink">
+        <ArrowLeft className="size-4" strokeWidth={1.5} /> Settings
       </Link>
       <div>
         <h1 className="text-[24px] font-medium text-ink">Dentist profile</h1>

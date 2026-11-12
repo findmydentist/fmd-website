@@ -49,6 +49,18 @@ There are no passwords. Sign in with an email or Indian mobile number; a 6-digit
 | Staff queues (`/admin/*`) | Put your email in `FMD_OPS_EMAILS` in `web/.env.local`, restart, sign up with it |
 | Dentist features | Sign up choosing **Dentist**, claim a demo profile at `/dentists/[id]`, approve it at `/admin/verification` |
 
+### Frontend-only demo (no backend)
+
+Set `NEXT_PUBLIC_FMD_DEMO=1` in `web/.env.local` and restart `npm run dev`. FMD Main then signs in against three fixed accounts in the browser (`web/src/lib/fmdDemo.ts`); nothing is sent to a server.
+
+| Role | Mobile | Email | Password |
+|---|---|---|---|
+| Patient (Priya Sharma) | `90000 00001` | `patient@demo.fmd.test` | `Demo@1234` |
+| Dentist, verified (Dr. Karthik Iyer) | `90000 00002` | `dentist@demo.fmd.test` | `Demo@1234` |
+| Clinic owner (Dr. Ananya Rao, Smile Studio) | `90000 00003` | `owner@demo.fmd.test` | `Demo@1234` |
+
+OTP login works too; the code is always `123456`. Sign-up, password reset and account-setting changes are off in this mode.
+
 Internal roles (`fmd_ops`, `super_admin`, `accountant`) can only come from environment variables, never from the sign-up form.
 
 ## What is built

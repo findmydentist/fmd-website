@@ -4,7 +4,7 @@ import { Briefcase, CalendarDays, Compass, FolderLock, House, Search, Sparkles, 
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { ViewTransition, type ReactNode } from "react";
 import { available, setLang, useT, type Lang, type MessageKey } from "@/lib/i18n";
 import { SHOW_ACCOUNT } from "@/toggle";
 import { AccountMenu } from "./AccountMenu";
@@ -105,8 +105,14 @@ export function MainShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1280px] px-3 py-6 sm:px-5 sm:py-8">{children}</main>
-      <Footer />
+      <main className="mx-auto w-full max-w-[1280px] px-3 py-6 sm:px-5 sm:py-8">
+        {/* a new page fades in over the old one; the header and bottom bar stay put (globals.css, "motion") */}
+        <ViewTransition key={path} name="page" share="page" enter="page" default="none">
+          {children}
+        </ViewTransition>
+      </main>
+      {/* FMD AI is a full-screen app (like other chat apps): no footer under it, so the page never scrolls */}
+      {path !== "/assistant" && <Footer />}
 
       {SHOW_ACCOUNT && (
         <nav

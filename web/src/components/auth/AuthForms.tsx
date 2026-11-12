@@ -147,7 +147,7 @@ export function OtpStep({
     return () => clearTimeout(t);
   }, [wait]);
   useEffect(() => {
-    if (!demoCode && process.env.NODE_ENV !== "production") auth.devOtp().then(setDev);
+    if (!demoCode && (process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_FMD_DEMO === "1")) auth.devOtp().then(setDev);
   }, [sent, demoCode]);
 
   const resend = () =>
