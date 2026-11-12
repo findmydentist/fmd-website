@@ -371,8 +371,11 @@ export function useDock() {
     }
     // the pill, panel and full screen share one view-transition-name, so the browser morphs one into the next
     const apply = () => dockListeners.forEach((l) => l());
-    if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) apply();
-    else document.startViewTransition(() => flushSync(apply));
+    if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) return apply();
+    // only the dock morphs: the rest of the page stays live (no crossfade), so the feed's slide aside shows smoothly
+    const html = document.documentElement;
+    html.dataset.vt = "dock";
+    document.startViewTransition(() => flushSync(apply)).finished.finally(() => delete html.dataset.vt);
   };
   return [mode, setMode] as const;
 }

@@ -316,7 +316,7 @@ export function DentistSearch() {
               ))}
             </div>
           </div>
-          <ul ref={circles} className="-mx-3 flex snap-x gap-5 overflow-x-auto scroll-smooth px-3 pb-1 [scrollbar-width:none] sm:mx-0 sm:gap-8 sm:px-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0">
+          <ul ref={circles} className="-mx-3 flex snap-x scroll-px-4 gap-3 overflow-x-auto scroll-smooth px-4 py-2 [scrollbar-width:none] sm:mx-0 sm:gap-8 sm:px-2 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0 lg:py-0">
             {[null, ...TREATMENTS].map((t) => {
               const on = (f.service ?? null) === t;
               const art = t && TREATMENT_ART[t];
@@ -327,18 +327,18 @@ export function DentistSearch() {
                     type="button"
                     aria-pressed={on}
                     onClick={() => set({ service: t && !on ? t : null })}
-                    className={`group grid w-28 justify-items-center gap-2.5 text-center sm:w-36 lg:flex lg:w-full lg:items-center lg:gap-3 lg:rounded-xl lg:px-2 lg:py-1.5 lg:text-left ${on ? "lg:bg-sky-500/15" : "lg:hover:bg-[var(--surface-glass)]"}`}
+                    className={`group grid w-[84px] justify-items-center gap-2 text-center sm:w-36 sm:gap-2.5 lg:flex lg:w-full lg:items-center lg:gap-3 lg:rounded-xl lg:px-2 lg:py-1.5 lg:text-left ${on ? "lg:bg-sky-500/15" : "lg:hover:bg-[var(--surface-glass)]"}`}
                   >
                     <span
-                      className={`relative grid size-28 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br ${coverOf(t ?? "All")} to-[var(--surface-elevated)] ring-offset-4 ring-offset-[var(--background)] transition-shadow sm:size-36 lg:size-11 lg:ring-offset-2 ${on ? "ring-2 ring-sky-400" : ""}`}
+                      className={`relative grid size-[76px] shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br ${coverOf(t ?? "All")} to-[var(--surface-elevated)] ring-offset-[3px] ring-offset-[var(--background)] transition-shadow sm:ring-offset-4 sm:size-36 lg:size-11 lg:ring-offset-2 ${on ? "ring-2 ring-sky-400" : ""}`}
                     >
                       {art ? (
                         <Image src={art} alt="" fill sizes="(min-width: 1024px) 44px, 144px" className="object-cover transition-transform duration-500 group-hover:scale-110" />
                       ) : (
-                        <Icon className="size-10 text-ink transition-transform duration-500 group-hover:scale-110 sm:size-12 lg:size-5" strokeWidth={1.5} />
+                        <Icon className="size-8 text-ink transition-transform duration-500 group-hover:scale-110 sm:size-12 lg:size-5" strokeWidth={1.5} />
                       )}
                     </span>
-                    <span className={`text-[14px] sm:text-[16px] lg:text-[14.5px] ${on ? "font-semibold text-sky-400" : "font-medium text-ink-2 group-hover:text-ink"}`}>{t ?? "All treatments"}</span>
+                    <span className={`text-[12.5px] leading-tight sm:text-[16px] sm:leading-normal lg:text-[14.5px] ${on ? "font-semibold text-sky-400" : "font-medium text-ink-2 group-hover:text-ink"}`}>{t ?? "All treatments"}</span>
                   </button>
                 </li>
               );

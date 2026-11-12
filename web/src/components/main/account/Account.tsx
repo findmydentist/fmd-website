@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, BadgeCheck, Bookmark, ChevronDown, ChevronRight, CreditCard, Lock, LogOut, Mail, Monitor, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Stethoscope, UserPlus, UserRound, X, type LucideIcon } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Bookmark, Check, ChevronDown, ChevronRight, CreditCard, Lock, LogOut, Mail, Monitor, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Stethoscope, UserPlus, UserRound, X, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
@@ -11,12 +11,13 @@ import { Notice } from "@/components/Page";
 import { account, deviceName, fmtPhone, initials, type Me, type Session } from "@/lib/fmd";
 import { authChanged, logout, useRequireMe } from "@/lib/me";
 import { ACCOUNT_TYPES, getAccountType, type AccountType } from "@/sample/onboarding";
+import { getDocument } from "@/sample/dentist";
 import { following, getPost, type Author, type FeedItem } from "@/sample/content";
 import { getSaved } from "@/sample/saved";
 import { PostGrid } from "../dentists/Profile";
 import { coverOf, Ring } from "../explore/Explore";
 import { StoryViewer, useSeen, type Story } from "../explore/Stories";
-import { STATUS } from "./Dentist";
+import { STATUS, VerifyStatus } from "./Dentist";
 
 /* ---------------- formatting ---------------- */
 
@@ -109,6 +110,9 @@ export function Account() {
   const me = useRequireMe();
   const [savedPosts, setSavedPosts] = useState<FeedItem[] | null>(null);
   const [savedDentists, setSavedDentists] = useState(0);
+  // for the "Get verified" card: did they say they're a dentist, and have they sent their certificate?
+  const [accountType, setAccountType] = useState<AccountType | null>(null);
+  const [certificate, setCertificate] = useState(false);
   const [follows, setFollows] = useState<Author[]>([]);
   const [showFollowing, setShowFollowing] = useState(false);
   const [watching, setWatching] = useState<{ list: Story[]; start: number } | null>(null);
@@ -140,6 +144,8 @@ export function Account() {
       .then((ids) => Promise.all(ids.map((id) => getPost(userId, id))))
       .then((l) => setSavedPosts(l.filter((x): x is FeedItem => !!x)));
     getSaved(userId, "dentist").then((l) => setSavedDentists(l.length));
+    getAccountType(userId).then(setAccountType);
+    getDocument(userId).then((d) => setCertificate(!!d));
     following(userId).then(setFollows);
   }, [userId]);
   if (!me) return <div className="app-panel h-40 animate-pulse" aria-busy />;
@@ -177,6 +183,13 @@ export function Account() {
               {me.full_name}
               {me.dentist_profile?.verification_status === "verified" && <BadgeCheck className="size-5 text-sky-400" strokeWidth={2} aria-label="Verified dentist" />}
             </p>
+            {/* a dentist's status, in bold: red not verified, yellow pending, green verified; and, LinkedIn style, a nudge to verify */}
+            {(me.dentist_profile || accountType === "dentist") && <VerifyStatus status={me.dentist_profile?.verification_status ?? null} className="text-[14px]" />}
+            {(me.dentist_profile ? ["unverified", "rejected"].includes(me.dentist_profile.verification_status) : accountType === "dentist") && (
+              <a href="#get-verified" className="inline-flex h-8 items-center gap-1.5 rounded-full border border-dashed border-sky-500/60 px-3 text-[13px] font-semibold text-sky-400 hover:bg-sky-500/10">
+                <BadgeCheck className="size-4" strokeWidth={2} /> Get verified
+              </a>
+            )}
             <div className="hidden items-center gap-2 sm:flex">{actions}</div>
           </div>
           <div className="flex justify-between gap-3 sm:justify-start sm:gap-10">
@@ -202,6 +215,8 @@ export function Account() {
         <p className="text-[13px] text-ink-3">Member since {since(me.created_at)}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">{actions}</div>
       </div>
+
+      <GetVerified me={me} accountType={accountType} certificate={certificate} />
 
       {/* suggested for you: the account's other pages, as Instagram suggests accounts */}
       {showSuggest && SUGGESTIONS.some((x) => !dismissed.includes(x.id)) && (
@@ -303,6 +318,73 @@ export function Account() {
         </Sheet>
       )}
     </div>
+  );
+}
+
+/* ---------------- "Get verified": the profile's nudge for dentists FMD hasn't verified yet ---------------- */
+
+/**
+ * Like LinkedIn's verification prompt: shown to anyone who said they're a dentist (or added a registration) until FMD
+ * has verified them. Three steps, where they stand on each, and the one button that moves them on.
+ */
+function GetVerified({ me, accountType, certificate }: { me: Me; accountType: AccountType | null; certificate: boolean }) {
+  const dp = me.dentist_profile;
+  // pending or verified: nothing to do, the bold status by the name says it
+  if (dp ? dp.verification_status === "verified" || dp.verification_status === "pending" : accountType !== "dentist") return null;
+  const status = dp?.verification_status;
+  const steps: [label: string, line: string, done: boolean, now: boolean][] = [
+    ["Fill in the form", "Your dental council registration and your education (BDS and any MDS).", !!dp, !dp && !certificate],
+    ["Upload your certificate", "A scan or photo of your council registration certificate.", certificate, !certificate && !!dp],
+    ["Submit for verification", status === "rejected" ? "We couldn't verify these details. Check them and send again." : "FMD checks your details with your dental council.", false, certificate && !dp],
+  ];
+  const done = steps.filter(([, , d]) => d).length;
+  const head = status === "rejected" ? "We couldn't verify your registration" : "You're not verified yet";
+  const cta = status === "rejected" ? "Fix your details" : "Verify now";
+  return (
+    <section id="get-verified" aria-label="Get verified" className="scroll-mt-24 sm:px-8">
+      <div className="grid gap-4 overflow-hidden rounded-2xl border border-sky-500/30 bg-gradient-to-br from-sky-500/[0.12] via-[var(--surface)] to-[var(--surface)] p-4 sm:p-5">
+        <div className="flex flex-wrap items-start gap-4">
+          <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-[0_8px_24px_rgba(37,99,235,0.35)]">
+            <BadgeCheck className="size-8" strokeWidth={1.75} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[17px] font-semibold text-ink">{head}</p>
+            <p className="mt-0.5 text-[13.5px] text-ink-2">
+              A verified badge shows patients that FMD has checked your dental council registration. Verified dentists get the blue tick, can post in Explore and show as verified in search.
+            </p>
+          </div>
+          <Link href="/account/dentist" className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-sky-600 px-5 text-[14px] font-semibold text-white hover:bg-sky-500">
+            {cta} <ChevronRight className="size-4" strokeWidth={2} />
+          </Link>
+        </div>
+        <div className="grid gap-1.5">
+          <div className="flex items-center justify-between text-[12.5px] text-ink-3">
+            <span>
+              {done} of {steps.length} steps done
+            </span>
+            {status && <Tag tone={STATUS[status].tone}>{STATUS[status].tag}</Tag>}
+          </div>
+          <span className="block h-1.5 overflow-hidden rounded-full bg-white/[0.08]" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={done} aria-label="Verification steps done">
+            <span className="block h-full rounded-full bg-gradient-to-r from-sky-400 to-blue-500 transition-[width] duration-500" style={{ width: `${(done / steps.length) * 100}%` }} />
+          </span>
+        </div>
+        <ol className="grid gap-2 sm:grid-cols-3">
+          {steps.map(([label, line, isDone, isNow], i) => (
+            <li key={label} className={`flex gap-3 rounded-xl border p-3 ${isNow ? "border-sky-500/50 bg-sky-500/[0.06]" : "border-line bg-white/[0.02]"}`}>
+              <span
+                className={`grid size-7 shrink-0 place-items-center rounded-full text-[12.5px] font-bold ${isDone ? "bg-emerald-500 text-white" : isNow ? "bg-sky-500 text-white" : "bg-white/[0.08] text-ink-3"}`}
+              >
+                {isDone ? <Check className="size-4" strokeWidth={3} /> : i + 1}
+              </span>
+              <span className="min-w-0">
+                <span className={`block text-[14px] font-semibold ${isDone ? "text-ink-2" : "text-ink"}`}>{label}</span>
+                <span className="block text-[12.5px] text-ink-3">{line}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
   );
 }
 
@@ -428,7 +510,7 @@ export function AccountSettings() {
           icon={Stethoscope}
           label={dp ? "Edit dentist profile" : "Set up dentist profile"}
           sub={dp ? `${dp.council} · Registration no. ${dp.registration_no}` : "Are you a dentist? Add your registration so patients can find you on FMD."}
-          tag={dp && <Tag tone={STATUS[dp.verification_status].tone}>{STATUS[dp.verification_status].tag}</Tag>}
+          tag={dp ? <Tag tone={STATUS[dp.verification_status].tone}>{STATUS[dp.verification_status].tag}</Tag> : type === "dentist" ? <Tag tone="bad">Not verified</Tag> : undefined}
         />
       </Group>
 

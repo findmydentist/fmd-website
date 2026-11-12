@@ -51,15 +51,29 @@ There are no passwords. Sign in with an email or Indian mobile number; a 6-digit
 
 ### Frontend-only demo (no backend)
 
-Set `NEXT_PUBLIC_FMD_DEMO=1` in `web/.env.local` and restart `npm run dev`. FMD Main then signs in against three fixed accounts in the browser (`web/src/lib/fmdDemo.ts`); nothing is sent to a server.
+Set `NEXT_PUBLIC_FMD_DEMO=1` in `web/.env.local` and restart `npm run dev`. FMD Main then signs in against four fixed accounts in the browser (`web/src/lib/fmdDemo.ts`); nothing is sent to a server. The login page lists them: tap one to fill it in.
 
 | Role | Mobile | Email | Password |
 |---|---|---|---|
 | Patient (Priya Sharma) | `90000 00001` | `patient@demo.fmd.test` | `Demo@1234` |
 | Dentist, verified (Dr. Karthik Iyer) | `90000 00002` | `dentist@demo.fmd.test` | `Demo@1234` |
 | Clinic owner (Dr. Ananya Rao, Smile Studio) | `90000 00003` | `owner@demo.fmd.test` | `Demo@1234` |
+| New dentist, not verified (Dr. Meera Nair) | `90000 00004` | `newdentist@demo.fmd.test` | `Demo@1234` |
 
-OTP login works too; the code is always `123456`. Sign-up, password reset and account-setting changes are off in this mode.
+OTP login works too; the code is always `123456`. Sign-up, password reset and most account-setting changes are off in this mode.
+
+#### Demo: a new dentist getting verified
+
+Log in as **Dr. Meera Nair** (`90000 00004`). She has just signed up as a dentist and hasn't added her registration, so she has no blue tick and can't post in Explore yet. Her profile (`/account`) shows **Not verified** in bold red by her name, a **Get verified** chip and a **You're not verified yet** card with the steps, LinkedIn style. Statuses are colour-coded everywhere: red not verified, yellow pending, green verified.
+
+1. Open **Profile → Edit profile** (or **Settings → Set up dentist profile**), at `/account/dentist`.
+2. Fill in the **Get verified** form: (1) dental council and registration number, (2) **education** (required: at least the BDS, with college and year passed) and (3) the **registration certificate** (any PDF, JPG or PNG; it stays in the browser). Press **Submit for verification**: the status becomes **Pending** (yellow).
+3. Her profile now shows **Pending** in bold yellow by her name instead of the Get verified card; Settings shows the same colour on **Edit dentist profile**.
+4. Fill in the **public profile**: photo, about, fees, languages, treatments, clinics, **work experience** (role, clinic or hospital, city, years, what you did) and **memberships and awards**. Then **Preview as a patient**.
+5. Under **Demo controls**, press **Approve as FMD (demo)** to play FMD's verification team. The status becomes **Verified**: the blue tick appears on her profile, the Get verified card and chip go away, and **Create a post** appears in Explore.
+6. **Start over (demo)** clears the registration so the walkthrough can be run again.
+
+Changing the council or registration number of a verified profile sends it back to **Pending**, as the real backend does. The registration is kept in the browser (localStorage) per account.
 
 Internal roles (`fmd_ops`, `super_admin`, `accountant`) can only come from environment variables, never from the sign-up form.
 

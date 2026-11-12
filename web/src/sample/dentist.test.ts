@@ -37,3 +37,11 @@ test("Dr. prefix", () => {
   assert.equal(drName("Dr. Karthik Iyer"), "Dr. Karthik Iyer");
   assert.equal(drName("dr Karthik"), "dr Karthik");
 });
+
+test("education and experience are checked like the rest of the profile", () => {
+  const ok = { ...EMPTY_PROFILE, education: [{ degree: "BDS", specialisation: "", college: "Demo Dental College", university: "Demo University", year: 2018 }], experience: [{ role: "Associate dentist", place: "Demo Clinic", city: "Pune", from: 2019, to: null, current: true, about: "" }] };
+  assert.equal(checkPublicProfile(ok), null);
+  assert.match(checkPublicProfile({ ...ok, education: [{ ...ok.education[0], college: " " }] })!, /college/);
+  assert.match(checkPublicProfile({ ...ok, education: [{ ...ok.education[0], year: 1900 }] })!, /Year of passing/);
+  assert.match(checkPublicProfile({ ...ok, experience: [{ ...ok.experience[0], current: false, from: 2020, to: 2018 }] })!, /end before it starts/);
+});

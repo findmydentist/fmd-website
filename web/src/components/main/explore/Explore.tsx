@@ -33,6 +33,7 @@ import { toggleSaved } from "@/sample/saved";
 import { track } from "@/lib/analytics";
 import { threads } from "@/sample/messages";
 import { MessagesDock, useDock } from "./Messages";
+import { ExploreRail } from "./Rail";
 import { StoryAvatar, StoryViewer, useSeen, type Story } from "./Stories";
 import { photoOf } from "@/sample/providers";
 
@@ -143,7 +144,7 @@ export function ExplorePage() {
     .sort((a, b) => Number(seen.includes(a.id)) - Number(seen.includes(b.id)));
 
   return (
-    <div className="mx-auto flex w-full max-w-[900px] items-start justify-center gap-10">
+    <div className="mx-auto flex w-full max-w-[900px] items-start justify-center">
       <div className="grid w-full max-w-[470px] gap-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="flex items-center gap-2.5 text-[22px] font-medium text-ink">
@@ -229,8 +230,13 @@ export function ExplorePage() {
         )}
       </div>
       {/* room for the open messages panel, which is fixed to the bottom right */}
-      {dock === "open" && <div aria-hidden className="hidden w-[380px] shrink-0 lg:block" />}
+      {/* room for the open messages panel (380px + a 40px gap); it grows and shrinks so the feed glides aside */}
+      <div
+        aria-hidden
+        className={`hidden shrink-0 transition-[width] duration-[560ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:block ${dock === "open" ? "w-[420px]" : "w-0"}`}
+      />
       <MessagesDock />
+      <ExploreRail me={me} unread={unread} canPost={canPost} tab={tab} />
     </div>
   );
 }

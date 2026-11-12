@@ -27,3 +27,18 @@ test("OTP login uses the fixed code", async () => {
   assert.equal(call("/auth/login/otp", { identifier: "9000000002", code: "000000" }).status, 401);
   assert.equal((await call("/auth/login/otp", { identifier: "9000000002", code: DEMO_OTP }).json()).id, "demo-dentist");
 });
+
+test("the new dentist: registration goes for checking, the demo approves it, and it can start over", async () => {
+  assert.equal(call("/auth/login/password", { login: "90000 00004", password: DEMO_PASSWORD }).status, 200);
+  assert.equal((await call("/auth/me").json()).dentist_profile, null);
+  assert.equal(call("/demo/verify", undefined, "POST").status, 409);
+  const saved = await call("/me/dentist-profile", { council: "Kerala State Dental Council", registration_no: "KSDC-9" }, "PUT").json();
+  assert.equal(saved.verification_status, "pending");
+  assert.equal(call("/demo/verify", undefined, "POST").status, 204);
+  assert.equal((await call("/auth/me").json()).dentist_profile.verification_status, "verified");
+  // other edits keep the status; a new number goes back for checking
+  assert.equal((await call("/me/dentist-profile", { council: "Kerala State Dental Council", registration_no: "KSDC-9", specialisation: "Endodontist" }, "PUT").json()).verification_status, "verified");
+  assert.equal((await call("/me/dentist-profile", { council: "Kerala State Dental Council", registration_no: "KSDC-10" }, "PUT").json()).verification_status, "pending");
+  assert.equal(call("/demo/reset-dentist", undefined, "POST").status, 204);
+  assert.equal((await call("/auth/me").json()).dentist_profile, null);
+});
