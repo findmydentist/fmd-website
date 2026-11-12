@@ -1,9 +1,28 @@
 "use client";
 
-import { ArrowLeft, BadgeCheck, Bookmark, BookmarkCheck, Briefcase, Flag, MapPin, ShieldQuestion } from "lucide-react";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  Banknote,
+  Bookmark,
+  BookmarkCheck,
+  Briefcase,
+  ChevronDown,
+  Clock3,
+  ExternalLink,
+  Flag,
+  GraduationCap,
+  MapPin,
+  Search,
+  ShieldQuestion,
+  Stethoscope,
+  UserRound,
+  Users,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { Button, ButtonLink, Panel, Tag } from "@/components/app/kit";
 import { Field, fieldCls, Sheet } from "@/components/app/Sheet";
 import { Notice } from "@/components/Page";
@@ -24,6 +43,7 @@ import {
   postJob,
   renewJob,
   reportJob,
+  roleGroup,
   ROLES,
   searchJobs,
   TYPES,
@@ -35,12 +55,21 @@ import { getSaved, toggleSaved } from "@/sample/saved";
 
 const salaryText = (j: Pick<Job, "salary" | "type">) => (j.salary ? `${feeRange(j.salary)} ${j.type === "locum" ? "a day" : "a month"}` : "Salary not given");
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const daysAgo = (iso: string, now = Date.now()) => Math.max(0, Math.floor((now - Date.parse(iso)) / 86_400_000));
+/** "Posted today", "Posted 1 day ago", "Posted 12 days ago" */
+const postedAgo = (iso: string) => {
+  const d = daysAgo(iso);
+  return d === 0 ? "Posted today" : `Posted ${d} ${d === 1 ? "day" : "days"} ago`;
+};
+const isNew = (iso: string) => daysAgo(iso) <= 3;
+/** a job board's blue, for the main actions and the selected card */
+const BLUE = "bg-blue-600 text-white hover:bg-blue-500";
 
 /** Whether FMD checked the employer, said plainly either way (PDR §4.9). */
 function Employer({ j }: { j: Pick<Job, "employer"> }) {
   return j.employer.verified ? (
     <span className="inline-flex items-center gap-1 text-[13px] text-ink-2">
-      <BadgeCheck className="size-4" strokeWidth={1.75} /> Employer checked by FMD
+      <BadgeCheck className="size-4 text-sky-400" strokeWidth={1.75} /> Employer checked by FMD
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 text-[13px] text-ink-3">
@@ -49,26 +78,68 @@ function Employer({ j }: { j: Pick<Job, "employer"> }) {
   );
 }
 
-function JobCard({ j }: { j: Job }) {
+/** Grey pill with an icon: pay, job type, experience (the job-board "attribute" chips). */
+function Chip({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <Link href={`/jobs/${j.id}`} className="app-panel grid gap-2 p-5 transition-colors hover:border-line-strong">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="text-[16px] font-medium text-ink">{j.title}</p>
-        <div className="flex flex-wrap gap-1.5">
-          <Tag tone="muted">{TYPES[j.type]}</Tag>
-          {j.mine && <Tag tone="accent">Yours</Tag>}
-        </div>
+    <span className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.08] px-2 py-1 text-[13px] font-medium text-ink-2">
+      <span className="text-ink-3">{icon}</span>
+      {children}
+    </span>
+  );
+}
+
+/**
+ * A job in the results list, job-board style: title, employer, place, pay and type chips, a couple of the requirements,
+ * when it was posted. On wide screens `onSelect` shows it in the side pane instead of opening its page.
+ */
+function JobCard({ j, selected = false, onSelect }: { j: Job; selected?: boolean; onSelect?: (id: string) => void }) {
+  const open = (e: MouseEvent) => {
+    if (onSelect && matchMedia("(min-width: 1024px)").matches) {
+      e.preventDefault();
+      onSelect(j.id);
+    }
+  };
+  return (
+    <Link
+      href={`/jobs/${j.id}`}
+      onClick={open}
+      aria-current={selected ? "true" : undefined}
+      className={`group relative grid gap-2 rounded-xl border p-4 transition-[border-color,background-color,box-shadow] sm:p-5 ${
+        selected ? "border-blue-500 bg-blue-500/[0.06] shadow-[inset_4px_0_0_0_var(--color-blue-500)]" : "border-line bg-[var(--surface)] hover:border-line-strong hover:shadow-[0_6px_24px_rgba(0,0,0,0.35)]"
+      }`}
+    >
+      <div className="flex flex-wrap items-center gap-1.5 pr-8">
+        {isNew(j.posted_at) && <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[11.5px] font-semibold text-emerald-400">New</span>}
+        {j.mine && <Tag tone="accent">Yours</Tag>}
+        <Tag tone="muted">Demo</Tag>
       </div>
-      <p className="text-[14px] text-ink-2">{j.employer.name}</p>
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13.5px] text-ink-3">
-        <span className="inline-flex items-center gap-1">
-          <MapPin className="size-3.5" strokeWidth={1.75} /> {j.area}, {j.city}
+      <p className="text-[17px] font-bold leading-snug text-ink group-hover:underline">{j.title}</p>
+      <div className="grid gap-0.5 text-[14px]">
+        <p className="text-ink-2">{j.employer.name}</p>
+        <p className="text-ink-3">
+          {j.area}, {j.city}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        <Chip icon={<Banknote className="size-3.5" strokeWidth={1.75} />}>{salaryText(j)}</Chip>
+        <Chip icon={<Briefcase className="size-3.5" strokeWidth={1.75} />}>{TYPES[j.type]}</Chip>
+        <Chip icon={<UserRound className="size-3.5" strokeWidth={1.75} />}>{ROLES[j.role]}</Chip>
+      </div>
+      {j.requirements.length > 0 && (
+        <ul className="grid list-disc gap-0.5 pl-5 text-[13.5px] text-ink-3">
+          {j.requirements.slice(0, 2).map((r) => (
+            <li key={r} className="line-clamp-1">
+              {r}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+        <span className="text-[12.5px] text-ink-3">
+          {postedAgo(j.posted_at)} · Posted {day(j.posted_at)}
         </span>
-        <span>{ROLES[j.role]}</span>
-        <span>{salaryText(j)}</span>
-        <span>Posted {day(j.posted_at)}</span>
-      </p>
-      <Employer j={j} />
+        <Employer j={j} />
+      </div>
     </Link>
   );
 }
@@ -82,6 +153,14 @@ const FILTERS: { key: string; label: string; options: [string, string][] }[] = [
   { key: "experience", label: "Experience you have", options: [["", "Any"], ...Object.entries(EXPERIENCE)] },
   { key: "salary_min", label: "Pay at least", options: [["", "Any"], ["25000", "₹25,000 a month"], ["50000", "₹50,000 a month"], ["75000", "₹75,000 a month"]] },
 ];
+/** the two tabs: jobs for dentists, and for the rest of the clinic team */
+const GROUPS = [
+  ["dentist", "Dentist jobs", Stethoscope],
+  ["staff", "Clinic staff jobs", Users],
+] as const;
+type Group = (typeof GROUPS)[number][0];
+/** the filter pills' labels, job-board style */
+const PILL: Record<string, string> = { role: "Role", city: "Location", type: "Job type", experience: "Experience level", salary_min: "Pay" };
 
 export function JobsPage() {
   const me = useMe();
@@ -89,6 +168,7 @@ export function JobsPage() {
   const router = useRouter();
   const key = params.toString();
   const [q, setQ] = useState(params.get("q") ?? "");
+  const [where, setWhere] = useState(params.get("city") ?? params.get("where") ?? "");
   const [res, setRes] = useState<Job[] | null>(null);
   const [canPost, setCanPost] = useState(false);
   const userId = me === undefined ? undefined : (me?.id ?? null);
@@ -107,19 +187,44 @@ export function JobsPage() {
   useEffect(() => {
     if (me) getAccountType(me.id).then((t) => setCanPost(canPostJobs(me, t)));
   }, [me]);
-  const set = (k: string, v: string) => {
+  const patch = (changes: Record<string, string | null>) => {
     const p = new URLSearchParams(params);
-    if (v) p.set(k, v);
-    else p.delete(k);
+    for (const [k, v] of Object.entries(changes)) {
+      if (v) p.set(k, v);
+      else p.delete(k);
+    }
     router.replace(p.size ? `/jobs?${p}` : "/jobs", { scroll: false });
   };
-  const submit = (e: FormEvent) => (e.preventDefault(), set("q", q.trim()));
+  const set = (k: string, v: string) => patch({ [k]: v || null });
+  /** "Where": a known city becomes the city filter; anything else (an area) narrows by place */
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const w = where.trim();
+    const city = CITIES.find((c) => c.toLowerCase() === w.toLowerCase()) ?? null;
+    patch({ q: q.trim() || null, city, where: city ? null : w || null, job: null });
+  };
+  // the tab, the open job and the sort aren't filters: clearing keeps the tab
+  const filtered = [...params.keys()].some((k) => !["group", "job", "sort"].includes(k));
+  const clear = () => (setQ(""), setWhere(""), router.replace(params.get("group") === "staff" ? "/jobs?group=staff" : "/jobs", { scroll: false }));
+
+  // place text that isn't a city, and the sort, are applied here
+  const place = (params.get("where") ?? "").toLowerCase();
+  const sort = params.get("sort") === "date" ? "date" : "relevance";
+  const words = (params.get("q") ?? "").toLowerCase();
+  const group: Group = params.get("group") === "staff" ? "staff" : "dentist";
+  const inPlace = res?.filter((j) => !place || `${j.area} ${j.city}`.toLowerCase().includes(place));
+  const count = (g: Group) => inPlace?.filter((j) => roleGroup(j.role) === g).length;
+  const shown = inPlace
+    ?.filter((j) => roleGroup(j.role) === group)
+    .sort((a, b) => (sort === "relevance" && words ? Number(b.title.toLowerCase().includes(words)) - Number(a.title.toLowerCase().includes(words)) : 0) || b.posted_at.localeCompare(a.posted_at));
+  const selected = shown?.find((j) => j.id === params.get("job")) ?? shown?.[0] ?? null;
+  const heading = `${params.get("q") ? `${params.get("q")} jobs` : GROUPS.find(([g]) => g === group)![1]}${params.get("city") ? ` in ${params.get("city")}` : place ? ` in ${params.get("where")}` : ""}`;
 
   return (
-    <div className="grid gap-5">
+    <div className="mx-auto grid w-full max-w-[1180px] grid-cols-[minmax(0,1fr)] gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="flex flex-wrap items-center gap-3 text-[24px] font-medium text-ink">
+          <h1 className="flex flex-wrap items-center gap-3 text-[24px] font-semibold text-ink">
             Dental jobs <Tag tone="muted">Demo</Tag>
           </h1>
           <p className="mt-1 text-[14.5px] text-ink-3">Jobs at clinics and dental companies. Check each employer yourself before you share personal details.</p>
@@ -129,52 +234,266 @@ export function JobsPage() {
             <ButtonLink href="/jobs/mine" variant="secondary" size="sm">
               Your postings
             </ButtonLink>
-            <ButtonLink href="/jobs/new" size="sm">
+            <Link href="/jobs/new" className={`inline-flex h-9 items-center rounded-lg px-4 text-[13.5px] font-semibold ${BLUE}`}>
               Post a job
-            </ButtonLink>
+            </Link>
           </div>
         )}
       </div>
-      <Panel className="grid gap-4 p-5">
-        <form onSubmit={submit} role="search" className="flex gap-2">
-          <input className={`${fieldCls} min-w-0 flex-1`} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Job title, clinic or area" aria-label="Search jobs" maxLength={60} />
-          <Button type="submit">Search</Button>
-        </form>
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {FILTERS.map((f) => (
-            <Field key={f.key} label={f.label}>
-              <select className={fieldCls} value={params.get(f.key) ?? ""} onChange={(e) => set(f.key, e.target.value)}>
-                {f.options.map(([v, l]) => (
-                  <option key={v} value={v}>
+
+      {/* what | where | Find jobs */}
+      <form onSubmit={submit} role="search" className="flex flex-col gap-2 rounded-2xl border border-line-strong bg-[var(--surface-elevated)] p-2 shadow-[0_6px_24px_rgba(0,0,0,0.35)] sm:flex-row sm:items-center sm:gap-0">
+        <label className="flex h-12 min-w-0 items-center gap-3 px-3 sm:flex-1">
+          <Search className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} />
+          <span className="sr-only">Search jobs</span>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Job title, keywords, or clinic" maxLength={60} className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3" />
+          {q && (
+            <button type="button" aria-label="Clear" onClick={() => setQ("")} className="text-ink-3 hover:text-ink">
+              <X className="size-4" strokeWidth={2} />
+            </button>
+          )}
+        </label>
+        <span aria-hidden className="hidden h-8 w-px bg-[var(--border-strong)] sm:block" />
+        <label className="flex h-12 min-w-0 items-center gap-3 border-t border-line px-3 sm:flex-1 sm:border-t-0">
+          <MapPin className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} />
+          <span className="sr-only">City or area</span>
+          <input value={where} onChange={(e) => setWhere(e.target.value)} list="fmd-job-places" placeholder="City or area" maxLength={60} className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3" />
+          <datalist id="fmd-job-places">
+            {CITIES.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </label>
+        <button type="submit" className={`h-12 shrink-0 rounded-xl px-6 text-[15px] font-semibold ${BLUE}`}>
+          Find jobs
+        </button>
+      </form>
+
+      {/* tabs: dentists | clinic staff (switching clears the role, which belongs to one tab) */}
+      <div role="tablist" aria-label="Who the job is for" className="flex gap-6 border-b border-line sm:gap-8">
+        {GROUPS.map(([g, label, Icon]) => {
+          const on = group === g;
+          return (
+            <button
+              key={g}
+              role="tab"
+              aria-selected={on}
+              onClick={() => patch({ group: g === "staff" ? "staff" : null, role: null, job: null })}
+              className={`-mb-px flex items-center gap-2 border-b-[3px] px-1 pb-3 pt-1 text-[15px] font-semibold transition-colors ${on ? "border-blue-500 text-ink" : "border-transparent text-ink-3 hover:text-ink"}`}
+            >
+              <Icon className="size-[18px]" strokeWidth={1.75} />
+              {label}
+              <span className={`rounded-full px-2 py-0.5 text-[12px] ${on ? "bg-blue-600 text-white" : "bg-white/[0.08] text-ink-3"}`}>{count(g) ?? "–"}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* filter pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+        {FILTERS.map((f) => {
+          const v = params.get(f.key) ?? "";
+          const options = f.key === "role" ? f.options.filter(([o]) => !o || roleGroup(o as keyof typeof ROLES) === group) : f.options;
+          const label = v ? f.options.find(([o]) => o === v)?.[1] : PILL[f.key];
+          return (
+            <span
+              key={f.key}
+              className={`relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3.5 text-[14px] font-medium transition-colors ${v ? "bg-blue-600 text-white" : "bg-white/[0.08] text-ink hover:bg-white/[0.12]"}`}
+            >
+              {label}
+              <ChevronDown className="size-4" strokeWidth={2} />
+              {/* the real control: a native select over the pill, so keyboards and screen readers work */}
+              <select aria-label={f.label} value={v} onChange={(e) => set(f.key, e.target.value)} className="absolute inset-0 cursor-pointer opacity-0 [&>option]:bg-[var(--surface)] [&>option]:text-ink">
+                {options.map(([o, l]) => (
+                  <option key={o} value={o}>
                     {l}
                   </option>
                 ))}
               </select>
-            </Field>
-          ))}
-        </div>
-      </Panel>
-      <p aria-live="polite" className="text-[13.5px] text-ink-3">
-        {res ? `${res.length} ${res.length === 1 ? "job" : "jobs"}` : "Searching…"}
-        {key && (
-          <button type="button" onClick={() => (setQ(""), router.replace("/jobs", { scroll: false }))} className="ml-3 text-ink-3 underline-offset-4 hover:text-ink hover:underline">
+            </span>
+          );
+        })}
+        {filtered && (
+          <button type="button" onClick={clear} className="shrink-0 px-2 text-[14px] font-medium text-blue-400 hover:underline">
             Clear filters
           </button>
         )}
-      </p>
-      {!res ? (
+      </div>
+
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-3">
+        <div>
+          <h2 className="text-[18px] font-semibold text-ink">{heading}</h2>
+          <p aria-live="polite" className="text-[13.5px] text-ink-3">
+            {shown ? `${shown.length} ${shown.length === 1 ? "job" : "jobs"}` : "Searching…"}
+          </p>
+        </div>
+        <p className="text-[13.5px] text-ink-3">
+          Sort by:{" "}
+          {(["relevance", "date"] as const).map((s, i) => (
+            <span key={s}>
+              {i > 0 && " - "}
+              {sort === s ? (
+                <span className="font-semibold text-ink">{s}</span>
+              ) : (
+                <button type="button" onClick={() => set("sort", s === "date" ? "date" : "")} className="text-blue-400 hover:underline">
+                  {s}
+                </button>
+              )}
+            </span>
+          ))}
+        </p>
+      </div>
+
+      {!shown ? (
         <div className="app-panel h-40 animate-pulse" aria-busy />
-      ) : res.length === 0 ? (
+      ) : shown.length === 0 ? (
         <Panel className="p-6 text-[15px] text-ink-2">No jobs match. Try fewer filters.</Panel>
       ) : (
-        <ul className="grid gap-3 lg:grid-cols-2">
-          {res.map((j) => (
-            <li key={j.id}>
-              <JobCard j={j} />
-            </li>
-          ))}
-        </ul>
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <ul key={key} className="fmd-enter grid gap-3">
+            {shown.map((j) => (
+              <li key={j.id}>
+                <JobCard j={j} selected={selected?.id === j.id} onSelect={(id) => set("job", id)} />
+              </li>
+            ))}
+          </ul>
+          {/* the selected job, beside the list on wide screens */}
+          {selected && (
+            <aside aria-label="Job details" className="sticky top-[92px] hidden max-h-[calc(100dvh-110px)] overflow-y-auto rounded-xl border border-line bg-[var(--surface)] lg:block">
+              <JobDetail key={selected.id} j={selected} pane />
+            </aside>
+          )}
+        </div>
       )}
+    </div>
+  );
+}
+
+/* ---------------- a job's details: the side pane and /jobs/[id] ---------------- */
+
+function JobDetail({ j, pane = false }: { j: Job; pane?: boolean }) {
+  const me = useMe();
+  const router = useRouter();
+  const [saved, setSaved] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [reported, setReported] = useState(false);
+  const [now] = useState(() => Date.now());
+  const userId = me?.id;
+  useEffect(() => {
+    if (userId) getSaved(userId, "job").then((l) => setSaved(l.includes(j.id)));
+  }, [userId, j.id]);
+  const state = jobState(j, now);
+  const save = async () => {
+    if (!me) return router.push(`/login?next=${encodeURIComponent(`/jobs/${j.id}`)}`);
+    setSaved(await toggleSaved(me.id, "job", j.id));
+  };
+  const applyCls = `inline-flex h-11 items-center gap-2 rounded-lg px-5 text-[15px] font-semibold ${BLUE}`;
+  const apply =
+    j.apply.method === "email" ? (
+      <a href={`mailto:${j.apply.value}?subject=${encodeURIComponent(`Application: ${j.title}`)}`} className={applyCls}>
+        Apply by email
+      </a>
+    ) : j.apply.method === "url" ? (
+      <a href={j.apply.value} target="_blank" rel="noreferrer" className={applyCls}>
+        Apply on their site <ExternalLink className="size-4" strokeWidth={2} />
+      </a>
+    ) : (
+      <a href={`tel:${j.apply.value}`} className={applyCls}>
+        Call {fmtPhone(j.apply.value)}
+      </a>
+    );
+  const rows: [string, ReactNode, ReactNode][] = [
+    ["Employer", <UserRound key="i" className="size-4" strokeWidth={1.75} />, j.employer.name],
+    ["Where", <MapPin key="i" className="size-4" strokeWidth={1.75} />, `${j.area}, ${j.city}`],
+    ["Role", <Briefcase key="i" className="size-4" strokeWidth={1.75} />, ROLES[j.role]],
+    ["Type", <Clock3 key="i" className="size-4" strokeWidth={1.75} />, TYPES[j.type]],
+    ["Experience", <GraduationCap key="i" className="size-4" strokeWidth={1.75} />, j.min_years ? `${j.min_years}+ years` : "Freshers welcome"],
+    ["Pay", <Banknote key="i" className="size-4" strokeWidth={1.75} />, salaryText(j)],
+    ["Posted", <Clock3 key="i" className="size-4" strokeWidth={1.75} />, `${day(j.posted_at)} · open until ${day(j.expires_at)}`],
+  ];
+  const Title = pane ? "h2" : "h1";
+
+  return (
+    <div className="grid">
+      {/* header: stays put while the description scrolls under it */}
+      <div className={`grid gap-3 border-b border-line bg-[var(--surface)] p-5 sm:p-6 ${pane ? "sticky top-0 z-10 shadow-[0_6px_16px_-10px_rgba(0,0,0,0.6)]" : "rounded-t-xl"}`}>
+        <div className="grid gap-1">
+          <Title className="text-[22px] font-bold leading-tight text-ink">
+            {pane ? (
+              <Link href={`/jobs/${j.id}`} className="hover:underline">
+                {j.title}
+              </Link>
+            ) : (
+              j.title
+            )}
+          </Title>
+          <p className="text-[15px] text-ink-2">{j.employer.name}</p>
+          <p className="text-[14px] text-ink-3">
+            {j.area}, {j.city}
+          </p>
+          <p className="text-[14px] text-ink-2">
+            {salaryText(j)} · {TYPES[j.type]}
+          </p>
+          <Employer j={j} />
+        </div>
+        {state !== "active" && <Notice kind="info">{state === "expired" ? "This listing has expired." : "The employer has closed this listing."} Applications aren&apos;t open.</Notice>}
+        <div className="flex flex-wrap items-center gap-2">
+          {state === "active" && apply}
+          <button type="button" onClick={save} aria-pressed={saved} aria-label={saved ? "Saved" : "Save"} title={saved ? "Saved" : "Save"} className="inline-flex h-11 items-center gap-2 rounded-lg bg-white/[0.08] px-3.5 text-[14px] font-medium text-ink hover:bg-white/[0.12]">
+            {saved ? <BookmarkCheck className="size-5 text-blue-400" strokeWidth={1.75} /> : <Bookmark className="size-5" strokeWidth={1.75} />}
+            <span className={pane ? "sr-only" : ""}>{saved ? "Saved" : "Save"}</span>
+          </button>
+          {pane && (
+            <Link href={`/jobs/${j.id}`} aria-label="Open the job in its own page" title="Open in its own page" className="grid size-11 place-items-center rounded-lg bg-white/[0.08] text-ink hover:bg-white/[0.12]">
+              <ExternalLink className="size-[18px]" strokeWidth={1.75} />
+            </Link>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-6 p-5 sm:p-6">
+        <section className="grid gap-3">
+          <h3 className="text-[18px] font-bold text-ink">Job details</h3>
+          <dl className="grid gap-3 text-[14.5px]">
+            {rows.map(([k, icon, v]) => (
+              <div key={k} className="flex gap-3">
+                <span className="mt-0.5 text-ink-3">{icon}</span>
+                <div>
+                  <dt className="font-semibold text-ink">{k}</dt>
+                  <dd className="mt-1">
+                    <span className="inline-flex rounded-md bg-white/[0.08] px-2 py-0.5 text-[13.5px] text-ink-2">{v}</span>
+                  </dd>
+                </div>
+              </div>
+            ))}
+          </dl>
+        </section>
+        <section className="grid gap-3 border-t border-line pt-6">
+          <h3 className="text-[18px] font-bold text-ink">About the job</h3>
+          <p className="whitespace-pre-line text-[14.5px] leading-relaxed text-ink-2">{j.description}</p>
+          {j.requirements.length > 0 && (
+            <>
+              <h4 className="text-[14.5px] font-semibold text-ink">What they ask for</h4>
+              <ul className="grid list-disc gap-1 pl-5 text-[14.5px] text-ink-2">
+                {j.requirements.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+        <div className="grid gap-3 border-t border-line pt-5">
+          <p className="text-[12.5px] text-ink-3">You apply with the employer directly. A real employer never asks you to pay to apply.</p>
+          {reported ? (
+            <p className="text-[13.5px] text-ink-2">Thanks, FMD&apos;s team will look at this listing.</p>
+          ) : (
+            <button type="button" onClick={() => setReporting(true)} className="inline-flex w-fit items-center gap-1.5 rounded-lg bg-white/[0.08] px-3 py-2 text-[13.5px] font-medium text-ink hover:bg-white/[0.12]">
+              <Flag className="size-4" strokeWidth={1.75} /> Report this job
+            </button>
+          )}
+        </div>
+      </div>
+      {reporting && <ReportJob userId={me?.id ?? null} id={j.id} onClose={() => setReporting(false)} onDone={() => (setReporting(false), setReported(true))} />}
     </div>
   );
 }
@@ -184,17 +503,11 @@ export function JobsPage() {
 export function JobPage() {
   const { id } = useParams<{ id: string }>();
   const me = useMe();
-  const router = useRouter();
   const [j, setJ] = useState<Job | null | undefined>(undefined);
-  const [saved, setSaved] = useState(false);
-  const [reporting, setReporting] = useState(false);
-  const [reported, setReported] = useState(false);
-  const [now] = useState(() => Date.now());
   const userId = me === undefined ? undefined : (me?.id ?? null);
   useEffect(() => {
     if (userId === undefined) return;
     getJob(userId, id).then(setJ);
-    if (userId) getSaved(userId, "job").then((l) => setSaved(l.includes(id)));
   }, [userId, id]);
   if (j === undefined) return <div className="app-panel h-64 animate-pulse" aria-busy />;
   if (j === null)
@@ -206,81 +519,14 @@ export function JobPage() {
         </ButtonLink>
       </Panel>
     );
-  const state = jobState(j, now);
-  const save = async () => {
-    if (!me) return router.push(`/login?next=${encodeURIComponent(`/jobs/${id}`)}`);
-    setSaved(await toggleSaved(me.id, "job", id));
-  };
-  const apply =
-    j.apply.method === "email" ? (
-      <ButtonLink href={`mailto:${j.apply.value}?subject=${encodeURIComponent(`Application: ${j.title}`)}`}>Apply by email</ButtonLink>
-    ) : j.apply.method === "url" ? (
-      <a href={j.apply.value} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center rounded-full bg-[var(--button-primary)] px-5 text-[14px] font-semibold text-[var(--button-primary-fg)] hover:opacity-90">
-        Apply on their site
-      </a>
-    ) : (
-      <ButtonLink href={`tel:${j.apply.value}`}>Call {fmtPhone(j.apply.value)}</ButtonLink>
-    );
-  const rows: [string, ReactNode][] = [
-    ["Employer", j.employer.name],
-    ["Where", `${j.area}, ${j.city}`],
-    ["Role", ROLES[j.role]],
-    ["Type", TYPES[j.type]],
-    ["Experience", j.min_years ? `${j.min_years}+ years` : "Freshers welcome"],
-    ["Pay", salaryText(j)],
-    ["Posted", `${day(j.posted_at)} · open until ${day(j.expires_at)}`],
-  ];
-
   return (
     <div className="mx-auto grid w-full max-w-[820px] gap-5">
       <Link href="/jobs" className="inline-flex w-fit items-center gap-1.5 text-[14px] text-ink-3 hover:text-ink">
         <ArrowLeft className="size-4" strokeWidth={1.5} /> Dental jobs
       </Link>
-      <div className="grid gap-1.5">
-        <h1 className="text-[22px] font-medium text-ink">{j.title}</h1>
-        <Employer j={j} />
+      <div className="rounded-xl border border-line bg-[var(--surface)]">
+        <JobDetail j={j} />
       </div>
-      {state !== "active" && <Notice kind="info">{state === "expired" ? "This listing has expired." : "The employer has closed this listing."} Applications aren&apos;t open.</Notice>}
-      <Panel className="p-5 sm:p-6">
-        <dl className="grid gap-2.5 text-[14.5px]">
-          {rows.map(([k, v]) => (
-            <div key={k} className="grid gap-0.5 sm:grid-cols-[130px_1fr]">
-              <dt className="text-ink-3">{k}</dt>
-              <dd className="text-ink">{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </Panel>
-      <Panel className="grid gap-3 p-5 sm:p-6">
-        <h2 className="text-[16px] font-medium text-ink">About the job</h2>
-        <p className="whitespace-pre-line text-[14.5px] text-ink-2">{j.description}</p>
-        {j.requirements.length > 0 && (
-          <>
-            <h3 className="text-[14.5px] font-medium text-ink">What they ask for</h3>
-            <ul className="grid list-disc gap-1 pl-5 text-[14.5px] text-ink-2">
-              {j.requirements.map((r) => (
-                <li key={r}>{r}</li>
-              ))}
-            </ul>
-          </>
-        )}
-      </Panel>
-      <div className="flex flex-wrap items-center gap-2">
-        {state === "active" && apply}
-        <Button variant="secondary" onClick={save} aria-pressed={saved}>
-          {saved ? <BookmarkCheck className="size-4" strokeWidth={1.75} /> : <Bookmark className="size-4" strokeWidth={1.75} />}
-          {saved ? "Saved" : "Save"}
-        </Button>
-      </div>
-      <p className="text-[12.5px] text-ink-3">You apply with the employer directly. A real employer never asks you to pay to apply.</p>
-      {reported ? (
-        <p className="text-[13.5px] text-ink-2">Thanks, FMD&apos;s team will look at this listing.</p>
-      ) : (
-        <button type="button" onClick={() => setReporting(true)} className="inline-flex w-fit items-center gap-1.5 text-[13.5px] text-ink-3 hover:text-ink">
-          <Flag className="size-4" strokeWidth={1.75} /> Report this job
-        </button>
-      )}
-      {reporting && <ReportJob userId={me?.id ?? null} id={j.id} onClose={() => setReporting(false)} onDone={() => (setReporting(false), setReported(true))} />}
     </div>
   );
 }

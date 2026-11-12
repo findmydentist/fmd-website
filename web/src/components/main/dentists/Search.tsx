@@ -518,7 +518,7 @@ export function DentistCard({ p }: { p: ProviderCard }) {
     <section className="group relative grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2.5 rounded-3xl p-3 transition-[background-color,box-shadow,translate] duration-300 hover:-translate-y-0.5 hover:bg-[var(--surface-elevated)] hover:shadow-[0_10px_36px_rgba(0,0,0,0.45)]">
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[var(--surface-elevated)]">
         {p.photo ? (
-          <Image src={p.photo} alt={`${p.name}${p.demo ? " (demo profile)" : ""}`} fill sizes="(min-width: 1280px) 340px, (min-width: 640px) 45vw, 92vw" className="object-cover transition-transform duration-500 group-hover:scale-105" />
+          <Image src={p.photo} alt={`${p.name}${p.demo ? " (demo profile)" : ""}`} fill sizes="(min-width: 1280px) 340px, (min-width: 640px) 45vw, 92vw" className="object-cover object-[center_22%] transition-transform duration-500 group-hover:scale-105" />
         ) : (
           <span className={`grid size-full place-items-center bg-gradient-to-br ${coverOf(p.specialty)} to-transparent text-[48px] font-light text-ink-2`}>{p.name.replace(/^Dr\.?\s*/, "").split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
         )}

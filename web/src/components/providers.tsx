@@ -29,12 +29,19 @@ export type ProviderProfile = ProviderCard & {
 };
 
 /** Photo, or initials when none - never a stock face standing in for a real person. */
-export function Avatar({ p, className = "" }: { p: Pick<ProviderCard, "name" | "photo" | "demo">; className?: string }) {
+/** A dentist's photo, or their initials if there is none. */
+export function Avatar({
+  p,
+  className = "",
+}: {
+  p: Pick<ProviderCard, "name" | "photo" | "demo"> & { id?: string; gender?: "female" | "male"; experienceYears?: number | null };
+  className?: string;
+}) {
   const initials = p.name.replace(/^Dr\.?\s*/, "").split(" ").map((w) => w[0]).slice(0, 2).join("");
   return (
     <div className={`relative shrink-0 overflow-hidden rounded-[16px] border border-line ${className}`}>
       {p.photo ? (
-        <Image src={p.photo} alt={`${p.name}${p.demo ? " (demo profile)" : ""}`} fill sizes="120px" className="object-cover" />
+        <Image src={p.photo} alt={`${p.name}${p.demo ? " (demo profile)" : ""}`} fill sizes="160px" className="object-cover object-[center_20%]" />
       ) : (
         <div aria-hidden className="grid size-full place-items-center bg-[var(--surface-elevated)] text-[22px] font-light text-ink-3">
           {initials}

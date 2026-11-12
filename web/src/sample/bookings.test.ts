@@ -47,16 +47,16 @@ test("a clinic without a calendar takes a request, then confirms a time in that 
 });
 
 test("cancel and reschedule: terms, events, and no double cancel", async () => {
-  const start = freeSlot("lakshmi-narayan");
-  const b = await createBooking("b5", { ...me, dentist_id: "lakshmi-narayan", start }, "k-c", NOW);
+  const start = freeSlot("nikhil-joshi");
+  const b = await createBooking("b5", { ...me, dentist_id: "nikhil-joshi", start }, "k-c", NOW);
   assert.equal(lateToCancel(b, start - 3_600_000), true);
   assert.equal(lateToCancel(b, start - 6 * 3_600_000), false);
-  const moved = await rescheduleBooking("b5", b.id, { start: freeSlot("lakshmi-narayan", 3) }, NOW);
+  const moved = await rescheduleBooking("b5", b.id, { start: freeSlot("nikhil-joshi", 3) }, NOW);
   assert.equal(moved.events.at(-1)?.type, "rescheduled");
   const c = await cancelBooking("b5", b.id, NOW);
   assert.equal(c.status, "cancelled_by_patient");
   assert.equal((await cancelBooking("b5", b.id, NOW)).events.length, c.events.length);
-  await assert.rejects(rescheduleBooking("b5", b.id, { start: freeSlot("lakshmi-narayan", 4) }, NOW), /can't be changed/);
+  await assert.rejects(rescheduleBooking("b5", b.id, { start: freeSlot("nikhil-joshi", 4) }, NOW), /can't be changed/);
 });
 
 test("a booking for someone else needs a name and a sensible age", async () => {

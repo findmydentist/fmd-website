@@ -1402,8 +1402,17 @@ html.theme-anim *::after {
    Clicks: buttons and pill links press in a touch; a like bounces. Everything stops under reduced motion. */
 :root { --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1); }
 ::view-transition { pointer-events: none; } /* clicks during a transition reach the page */
-::view-transition-old(.page) { animation: 140ms ease-in both fmd-fade-out; }
-::view-transition-new(.page) { animation: 340ms var(--ease-out-soft) 60ms both fmd-rise; }
+/* page open, like an app on an iPhone or a Mac: the new page zooms up from where you tapped (--vt-x/--vt-y, set by
+   PageTransition), corners rounded at first and opening out to the full screen; the old page sinks back, dims and blurs */
+::view-transition-group(.page) { animation: none; }
+::view-transition-old(.page) { animation: 300ms cubic-bezier(0.4, 0, 1, 1) both fmd-app-out; transform-origin: 50% 30vh; }
+::view-transition-new(.page) { animation: 560ms cubic-bezier(0.32, 0.72, 0, 1) both fmd-app-in; transform-origin: var(--vt-x, 50%) var(--vt-y, 40vh); }
+@keyframes fmd-app-in {
+  from { opacity: 0; scale: 0.82; clip-path: inset(3% round 44px); filter: blur(8px); }
+  45% { opacity: 1; filter: blur(0); }
+  to { opacity: 1; scale: 1; clip-path: inset(0 round 0); filter: none; }
+}
+@keyframes fmd-app-out { to { opacity: 0; scale: 0.93; filter: blur(6px) brightness(0.6); } }
 ::view-transition-group(dm-dock) { animation-duration: 420ms; animation-timing-function: var(--ease-out-soft); z-index: 70; }
 /* the box grows or shrinks; its contents are clipped, not stretched, and crossfade old to new */
 ::view-transition-image-pair(dm-dock) { overflow: clip; border-radius: 16px; background: var(--surface); box-shadow: 0 8px 40px rgb(0 0 0 / 0.5); }

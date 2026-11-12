@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, CalendarDays, CircleHelp, LogOut, Sparkles, UserRound } from "lucide-react";
+import { Bookmark, CircleHelp, LogOut, Sparkles, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
@@ -65,9 +65,10 @@ export function AccountMenu({ loginClassName = "" }: { loginClassName?: string }
             <p className="text-[13px] text-ink-3">{fmtPhone(me.phone)}</p>
           </div>
           <div className="pt-1.5">
+            {/* hidden for now, with the Appointments tab (MainShell); uncomment with CalendarDays in the import to bring it back
             <Link href="/appointments" onClick={close} className={itemCls}>
               <CalendarDays className="size-4" strokeWidth={1.5} /> {t("menu.appointments")}
-            </Link>
+            </Link> */}
             <Link href="/concierge/enquiries" onClick={close} className={itemCls}>
               <Sparkles className="size-4" strokeWidth={1.5} /> {t("menu.edge")}
             </Link>

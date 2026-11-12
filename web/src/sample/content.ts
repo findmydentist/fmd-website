@@ -57,7 +57,7 @@ const key = (what: string, userId: string) => `fmd-demo:${what}:${userId}`;
 const DR = (id: string, name: string, specialty: string, verified = true): Author => ({ id, name, specialty, verified, kind: "dentist" });
 const ADITI = DR("aditi-sharma", "Dr. Aditi Sharma", "General Dentist");
 const ROHAN = DR("rohan-mehta", "Dr. Rohan Mehta", "Orthodontist");
-const MEENAKSHI = DR("meenakshi-pillai", "Dr. Meenakshi Pillai", "Periodontist");
+const MEENAKSHI = DR("ananya-gupta", "Dr. Ananya Gupta", "General Dentist"); // her gum-health posts
 const FARAH = DR("farah-khan", "Dr. Farah Khan", "Pediatric Dentist");
 const SNEHA = DR("sneha-iyer", "Dr. Sneha Iyer", "Implantologist");
 const PRIYANKA = DR("priyanka-shah", "Dr. Priyanka Shah", "Implantologist");

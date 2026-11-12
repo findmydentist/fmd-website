@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, BadgeCheck, Bookmark, CreditCard, Lock, Monitor, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Stethoscope, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Bookmark, ChevronDown, ChevronRight, CreditCard, Lock, LogOut, Mail, Monitor, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Stethoscope, UserPlus, UserRound, X, type LucideIcon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Button, ButtonLink, Panel, Tag } from "@/components/app/kit";
@@ -14,6 +15,7 @@ import { following, getPost, type Author, type FeedItem } from "@/sample/content
 import { getSaved } from "@/sample/saved";
 import { PostGrid } from "../dentists/Profile";
 import { coverOf, Ring } from "../explore/Explore";
+import { StoryViewer, useSeen, type Story } from "../explore/Stories";
 import { STATUS } from "./Dentist";
 
 /* ---------------- formatting ---------------- */
@@ -38,13 +40,68 @@ const submit = (fn: () => void) => (e: FormEvent) => {
 
 /* ---------------- /account: the profile ---------------- */
 
-/** Instagram-style highlights: shortcuts to the account's other pages */
-const SHORTCUTS: [string, string, LucideIcon][] = [
-  ["/membership", "Membership", CreditCard],
-  ["/account/personalisation", "Personalise", SlidersHorizontal],
-  ["/account/privacy", "Privacy", Lock],
-  ["/saved", "Saved", Bookmark],
-  ["/account/dentist", "Dentist", Stethoscope],
+/** Instagram-style "Suggested for you" cards: the account's other pages, each a tap away (and dismissable) */
+const SUGGESTIONS: { id: string; href: string; title: string; text: string; action: string; Icon: LucideIcon }[] = [
+  { id: "membership", href: "/membership", title: "Membership", text: "Your plan, renewal, payments and receipts.", action: "Manage", Icon: CreditCard },
+  { id: "personalise", href: "/account/personalisation", title: "Personalise", text: "Choose what Explore and suggestions show you.", action: "Set up", Icon: SlidersHorizontal },
+  { id: "privacy", href: "/account/privacy", title: "Privacy", text: "Consents, messages, your data, or deleting it.", action: "Review", Icon: Lock },
+  { id: "saved", href: "/saved", title: "Saved", text: "Dentists, posts and jobs you've kept.", action: "Open", Icon: Bookmark },
+  { id: "dentist", href: "/account/dentist", title: "Dentist profile", text: "Are you a dentist? Get verified so patients find you.", action: "Open", Icon: Stethoscope },
+];
+const DISMISSED_KEY = "fmd-demo:dismissed-suggestions";
+
+/** Demo highlights: little saved stories from a patient's dental year, opened in the story viewer. */
+const HIGHLIGHTS: Story[] = [
+  {
+    id: "hl-checkups",
+    name: "Check-ups",
+    photo: "/img/tx-cleaning.png",
+    slides: [
+      { image: "/img/tx-cleaning.png", fit: "inset", tone: "from-emerald-500/40 via-teal-500/20", eyebrow: "March 2026", title: "Six-monthly check-up", text: "Scaling and polish at Demo Dental Studio. All clear, next visit in September. (Demo)" },
+      { tone: "from-sky-500/40 via-indigo-500/20", eyebrow: "Tip from my dentist", title: "Floss once a day", text: "Brushing misses the gaps between teeth. Gentle flossing or interdental brushes reach them.", link: { href: "/explore", label: "More tips in Explore" } },
+    ],
+  },
+  {
+    id: "hl-aligners",
+    name: "Aligners",
+    photo: "/img/tx-aligners.png",
+    slides: [
+      { image: "/img/tx-aligners.png", fit: "inset", tone: "from-sky-500/40 via-blue-500/20", eyebrow: "Week 1", title: "First set of trays", text: "A bit tight for two days, then fine. 22 hours a day! (Demo)" },
+      { image: "/img/tx-aligners.png", fit: "inset", tone: "from-violet-500/40 via-indigo-500/20", eyebrow: "Week 12", title: "Halfway there", text: "The gap at the front is nearly closed.", link: { href: "/dentists?specialty=Orthodontist", label: "Find orthodontists" } },
+    ],
+  },
+  {
+    id: "hl-whitening",
+    name: "Whitening",
+    photo: "/img/tx-whitening.png",
+    slides: [
+      { image: "/img/tx-whitening.png", fit: "inset", tone: "from-amber-500/40 via-rose-500/20", eyebrow: "Before the wedding", title: "In-clinic whitening", text: "Two shades brighter in one visit. Sensitivity for a day, then gone. (Demo)", link: { href: "/dentists?service=Teeth+Whitening", label: "Find whitening" } },
+    ],
+  },
+  {
+    id: "hl-implants",
+    name: "Implants",
+    photo: "/img/tx-implants.png",
+    slides: [
+      { image: "/img/tx-implants.png", fit: "inset", tone: "from-cyan-500/40 via-sky-500/20", eyebrow: "Reading up", title: "How implants work", text: "Assessment, placing the implant, healing, then the crown. It takes a few months. (Demo)", link: { href: "/dentists?service=Dental+Implants", label: "Find implant dentists" } },
+    ],
+  },
+  {
+    id: "hl-my-dentist",
+    name: "My dentist",
+    photo: "/dentists-pics/aditi-sharma.jpg",
+    slides: [
+      { image: "/dentists-pics/aditi-sharma.jpg", eyebrow: "Since 2024", title: "Dr. Aditi Sharma", text: "General Dentist at Demo Dental Studio, Koramangala. (Demo)", link: { href: "/dentists/aditi-sharma", label: "View profile" } },
+    ],
+  },
+  {
+    id: "hl-kids",
+    name: "Kids",
+    photo: "/dentists-pics/farah-khan.jpg",
+    slides: [
+      { image: "/dentists-pics/farah-khan.jpg", eyebrow: "First visit", title: "Aarav met the dentist!", text: "Dr. Farah Khan made it fun. No tears, one sticker. (Demo)", link: { href: "/dentists/farah-khan", label: "View profile" } },
+    ],
+  },
 ];
 
 /** /account, laid out like an Instagram profile: who you are, counts, shortcuts and what you've saved. Changes live in /account/settings. */
@@ -54,6 +111,28 @@ export function Account() {
   const [savedDentists, setSavedDentists] = useState(0);
   const [follows, setFollows] = useState<Author[]>([]);
   const [showFollowing, setShowFollowing] = useState(false);
+  const [watching, setWatching] = useState<{ list: Story[]; start: number } | null>(null);
+  const [seen, markSeen] = useSeen();
+  const [showSuggest, setShowSuggest] = useState(true);
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage is only readable after mounting
+      setDismissed(JSON.parse(localStorage.getItem(DISMISSED_KEY) ?? "[]"));
+    } catch {
+      // storage blocked: show them all
+    }
+  }, []);
+  const dismiss = (id: string) =>
+    setDismissed((d) => {
+      const next = [...d, id];
+      try {
+        localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+      } catch {
+        // dismissed for this visit only
+      }
+      return next;
+    });
   const userId = me?.id;
   useEffect(() => {
     if (!userId) return;
@@ -75,6 +154,9 @@ export function Account() {
       <ButtonLink href="/saved" variant="secondary" size="sm">
         Saved items
       </ButtonLink>
+      <Button variant="secondary" size="sm" aria-pressed={showSuggest} aria-label={showSuggest ? "Hide suggestions" : "Show suggestions"} title="Suggested for you" onClick={() => setShowSuggest((v) => !v)} className="!px-3">
+        <UserPlus className="size-4" strokeWidth={2} />
+      </Button>
       <Link href="/account/settings" aria-label="Settings" title="Settings" className="grid size-9 place-items-center rounded-full text-ink hover:bg-[var(--surface-glass)]">
         <Settings className="size-[22px]" strokeWidth={1.75} />
       </Link>
@@ -121,21 +203,51 @@ export function Account() {
         <div className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">{actions}</div>
       </div>
 
-      {/* highlights */}
-      <ul aria-label="Shortcuts" className="-mx-4 flex gap-5 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-8">
-        {SHORTCUTS.map(([href, label, Icon]) => (
-          <li key={href} className="shrink-0">
-            <Link href={href} className="grid w-[76px] justify-items-center gap-1.5 text-center">
-              <span className="grid size-16 place-items-center rounded-full border border-line-strong bg-[var(--surface-glass)] p-[3px]">
-                <span className={`grid size-full place-items-center rounded-full bg-gradient-to-br ${coverOf(label)} to-transparent text-ink`}>
-                  <Icon className="size-6" strokeWidth={1.5} />
+      {/* suggested for you: the account's other pages, as Instagram suggests accounts */}
+      {showSuggest && SUGGESTIONS.some((x) => !dismissed.includes(x.id)) && (
+        <section aria-label="Suggested for you" className="fmd-enter grid gap-3 sm:px-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[14px] font-semibold text-ink">Suggested for you</h2>
+            <Link href="/account/settings" className="text-[13.5px] font-semibold text-sky-400 hover:text-sky-300">
+              See all
+            </Link>
+          </div>
+          <ul className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0">
+            {SUGGESTIONS.filter((x) => !dismissed.includes(x.id)).map(({ id, href, title, text, action, Icon }) => (
+              <li key={id} className="relative grid w-[164px] shrink-0 justify-items-center gap-2 rounded-xl border border-line bg-[var(--surface)] px-3 pb-3 pt-5 text-center">
+                <button type="button" onClick={() => dismiss(id)} aria-label={`Dismiss ${title}`} className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full text-ink-3 hover:bg-white/[0.06] hover:text-ink">
+                  <X className="size-4" strokeWidth={2} />
+                </button>
+                <span className={`grid size-16 place-items-center rounded-full bg-gradient-to-br ${coverOf(title)} to-[var(--surface-elevated)] text-ink`}>
+                  <Icon className="size-7" strokeWidth={1.5} />
+                </span>
+                <p className="text-[14px] font-semibold text-ink">{id === "dentist" && me.dentist_profile ? "Your dentist profile" : title}</p>
+                <p className="line-clamp-2 min-h-[2lh] text-[12px] leading-snug text-ink-3">{text}</p>
+                <Link href={href} className="mt-1 w-full rounded-lg bg-sky-600 py-1.5 text-[13.5px] font-semibold text-white hover:bg-sky-500">
+                  {id === "dentist" ? (me.dentist_profile ? "Edit" : "Set up") : action}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* highlights: demo stories, opened in the story viewer */}
+      <ul aria-label="Highlights" className="-mx-4 flex gap-5 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-8">
+        {HIGHLIGHTS.map((h, i) => (
+          <li key={h.id} className="shrink-0">
+            <button type="button" onClick={() => setWatching({ list: HIGHLIGHTS.map((x) => ({ ...x, name: `${me.full_name} · ${x.name}` })), start: i })} className="grid w-[76px] justify-items-center gap-1.5 text-center" aria-label={`Highlight: ${h.name}`}>
+              <span className={`block rounded-full border p-[3px] ${seen.includes(h.id) ? "border-line" : "border-line-strong"}`}>
+                <span className="relative block size-16 overflow-hidden rounded-full bg-[var(--surface-elevated)]">
+                  <Image src={h.photo!} alt="" fill sizes="64px" className="object-cover object-[center_20%]" />
                 </span>
               </span>
-              <span className="w-full truncate text-[12px] text-ink-2">{label}</span>
-            </Link>
+              <span className="w-full truncate text-[12px] font-medium text-ink-2">{h.name}</span>
+            </button>
           </li>
         ))}
       </ul>
+      {watching && <StoryViewer stories={watching.list} start={watching.start} onClose={() => setWatching(null)} onSeen={markSeen} />}
 
       {/* saved posts, under Instagram's single-tab bar */}
       <section id="saved" aria-label="Saved posts" className="scroll-mt-24">
@@ -194,21 +306,71 @@ export function Account() {
   );
 }
 
-/* ---------------- /account/settings: every change, on one page ---------------- */
+/* ---------------- /account/settings: one simple list, like Instagram's settings ---------------- */
 
 type Open = "email" | "email-verify" | "email-remove" | "mfa-on" | "mfa-off" | "logout-all" | null;
-const SECTIONS: [string, string, LucideIcon][] = [
-  ["profile", "Your profile", UserRound],
-  ["security", "Login and security", ShieldCheck],
-  ["devices", "Devices", Monitor],
-  ["more", "Membership and privacy", Settings],
-];
+type Expand = "email" | "mfa" | "devices" | null;
+
+/** a titled group of rows in one rounded box */
+function Group({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
+  return (
+    <section id={id} aria-label={title} className="grid scroll-mt-24 gap-2">
+      <h2 className="px-1 text-[13px] font-semibold text-ink-3">{title}</h2>
+      <div className="divide-y divide-[var(--border)] overflow-hidden rounded-2xl border border-line bg-[var(--surface)]">{children}</div>
+    </section>
+  );
+}
+
+const rowCls = "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.04]";
+function RowBody({ icon: Icon, label, sub, tag, tone = "" }: { icon: LucideIcon; label: string; sub?: ReactNode; tag?: ReactNode; tone?: string }) {
+  return (
+    <>
+      <span className={`grid size-10 shrink-0 place-items-center rounded-full bg-white/[0.06] ${tone || "text-ink-2"}`}>
+        <Icon className="size-5" strokeWidth={1.75} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className={`block text-[15px] font-medium ${tone || "text-ink"}`}>{label}</span>
+        {sub && <span className="block truncate text-[13px] text-ink-3">{sub}</span>}
+      </span>
+      {tag}
+    </>
+  );
+}
+function LinkRow({ href, ...body }: { href: string } & Parameters<typeof RowBody>[0]) {
+  return (
+    <Link href={href} className={rowCls}>
+      <RowBody {...body} />
+      <ChevronRight className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} />
+    </Link>
+  );
+}
+function ExpandRow({ open, onToggle, children, ...body }: { open: boolean; onToggle: () => void; children: ReactNode } & Parameters<typeof RowBody>[0]) {
+  return (
+    <div>
+      <button type="button" aria-expanded={open} onClick={onToggle} className={rowCls}>
+        <RowBody {...body} />
+        <ChevronDown className={`size-5 shrink-0 text-ink-3 transition-transform duration-300 ${open ? "rotate-180" : ""}`} strokeWidth={1.75} />
+      </button>
+      {open && <div className="fmd-enter border-t border-line bg-white/[0.02]">{children}</div>}
+    </div>
+  );
+}
 
 /** /account/settings: account type, dentist profile, email, two-step verification, devices, membership, personalisation and privacy (FastAPI /me/*). */
 export function AccountSettings() {
   const me = useRequireMe();
   const [open, setOpen] = useState<Open>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  // a link to #security or #devices (notifications, the privacy page) opens that row
+  const [expand, setExpand] = useState<Expand>(() => {
+    const h = typeof window === "undefined" ? "" : location.hash;
+    return h === "#devices" ? "devices" : h === "#security" ? "email" : null;
+  });
+  const [type, setType] = useState<AccountType | null | undefined>(undefined);
+  const userId = me?.id;
+  useEffect(() => {
+    if (userId) getAccountType(userId).then(setType);
+  }, [userId]);
   if (!me) return <div className="app-panel h-40 animate-pulse" aria-busy />;
 
   const close = () => setOpen(null);
@@ -218,100 +380,108 @@ export function AccountSettings() {
     authChanged();
   };
   const show = (o: Open) => (setFlash(null), setOpen(o));
-  const heading = "mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-ink-3";
+  const toggle = (e: Expand) => setExpand((x) => (x === e ? null : e));
+  const t = type ? ACCOUNT_TYPES[type] : null;
+  const dp = me.dentist_profile;
+  const emailTag = !me.email ? <Tag tone="muted">Not added</Tag> : me.email_verified ? <Tag tone="ok">Verified</Tag> : <Tag tone="warn">Not verified</Tag>;
 
   return (
-    <div className="mx-auto grid w-full max-w-[1000px] gap-5">
-      <Link href="/account" className="inline-flex w-fit items-center gap-1.5 text-[14px] text-ink-3 hover:text-ink">
-        <ArrowLeft className="size-4" strokeWidth={1.5} /> Your profile
-      </Link>
-      <h1 className="text-[24px] font-semibold text-ink">Settings</h1>
-
-      <div className="grid items-start gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-        {/* Instagram's settings list: a column on desktop, a row of chips on phones */}
-        <nav aria-label="Settings" className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] lg:sticky lg:top-24 lg:mx-0 lg:grid lg:gap-1 lg:px-0">
-          {SECTIONS.map(([id, label, Icon]) => (
-            <a key={id} href={`#${id}`} className="flex shrink-0 items-center gap-3 rounded-full border border-line px-3.5 py-2 text-[14px] text-ink-2 hover:bg-[var(--surface-glass)] hover:text-ink lg:rounded-lg lg:border-0 lg:px-3 lg:py-2.5">
-              <Icon className="size-[18px]" strokeWidth={1.75} />
-              {label}
-            </a>
-          ))}
-        </nav>
-
-        <div className="grid gap-8">
-          {flash && <Notice kind="success">{flash}</Notice>}
-
-          <section id="profile" className="scroll-mt-24">
-            <h2 className={heading}>Your profile</h2>
-            <Panel className="mb-5 flex items-center gap-4 p-5 sm:p-6">
-              <Ring>
-                <span className="grid size-14 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] text-[17px] font-semibold text-ink">{initials(me.full_name)}</span>
-              </Ring>
-              <div className="min-w-0">
-                <p className="truncate text-[17px] font-medium text-ink">{me.full_name}</p>
-                <p className="text-[14px] text-ink-3">{fmtPhone(me.phone)}</p>
-                <p className="mt-0.5 text-[13px] text-ink-3">Member since {since(me.created_at)}</p>
-              </div>
-            </Panel>
-            <div className="grid gap-5 lg:grid-cols-2">
-              <AccountTypeCard me={me} />
-              <DentistCard me={me} />
-            </div>
-          </section>
-
-          <section id="security" className="scroll-mt-24">
-            <h2 className={heading}>Login and security</h2>
-            <div className="grid gap-5 lg:grid-cols-2">
-              <EmailCard me={me} show={show} />
-              <Card
-                title="Two-step verification"
-                tag={me.mfa_enabled ? <Tag tone="ok">On</Tag> : <Tag tone="muted">Off</Tag>}
-                text={
-                  me.mfa_enabled
-                    ? `Logging in with your password also needs a code we text to ${fmtPhone(me.phone)}.`
-                    : `Add a second step: when you log in with your password, we'll also text a code to ${fmtPhone(me.phone)}.`
-                }
-              >
-                {me.mfa_enabled ? (
-                  <Button variant="secondary" size="sm" onClick={() => show("mfa-off")}>
-                    Turn off
-                  </Button>
-                ) : (
-                  <Button size="sm" onClick={() => show("mfa-on")}>
-                    Turn on
-                  </Button>
-                )}
-              </Card>
-            </div>
-          </section>
-
-          <section id="devices" className="scroll-mt-24">
-            <h2 className={heading}>Devices</h2>
-            <Devices onSignOutAll={() => show("logout-all")} />
-          </section>
-
-          <section id="more" className="scroll-mt-24">
-            <h2 className={heading}>Membership and privacy</h2>
-            <div className="grid gap-5">
-              <Card title="Membership" text="Your plan, renewal, usage, payments and receipts.">
-                <ButtonLink href="/membership" size="sm" variant="secondary">
-                  Manage membership
-                </ButtonLink>
-              </Card>
-              <Card title="Personalisation" text="What Explore and suggestions use, and how to change or reset it.">
-                <ButtonLink href="/account/personalisation" size="sm" variant="secondary">
-                  Manage personalisation
-                </ButtonLink>
-              </Card>
-              <Card title="Privacy and data" text="Your consents, which messages you get, a copy of your data, or deleting your account.">
-                <ButtonLink href="/account/privacy" size="sm" variant="secondary">
-                  Manage privacy and data
-                </ButtonLink>
-              </Card>
-            </div>
-          </section>
-        </div>
+    <div className="mx-auto grid w-full max-w-[640px] gap-6">
+      <div className="flex items-center gap-2">
+        <Link href="/account" aria-label="Back to your profile" title="Your profile" className="-ml-2 grid size-10 place-items-center rounded-full text-ink hover:bg-[var(--surface-glass)]">
+          <ArrowLeft className="size-5" strokeWidth={1.75} />
+        </Link>
+        <h1 className="text-[22px] font-semibold text-ink">Settings</h1>
       </div>
+
+      {/* who's signed in */}
+      <Link href="/account" className="flex items-center gap-4 rounded-2xl border border-line bg-[var(--surface)] p-4 transition-colors hover:bg-white/[0.04]">
+        <Ring>
+          <span className="grid size-14 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] text-[17px] font-semibold text-ink">{initials(me.full_name)}</span>
+        </Ring>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[17px] font-semibold text-ink">{me.full_name}</span>
+          <span className="block text-[14px] text-ink-3">{fmtPhone(me.phone)}</span>
+          <span className="block text-[13px] text-ink-3">Member since {since(me.created_at)}</span>
+        </span>
+        <ChevronRight className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} />
+      </Link>
+
+      {flash && <Notice kind="success">{flash}</Notice>}
+
+      <Group id="profile" title="Your account">
+        <LinkRow
+          href="/onboarding?next=%2Faccount%2Fsettings"
+          icon={UserRound}
+          label="Account type"
+          sub={
+            type === undefined
+              ? "…"
+              : t
+                ? `${t.label} · ${t.price}${t.yearly ? ". Works as a free account until the membership is paid." : ""}`
+                : "Tell us how you use FMD, so we show you the right things."
+          }
+          tag={<Tag tone="muted">Demo</Tag>}
+        />
+        <LinkRow
+          href="/account/dentist"
+          icon={Stethoscope}
+          label={dp ? "Edit dentist profile" : "Set up dentist profile"}
+          sub={dp ? `${dp.council} · Registration no. ${dp.registration_no}` : "Are you a dentist? Add your registration so patients can find you on FMD."}
+          tag={dp && <Tag tone={STATUS[dp.verification_status].tone}>{STATUS[dp.verification_status].tag}</Tag>}
+        />
+      </Group>
+
+      <Group id="security" title="Login and security">
+        <ExpandRow open={expand === "email"} onToggle={() => toggle("email")} icon={Mail} label="Email" sub={me.email ?? "Add an email to log in with it"} tag={emailTag}>
+          <EmailCard me={me} show={show} flat />
+        </ExpandRow>
+        <ExpandRow
+          open={expand === "mfa"}
+          onToggle={() => toggle("mfa")}
+          icon={ShieldCheck}
+          label="Two-step verification"
+          sub={me.mfa_enabled ? "A text code when you log in with your password" : "Add a second step when you log in"}
+          tag={me.mfa_enabled ? <Tag tone="ok">On</Tag> : <Tag tone="muted">Off</Tag>}
+        >
+          <Card
+            flat
+            title="Two-step verification"
+            text={
+              me.mfa_enabled
+                ? `Logging in with your password also needs a code we text to ${fmtPhone(me.phone)}.`
+                : `Add a second step: when you log in with your password, we'll also text a code to ${fmtPhone(me.phone)}.`
+            }
+          >
+            {me.mfa_enabled ? (
+              <Button variant="secondary" size="sm" onClick={() => show("mfa-off")}>
+                Turn off
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => show("mfa-on")}>
+                Turn on
+              </Button>
+            )}
+          </Card>
+        </ExpandRow>
+        <div id="devices" className="scroll-mt-24">
+          <ExpandRow open={expand === "devices"} onToggle={() => toggle("devices")} icon={Monitor} label="Where you're signed in" sub="Your devices, and signing out of them">
+            <Devices onSignOutAll={() => show("logout-all")} flat />
+          </ExpandRow>
+        </div>
+      </Group>
+
+      <Group id="more" title="Membership and privacy">
+        <LinkRow href="/membership" icon={CreditCard} label="Membership" sub="Your plan, renewal, usage, payments and receipts." />
+        <LinkRow href="/account/personalisation" icon={SlidersHorizontal} label="Personalisation" sub="What Explore and suggestions use, and how to change or reset it." />
+        <LinkRow href="/account/privacy" icon={Lock} label="Privacy and data" sub="Your consents, which messages you get, a copy of your data, or deleting your account." />
+      </Group>
+
+      <Group title="Login">
+        <button type="button" onClick={() => logout().catch(() => setFlash(null))} className={rowCls}>
+          <RowBody icon={LogOut} label="Log out" tone="text-[var(--tone-bad)]" />
+        </button>
+      </Group>
 
       {(open === "email" || open === "email-verify") && <EmailSheet me={me} verifyOnly={open === "email-verify"} onDone={done} onClose={close} />}
       {open === "email-remove" && (
@@ -340,7 +510,15 @@ export function AccountSettings() {
   );
 }
 
-function Card({ title, tag, text, children }: { title: string; tag?: ReactNode; text: ReactNode; children?: ReactNode }) {
+/** A settings card; `flat` drops the box and the title, for use inside an opened row. */
+function Card({ title, tag, text, children, flat = false }: { title: string; tag?: ReactNode; text: ReactNode; children?: ReactNode; flat?: boolean }) {
+  if (flat)
+    return (
+      <div className="grid gap-3 px-4 py-4 sm:pl-[70px]">
+        <div className="text-[14px] text-ink-2">{text}</div>
+        {children && <div className="flex flex-wrap gap-2">{children}</div>}
+      </div>
+    );
   return (
     <Panel as="section" className="flex flex-col gap-3 p-5 sm:p-6">
       <div className="flex items-center justify-between gap-3">
@@ -353,51 +531,12 @@ function Card({ title, tag, text, children }: { title: string; tag?: ReactNode; 
   );
 }
 
-function AccountTypeCard({ me }: { me: Me }) {
-  const [type, setType] = useState<AccountType | null | undefined>(undefined);
-  useEffect(() => {
-    getAccountType(me.id).then(setType);
-  }, [me.id]);
-  if (type === undefined) return <div className="app-panel h-40 animate-pulse" aria-busy />;
-  const t = type && ACCOUNT_TYPES[type];
-  return (
-    <Card
-      title="Account type"
-      tag={<Tag tone="muted">Demo</Tag>}
-      text={
-        t
-          ? `${t.label} · ${t.price}${t.yearly ? ". Works as a free account until the membership is paid." : ""}`
-          : "Tell us how you use FMD, so we show you the right things."
-      }
-    >
-      <ButtonLink href="/onboarding?next=%2Faccount%2Fsettings" size="sm" variant={t ? "secondary" : "primary"}>
-        {t ? "Change" : "Choose account type"}
-      </ButtonLink>
-    </Card>
-  );
-}
-
-function DentistCard({ me }: { me: Me }) {
-  const p = me.dentist_profile;
-  return (
-    <Card
-      title="Dentist profile"
-      tag={p && <Tag tone={STATUS[p.verification_status].tone}>{STATUS[p.verification_status].tag}</Tag>}
-      text={p ? `${p.council} · Registration no. ${p.registration_no}` : "Are you a dentist? Add your registration so patients can find you on FMD."}
-    >
-      <ButtonLink href="/account/dentist" size="sm" variant={p ? "secondary" : "primary"}>
-        {p ? "Edit dentist profile" : "Set up dentist profile"}
-      </ButtonLink>
-    </Card>
-  );
-}
-
 /* ---------------- email ---------------- */
 
-function EmailCard({ me, show }: { me: Me; show: (o: Open) => void }) {
+function EmailCard({ me, show, flat = false }: { me: Me; show: (o: Open) => void; flat?: boolean }) {
   if (!me.email)
     return (
-      <Card title="Email" tag={<Tag tone="muted">Not added</Tag>} text="Add an email to log in with it and to get security alerts.">
+      <Card flat={flat} title="Email" tag={<Tag tone="muted">Not added</Tag>} text="Add an email to log in with it and to get security alerts.">
         <Button size="sm" onClick={() => show("email")}>
           Add email
         </Button>
@@ -410,7 +549,7 @@ function EmailCard({ me, show }: { me: Me; show: (o: Open) => void }) {
   );
   if (!me.email_verified)
     return (
-      <Card
+      <Card flat={flat}
         title="Email"
         tag={<Tag tone="warn">Not verified</Tag>}
         text={
@@ -428,7 +567,7 @@ function EmailCard({ me, show }: { me: Me; show: (o: Open) => void }) {
       </Card>
     );
   return (
-    <Card
+    <Card flat={flat}
       title="Email"
       tag={<Tag tone="ok">Verified</Tag>}
       text={
@@ -584,7 +723,7 @@ function PasswordSheet({
 
 /* ---------------- devices ---------------- */
 
-function Devices({ onSignOutAll }: { onSignOutAll: () => void }) {
+function Devices({ onSignOutAll, flat = false }: { onSignOutAll: () => void; flat?: boolean }) {
   const [list, setList] = useState<Session[] | undefined>(undefined);
   const [err, setErr] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -614,7 +753,7 @@ function Devices({ onSignOutAll }: { onSignOutAll: () => void }) {
   };
 
   return (
-    <Card title="Where you're signed in" text="Sign out of any device you don't recognise.">
+    <Card flat={flat} title="Where you're signed in" text="Sign out of any device you don't recognise.">
       <div className="grid w-full gap-4">
         {err && (
           <Notice kind="error">

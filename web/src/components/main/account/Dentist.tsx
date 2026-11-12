@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowLeft, BadgeCheck, CircleAlert, Check, Plus, X } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CircleAlert, Check, Eye, Plus, Upload, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
-import { Button, Chips, IconButton, Panel, Tag, type Tone } from "@/components/app/kit";
+import { Chips, IconButton, Panel, Tag, type Tone } from "@/components/app/kit";
 import { Field, fieldCls, Sheet } from "@/components/app/Sheet";
 import { useRun } from "@/components/auth/AuthForms";
 import { Notice } from "@/components/Page";
@@ -22,6 +22,7 @@ import {
   type PublicProfile,
   type VerificationDoc,
 } from "@/sample/dentist";
+import { Ring } from "../explore/Explore";
 
 type Status = DentistProfile["verification_status"];
 
@@ -42,23 +43,32 @@ const submit = (fn: () => void) => (e: FormEvent) => {
 const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 const kb = (bytes: number) => (bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
 
-/** /account/dentist */
+/** /account/dentist: "Edit profile", laid out like Instagram's: photo card, verification card, then the profile fields */
 export function DentistProfilePage() {
   const me = useRequireMe();
+  const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [doc, setDoc] = useState<VerificationDoc | null | undefined>(undefined);
+  const userId = me?.id;
+  useEffect(() => {
+    if (!userId) return;
+    getPublicProfile(userId).then(setProfile);
+    getDocument(userId).then(setDoc);
+  }, [userId]);
   if (!me) return <div className="app-panel h-40 animate-pulse" aria-busy />;
   return (
-    <div className="grid gap-5">
-      <Link href="/account/settings" className="inline-flex w-fit items-center gap-1.5 text-[14px] text-ink-3 hover:text-ink">
-        <ArrowLeft className="size-4" strokeWidth={1.5} /> Settings
-      </Link>
-      <div>
-        <h1 className="text-[24px] font-medium text-ink">Dentist profile</h1>
-        <p className="mt-1 max-w-[680px] text-[14.5px] text-ink-3">
-          Patients see your public profile when they search FMD. FMD checks your registration before your profile shows as verified.
-        </p>
+    <div className="mx-auto grid w-full max-w-[680px] gap-5">
+      <div className="flex items-center gap-2">
+        <Link href="/account/settings" aria-label="Back to settings" title="Settings" className="-ml-2 grid size-10 place-items-center rounded-full text-ink hover:bg-[var(--surface-glass)]">
+          <ArrowLeft className="size-5" strokeWidth={1.75} />
+        </Link>
+        <h1 className="text-[22px] font-semibold text-ink">Edit profile</h1>
       </div>
-      <Registration me={me} />
-      <DemoParts me={me} />
+      <p className="-mt-2 text-[14px] text-ink-3">Patients see your public profile when they search FMD. FMD checks your registration before your profile shows as verified.</p>
+      {!profile || doc === undefined ? (
+        <div className="app-panel h-64 animate-pulse" aria-busy />
+      ) : (
+        <PublicSection me={me} initial={profile} verification={<VerificationCard me={me} doc={doc} onDoc={setDoc} />} />
+      )}
     </div>
   );
 }
@@ -77,97 +87,26 @@ export function Section({ title, tag, text, children }: { title: string; tag?: R
 }
 
 const demoTag = <Tag tone="muted">Demo · saved in this browser</Tag>;
+const BLUE = "bg-sky-600 text-white hover:bg-sky-500";
+/** an Instagram-style form row: a bold label (and an optional note on the right) above the control */
+function Row({ label, note, children }: { label: string; note?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="grid gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[15px] font-semibold text-ink">{label}</span>
+        {note && <span className="text-[12px] text-ink-3">{note}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
 
-/* ---------------- registration (FastAPI /me/dentist-profile) ---------------- */
+/* ---------------- registration and proof (FastAPI /me/dentist-profile; the proof is a demo) ---------------- */
 
-function Registration({ me }: { me: Me }) {
+function VerificationCard({ me, doc, onDoc }: { me: Me; doc: VerificationDoc | null; onDoc: (d: VerificationDoc) => void }) {
   const p = me.dentist_profile;
-  const { busy, err, run } = useRun();
+  const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [f, setF] = useState({
-    council: p?.council ?? "",
-    registration_no: p?.registration_no ?? "",
-    qualifications: p?.qualifications ?? "",
-    specialisation: p?.specialisation ?? "",
-  });
-  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => (setSaved(false), setF((x) => ({ ...x, [k]: e.target.value })));
-  const resets = p && p.verification_status !== "unverified" && (f.council.trim() !== p.council || f.registration_no.trim() !== p.registration_no);
-
-  const save = () =>
-    run(async () => {
-      await account.saveDentistProfile({
-        council: f.council.trim(),
-        registration_no: f.registration_no.trim(),
-        qualifications: f.qualifications.trim() || null,
-        specialisation: f.specialisation.trim() || null,
-      });
-      authChanged();
-      setSaved(true);
-    });
-
-  return (
-    <Section
-      title="Registration"
-      tag={p ? <Tag tone={STATUS[p.verification_status].tone}>{STATUS[p.verification_status].tag}</Tag> : <Tag tone="muted">Not added</Tag>}
-      text={p ? STATUS[p.verification_status].text(p.council) : "Add your dental council registration so FMD can verify you."}
-    >
-      <form onSubmit={submit(save)} className="grid gap-4">
-        {err && <Notice kind="error">{err}</Notice>}
-        {saved && <Notice kind="success">Registration saved.</Notice>}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Dental council">
-            <input className={fieldCls} list="fmd-councils" value={f.council} onChange={set("council")} minLength={2} maxLength={100} required />
-          </Field>
-          <Field label="Registration number">
-            <input className={fieldCls} value={f.registration_no} onChange={set("registration_no")} maxLength={50} autoComplete="off" required />
-          </Field>
-          <Field label="Qualifications (optional)">
-            <input className={fieldCls} value={f.qualifications} onChange={set("qualifications")} maxLength={200} placeholder="BDS, MDS (Endodontics)" />
-          </Field>
-          <Field label="Specialisation (optional)">
-            <input className={fieldCls} list="fmd-specialties" value={f.specialisation} onChange={set("specialisation")} maxLength={100} />
-          </Field>
-        </div>
-        <datalist id="fmd-councils">
-          {COUNCILS.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-        <datalist id="fmd-specialties">
-          {SPECIALTIES.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-        {resets && <Notice kind="info">Changing the council or registration number sends your registration back for checking.</Notice>}
-        <div>
-          <Button type="submit" disabled={busy || f.council.trim().length < 2 || !f.registration_no.trim()}>
-            {busy ? "Saving…" : p ? "Save changes" : "Save registration"}
-          </Button>
-        </div>
-      </form>
-    </Section>
-  );
-}
-
-/* ---------------- demo: proof document and public profile ---------------- */
-
-function DemoParts({ me }: { me: Me }) {
-  const [profile, setProfile] = useState<PublicProfile | null>(null);
-  const [doc, setDoc] = useState<VerificationDoc | null | undefined>(undefined);
-  useEffect(() => {
-    getPublicProfile(me.id).then(setProfile);
-    getDocument(me.id).then(setDoc);
-  }, [me.id]);
-  if (!profile || doc === undefined) return <div className="app-panel h-64 animate-pulse" aria-busy />;
-  return (
-    <>
-      <ProofSection me={me} doc={doc} onDoc={setDoc} />
-      <PublicSection me={me} initial={profile} />
-    </>
-  );
-}
-
-function ProofSection({ me, doc, onDoc }: { me: Me; doc: VerificationDoc | null; onDoc: (d: VerificationDoc) => void }) {
   const [err, setErr] = useState<string | null>(null);
   const inputId = useId();
   const pick = async (file: File | undefined) => {
@@ -180,25 +119,118 @@ function ProofSection({ me, doc, onDoc }: { me: Me; doc: VerificationDoc | null;
     }
   };
   return (
-    <Section title="Registration proof" tag={demoTag} text="Upload your registration certificate (PDF, JPG or PNG, up to 5 MB). Only FMD's verification team sees it.">
-      {err && <Notice kind="error">{err}</Notice>}
-      {doc && (
-        <p className="flex flex-wrap items-center gap-2 text-[14px] text-ink-2">
-          <Check className="size-4 text-[var(--tone-ok)]" strokeWidth={2} />
-          <span className="break-all font-medium text-ink">{doc.name}</span>· {kb(doc.size)} · submitted{" "}
-          {new Date(doc.uploaded_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-        </p>
-      )}
-      <div>
-        <label
-          htmlFor={inputId}
-          className="inline-flex h-9 cursor-pointer items-center rounded-full border border-line bg-[var(--button-secondary)] px-4 text-[13px] font-semibold text-ink hover:border-line-strong focus-within:border-[var(--accent)]"
-        >
-          {doc ? "Replace file" : "Upload certificate"}
+    <section aria-label="Registration" className="grid gap-4 rounded-2xl border border-line bg-[var(--surface)] p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className={`grid size-11 shrink-0 place-items-center rounded-full ${p?.verification_status === "verified" ? "bg-sky-500/15 text-sky-400" : "bg-white/[0.06] text-ink-3"}`}>
+          <BadgeCheck className="size-6" strokeWidth={1.75} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-[16px] font-semibold text-ink">Registration</h2>
+            {p ? <Tag tone={STATUS[p.verification_status].tone}>{STATUS[p.verification_status].tag}</Tag> : <Tag tone="muted">Not added</Tag>}
+          </div>
+          <p className="mt-0.5 text-[13.5px] text-ink-3">{p ? STATUS[p.verification_status].text(p.council) : "Add your dental council registration so FMD can verify you."}</p>
+          {p && (
+            <p className="mt-1.5 text-[13.5px] text-ink-2">
+              {p.council} · Reg. no. {p.registration_no}
+              {p.qualifications ? ` · ${p.qualifications}` : ""}
+            </p>
+          )}
+        </div>
+      </div>
+      {saved && <Notice kind="success">Registration saved.</Notice>}
+
+      {/* the certificate (demo) */}
+      <div className="grid gap-2 rounded-xl bg-white/[0.04] p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[14px] font-semibold text-ink">Registration proof</span>
+          {demoTag}
+        </div>
+        <p className="text-[13px] text-ink-3">Upload your registration certificate (PDF, JPG or PNG, up to 5 MB). Only FMD&apos;s verification team sees it.</p>
+        {doc && (
+          <p className="flex flex-wrap items-center gap-1.5 text-[13.5px] text-ink-2">
+            <Check className="size-4 text-[var(--tone-ok)]" strokeWidth={2} />
+            <span className="break-all font-medium text-ink">{doc.name}</span>· {kb(doc.size)} · submitted{" "}
+            {new Date(doc.uploaded_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          </p>
+        )}
+        {err && <Notice kind="error">{err}</Notice>}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => (setSaved(false), setEditing(true))} className={`inline-flex h-9 items-center rounded-lg px-4 text-[13.5px] font-semibold ${p ? "bg-white/[0.08] text-ink hover:bg-white/[0.12]" : BLUE}`}>
+          {p ? "Edit registration" : "Add registration"}
+        </button>
+        <label htmlFor={inputId} className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-white/[0.08] px-4 text-[13.5px] font-semibold text-ink hover:bg-white/[0.12] focus-within:outline-2 focus-within:outline-[var(--accent)]">
+          <Upload className="size-4" strokeWidth={1.75} />
+          {doc ? "Replace certificate" : "Upload certificate"}
         </label>
         <input id={inputId} type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={(e) => (pick(e.target.files?.[0]), (e.target.value = ""))} />
       </div>
-    </Section>
+
+      {editing && (
+        <Sheet title="Registration" onClose={() => setEditing(false)}>
+          <Registration me={me} onSaved={() => (setEditing(false), setSaved(true))} />
+        </Sheet>
+      )}
+    </section>
+  );
+}
+
+function Registration({ me, onSaved }: { me: Me; onSaved: () => void }) {
+  const p = me.dentist_profile;
+  const { busy, err, run } = useRun();
+  const [f, setF] = useState({
+    council: p?.council ?? "",
+    registration_no: p?.registration_no ?? "",
+    qualifications: p?.qualifications ?? "",
+    specialisation: p?.specialisation ?? "",
+  });
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
+  const resets = p && p.verification_status !== "unverified" && (f.council.trim() !== p.council || f.registration_no.trim() !== p.registration_no);
+
+  const save = () =>
+    run(async () => {
+      await account.saveDentistProfile({
+        council: f.council.trim(),
+        registration_no: f.registration_no.trim(),
+        qualifications: f.qualifications.trim() || null,
+        specialisation: f.specialisation.trim() || null,
+      });
+      authChanged();
+      onSaved();
+    });
+
+  return (
+    <form onSubmit={submit(save)} className="grid gap-4">
+      {err && <Notice kind="error">{err}</Notice>}
+      <Field label="Dental council">
+        <input className={fieldCls} list="fmd-councils" value={f.council} onChange={set("council")} minLength={2} maxLength={100} required />
+      </Field>
+      <Field label="Registration number">
+        <input className={fieldCls} value={f.registration_no} onChange={set("registration_no")} maxLength={50} autoComplete="off" required />
+      </Field>
+      <Field label="Qualifications (optional)">
+        <input className={fieldCls} value={f.qualifications} onChange={set("qualifications")} maxLength={200} placeholder="BDS, MDS (Endodontics)" />
+      </Field>
+      <Field label="Specialisation (optional)">
+        <input className={fieldCls} list="fmd-specialties" value={f.specialisation} onChange={set("specialisation")} maxLength={100} />
+      </Field>
+      <datalist id="fmd-councils">
+        {COUNCILS.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
+      <datalist id="fmd-specialties">
+        {SPECIALTIES.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
+      {resets && <Notice kind="info">Changing the council or registration number sends your registration back for checking.</Notice>}
+      <button type="submit" disabled={busy || f.council.trim().length < 2 || !f.registration_no.trim()} className={`h-11 rounded-lg text-[14.5px] font-semibold disabled:opacity-50 ${BLUE}`}>
+        {busy ? "Saving…" : p ? "Save changes" : "Save registration"}
+      </button>
+    </form>
   );
 }
 
@@ -216,13 +248,16 @@ async function shrink(file: File, size = 256) {
 const num = (v: string) => (v === "" ? null : Number(v));
 const str = (n: number | null) => (n === null ? "" : String(n));
 
-function PublicSection({ me, initial }: { me: Me; initial: PublicProfile }) {
+/* ---------------- the public profile (demo, saved in this browser) ---------------- */
+
+function PublicSection({ me, initial, verification }: { me: Me; initial: PublicProfile; verification: ReactNode }) {
   const [p, setP] = useState(initial);
   const [err, setErr] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [preview, setPreview] = useState(false);
   const photoId = useId();
-  const edit = (patch: Partial<PublicProfile>) => (setSaved(false), setP((x) => ({ ...x, ...patch })));
+  const edit = (patch: Partial<PublicProfile>) => (setSaved(false), setDirty(true), setP((x) => ({ ...x, ...patch })));
   const setClinic = (i: number, k: "name" | "area" | "city", v: string) => edit({ clinics: p.clinics.map((c, j) => (j === i ? { ...c, [k]: v } : c)) });
 
   const pickPhoto = async (file: File | undefined) => {
@@ -240,61 +275,87 @@ function PublicSection({ me, initial }: { me: Me; initial: PublicProfile }) {
     try {
       setP(await savePublicProfile(me.id, p));
       setSaved(true);
+      setDirty(false);
     } catch (e) {
       setErr((e as Error).message);
     }
   };
+  const input = `${fieldCls} h-11`;
 
   return (
-    <Section title="Public profile" tag={demoTag} text="What patients see when they find you on FMD. Keep it factual; no guarantees or claims you can't back up.">
-      <form onSubmit={submit(save)} className="grid gap-5">
-        <div className="flex flex-wrap items-center gap-4">
+    <form onSubmit={submit(save)} className="grid gap-6">
+      {/* photo card */}
+      <div className="flex items-center gap-4 rounded-2xl bg-[var(--surface-elevated)] p-4">
+        <Ring>
           <Avatar name={me.full_name} photo={p.photo} size={64} />
-          <div className="flex flex-wrap gap-2">
-            <label
-              htmlFor={photoId}
-              className="inline-flex h-9 cursor-pointer items-center rounded-full border border-line bg-[var(--button-secondary)] px-4 text-[13px] font-semibold text-ink hover:border-line-strong focus-within:border-[var(--accent)]"
-            >
-              {p.photo ? "Change photo" : "Add photo"}
-            </label>
-            <input id={photoId} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => (pickPhoto(e.target.files?.[0]), (e.target.value = ""))} />
-            {p.photo && (
-              <Button variant="secondary" size="sm" onClick={() => edit({ photo: null })}>
-                Remove photo
-              </Button>
-            )}
-          </div>
+        </Ring>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[16px] font-semibold text-ink">{drName(me.full_name)}</p>
+          <p className="truncate text-[13.5px] text-ink-3">{me.dentist_profile?.specialisation || "Dentist"}</p>
+          {p.photo && (
+            <button type="button" onClick={() => edit({ photo: null })} className="mt-0.5 text-[13px] font-medium text-[var(--tone-bad)] hover:underline">
+              Remove photo
+            </button>
+          )}
         </div>
+        <label htmlFor={photoId} className={`inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg px-4 text-[13.5px] font-semibold focus-within:outline-2 focus-within:outline-[var(--accent)] ${BLUE}`}>
+          {p.photo ? "Change photo" : "Add photo"}
+        </label>
+        <input id={photoId} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => (pickPhoto(e.target.files?.[0]), (e.target.value = ""))} />
+      </div>
 
-        <Field label="About you" hint={`${p.about.length}/${LIMITS.about}`}>
+      {verification}
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-[18px] font-semibold text-ink">Public profile</h2>
+        {demoTag}
+      </div>
+      <p className="-mt-4 text-[13.5px] text-ink-3">What patients see when they find you on FMD. Keep it factual; no guarantees or claims you can&apos;t back up.</p>
+
+      <label className="grid gap-2">
+        <span className="text-[15px] font-semibold text-ink">About you</span>
+        <span className="relative block">
           <textarea
-            className={`${fieldCls} h-28 resize-y py-2.5`}
+            className={`${fieldCls} h-32 resize-none pb-7 pt-2.5`}
             value={p.about}
             onChange={(e) => edit({ about: e.target.value })}
             maxLength={LIMITS.about}
             placeholder="Your approach, the treatments you focus on, and who you enjoy treating."
           />
-        </Field>
+          <span className="pointer-events-none absolute bottom-2 right-3 text-[12px] text-ink-3">
+            {p.about.length} / {LIMITS.about}
+          </span>
+        </span>
+      </label>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Years of experience">
-            <input className={fieldCls} type="number" inputMode="numeric" min={0} max={LIMITS.years} value={str(p.years_experience)} onChange={(e) => edit({ years_experience: num(e.target.value) })} />
-          </Field>
-          <Field label="Consultation fee from (₹)">
-            <input className={fieldCls} type="number" inputMode="numeric" min={0} max={LIMITS.fee} value={str(p.fee_min)} onChange={(e) => edit({ fee_min: num(e.target.value) })} />
-          </Field>
-          <Field label="Consultation fee to (₹)">
-            <input className={fieldCls} type="number" inputMode="numeric" min={0} max={LIMITS.fee} value={str(p.fee_max)} onChange={(e) => edit({ fee_max: num(e.target.value) })} />
-          </Field>
+      <Row label="Experience and fees">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="grid gap-1">
+            <span className="text-[12.5px] text-ink-3">Years of experience</span>
+            <input className={input} type="number" inputMode="numeric" min={0} max={LIMITS.years} value={str(p.years_experience)} onChange={(e) => edit({ years_experience: num(e.target.value) })} />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-[12.5px] text-ink-3">Consultation fee from (₹)</span>
+            <input className={input} type="number" inputMode="numeric" min={0} max={LIMITS.fee} value={str(p.fee_min)} onChange={(e) => edit({ fee_min: num(e.target.value) })} />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-[12.5px] text-ink-3">Consultation fee to (₹)</span>
+            <input className={input} type="number" inputMode="numeric" min={0} max={LIMITS.fee} value={str(p.fee_max)} onChange={(e) => edit({ fee_max: num(e.target.value) })} />
+          </label>
         </div>
+      </Row>
 
+      <Row label="Languages" note={`${p.languages.length} chosen`}>
         <Chips label="Languages you consult in" options={LANGUAGES} value={p.languages} onChange={(languages) => edit({ languages })} />
+      </Row>
+      <Row label="Treatments" note={`${p.services.length} chosen`}>
         <Chips label="Treatments you offer" options={SERVICES} value={p.services} onChange={(services) => edit({ services })} />
+      </Row>
 
-        <fieldset className="grid gap-3">
-          <legend className="mb-1.5 text-[13.5px] text-ink-3">Clinics where you practise</legend>
+      <Row label="Clinics where you practise" note={`${p.clinics.length} of ${LIMITS.clinics}`}>
+        <div className="grid gap-2">
           {p.clinics.map((c, i) => (
-            <div key={i} className="grid items-end gap-2 rounded-2xl border border-line p-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
+            <div key={i} className="grid items-end gap-2 rounded-xl border border-line bg-[var(--surface)] p-3 sm:grid-cols-[1.3fr_1fr_1fr_auto]">
               <Field label="Clinic name">
                 <input className={fieldCls} value={c.name} onChange={(e) => setClinic(i, "name", e.target.value)} maxLength={120} />
               </Field>
@@ -309,28 +370,39 @@ function PublicSection({ me, initial }: { me: Me; initial: PublicProfile }) {
               </IconButton>
             </div>
           ))}
-          <div>
-            <Button variant="secondary" size="sm" disabled={p.clinics.length >= LIMITS.clinics} onClick={() => edit({ clinics: [...p.clinics, { name: "", area: "", city: "" }] })}>
-              <Plus className="size-4" strokeWidth={1.75} /> Add clinic
-            </Button>
-          </div>
-        </fieldset>
-
-        {err && <Notice kind="error">{err}</Notice>}
-        {saved && <Notice kind="success">Public profile saved in this browser.</Notice>}
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit">Save public profile</Button>
-          <Button variant="secondary" onClick={() => setPreview(true)}>
-            Preview as a patient
-          </Button>
+          <button
+            type="button"
+            disabled={p.clinics.length >= LIMITS.clinics}
+            onClick={() => edit({ clinics: [...p.clinics, { name: "", area: "", city: "" }] })}
+            className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-dashed border-line-strong text-[14px] font-medium text-ink-2 hover:border-sky-500/60 hover:text-ink disabled:opacity-40"
+          >
+            <Plus className="size-4" strokeWidth={1.75} /> Add clinic
+          </button>
         </div>
-      </form>
+      </Row>
+
+      {err && <Notice kind="error">{err}</Notice>}
+      {saved && <Notice kind="success">Public profile saved in this browser.</Notice>}
+
+      {/* save bar: stays in reach at the bottom of the screen (above the phone's tab bar) */}
+      <div className="sticky bottom-[calc(84px+env(safe-area-inset-bottom))] z-10 flex items-center gap-2 rounded-2xl border border-line bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] p-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur lg:bottom-4">
+        <button type="button" onClick={() => setPreview(true)} className="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-[14px] font-medium text-ink-2 hover:bg-white/[0.06] hover:text-ink">
+          <Eye className="size-4" strokeWidth={1.75} /> Preview<span className="hidden sm:inline">&nbsp;as a patient</span>
+        </button>
+        <div className="ml-auto flex items-center gap-3">
+          {dirty && <span className="hidden text-[12.5px] text-ink-3 sm:inline">Unsaved changes</span>}
+          <button type="submit" className={`h-10 whitespace-nowrap rounded-lg px-6 text-[14.5px] font-semibold ${BLUE}`}>
+            Save<span className="hidden sm:inline">&nbsp;public profile</span>
+          </button>
+        </div>
+      </div>
+
       {preview && (
         <Sheet title="How patients see you" onClose={() => setPreview(false)} wide>
           <PatientView me={me} p={p} />
         </Sheet>
       )}
-    </Section>
+    </form>
   );
 }
 

@@ -33,6 +33,8 @@ import { toggleSaved } from "@/sample/saved";
 import { track } from "@/lib/analytics";
 import { threads } from "@/sample/messages";
 import { MessagesDock, useDock } from "./Messages";
+import { StoryAvatar, StoryViewer, useSeen, type Story } from "./Stories";
+import { photoOf } from "@/sample/providers";
 
 const TABS: [Tab, string][] = [
   ["for_you", "For you"],
@@ -63,11 +65,23 @@ export function Ring({ children, className = "" }: { children: ReactNode; classN
   );
 }
 
-/** Round avatar with initials; `ring` adds the story-style ring. */
-function Avatar({ name, size, ring = false }: { name: string; size: string; ring?: boolean }) {
-  const face = <span className={`grid ${size} shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] font-semibold text-ink`}>{initials(name)}</span>;
+/** Round avatar: the dentist's photo when there is one, else initials; `ring` adds the story-style ring. */
+function Avatar({ name, size, ring = false, photo = null }: { name: string; size: string; ring?: boolean; photo?: string | null }) {
+  const face = photo ? (
+    <span className={`relative block ${size} shrink-0 overflow-hidden rounded-full bg-[var(--surface-elevated)]`}>
+      <Image src={photo} alt="" fill sizes="64px" className="object-cover object-[center_20%]" />
+    </span>
+  ) : (
+    <span className={`grid ${size} shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] font-semibold text-ink`}>{initials(name)}</span>
+  );
   return ring ? <Ring>{face}</Ring> : face;
 }
+
+/** "3h", "2d": how long ago, for story headers */
+const short = (iso: string) => {
+  const h = Math.max(1, Math.round((Date.now() - Date.parse(iso)) / 3_600_000));
+  return h < 24 ? `${h}h` : `${Math.round(h / 24)}d`;
+};
 
 const isDentist = (a: Author) => a.kind === "dentist" && !a.name.startsWith("You");
 
@@ -91,6 +105,42 @@ export function ExplorePage() {
     if (me) threads(me.id).then((l) => setUnread(l.filter((t) => t.unread).length));
   }, [me]);
   const people = [...new Map((items ?? []).filter((p) => isDentist(p.author)).map((p) => [p.author.id, p.author])).values()];
+  // each dentist's story: a hello with their photo, then their posts, one slide each
+  const [seen, markSeen] = useSeen();
+  // the list is frozen while watching: marking a story seen re-sorts the row, which mustn't move the viewer
+  const [watching, setWatching] = useState<{ list: Story[]; start: number } | null>(null);
+  const stories: Story[] = people
+    .map((a) => {
+      const theirs = (items ?? []).filter((p) => p.author.id === a.id);
+      const photo = photoOf(a.id);
+      return {
+        id: a.id,
+        name: a.name,
+        photo,
+        meta: theirs[0] ? short(theirs[0].published_at) : undefined,
+        slides: [
+          {
+            image: photo ?? undefined,
+            tone: coverOf(a.specialty),
+            eyebrow: a.specialty,
+            title: `Hi, I'm ${a.name}`,
+            text: "I share dental tips on FMD. Tap through for my latest posts. (Demo)",
+            link: { href: `/dentists/${a.id}`, label: "View profile" },
+          },
+          ...theirs.map((p) => ({
+            image: p.media && p.kind === "image" ? p.media.src : undefined,
+            fit: "inset" as const,
+            tone: coverOf(p.topic),
+            eyebrow: p.topic,
+            title: p.title,
+            text: p.body.length > 140 ? `${p.body.slice(0, 140).trimEnd()}…` : p.body,
+            link: { href: `/explore/${p.id}`, label: "See post" },
+          })),
+        ],
+      };
+    })
+    // unwatched first, as on Instagram
+    .sort((a, b) => Number(seen.includes(a.id)) - Number(seen.includes(b.id)));
 
   return (
     <div className="mx-auto flex w-full max-w-[900px] items-start justify-center gap-10">
@@ -118,18 +168,32 @@ export function ExplorePage() {
           </div>
         </div>
 
-        {people.length > 0 && (
-          <ul aria-label="Dentists in your feed" className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
-            {people.map((a) => (
-              <li key={a.id} className="shrink-0">
-                <Link href={`/dentists/${a.id}`} className="grid w-[68px] justify-items-center gap-1.5 text-center">
-                  <Avatar name={a.name} size="size-14 text-[15px]" ring />
-                  <span className="w-full truncate text-[11.5px] text-ink-2">{a.name.replace(/^Dr\.?\s*/, "").split(" ")[0]}</span>
+        {stories.length > 0 && (
+          <ul aria-label="Stories" className="-mx-4 flex gap-3.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            {canPost && me && (
+              <li className="shrink-0">
+                <Link href="/explore/new" className="grid w-[74px] justify-items-center gap-1.5 text-center" aria-label="Your story: create a post">
+                  <span className="relative">
+                    <StoryAvatar name={me.full_name} size="size-16 text-[16px]" ring={false} />
+                    <span className="absolute -bottom-0.5 -right-0.5 grid size-6 place-items-center rounded-full border-2 border-[var(--background)] bg-sky-500 text-white">
+                      <Plus className="size-3.5" strokeWidth={3} />
+                    </span>
+                  </span>
+                  <span className="w-full truncate text-[11.5px] text-ink-3">Your story</span>
                 </Link>
+              </li>
+            )}
+            {stories.map((st, i) => (
+              <li key={st.id} className="shrink-0">
+                <button type="button" onClick={() => setWatching({ list: stories, start: i })} className="grid w-[74px] justify-items-center gap-1.5 text-center" aria-label={`${st.name}'s story${seen.includes(st.id) ? ", seen" : ""}`}>
+                  <StoryAvatar name={st.name} photo={st.photo} size="size-16 text-[16px]" seen={seen.includes(st.id)} />
+                  <span className={`w-full truncate text-[11.5px] ${seen.includes(st.id) ? "text-ink-3" : "text-ink-2"}`}>{st.name.replace(/^Dr\.?\s*/, "").split(" ")[0]}</span>
+                </button>
               </li>
             ))}
           </ul>
         )}
+        {watching && <StoryViewer stories={watching.list} start={watching.start} onClose={() => setWatching(null)} onSeen={markSeen} />}
 
         <div role="tablist" aria-label="Feed" className="grid grid-cols-4 border-b border-line">
           {TABS.map(([t, label]) => (
@@ -215,7 +279,7 @@ export function PostCard({ p, userId, onChange, full = false }: { p: FeedItem; u
   return (
     <article className="grid gap-3">
       <header className="flex items-center gap-3">
-        <Avatar name={p.author.name} size="size-9 text-[12px]" ring={isDentist(p.author)} />
+        <Avatar name={p.author.name} size="size-9 text-[12px]" ring={isDentist(p.author)} photo={photoOf(p.author.id)} />
         <div className="min-w-0 flex-1 leading-tight">
           <p className="flex flex-wrap items-center gap-1 text-[14px] font-semibold text-ink">
             {isDentist(p.author) ? (

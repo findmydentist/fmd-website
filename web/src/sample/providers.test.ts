@@ -63,7 +63,7 @@ test("distance: near me sorts nearest first and limits by km", () => {
 
 test("paging and no-result help", () => {
   const all = search({}, NOW);
-  assert.equal(all.items.length, PAGE_SIZE);
+  assert.equal(all.items.length, Math.min(PAGE_SIZE, all.total)); // a full page, or every result if there are fewer
   assert.equal(all.pages, Math.ceil(all.total / PAGE_SIZE));
   const none = search({ loc: "Kochi", language: "Marathi" }, NOW);
   assert.equal(none.total, 0);
