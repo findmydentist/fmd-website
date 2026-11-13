@@ -28,6 +28,7 @@ import {
   type VerificationDoc,
 } from "@/sample/dentist";
 import { Ring } from "../explore/Explore";
+import { DEMO_MODE } from "@/toggle";
 
 type Status = DentistProfile["verification_status"];
 
@@ -38,9 +39,6 @@ export const STATUS: Record<Status, { tag: string; tone: Tone; text: (council: s
   verified: { tag: "Verified", tone: "ok", text: (c) => `FMD checked your registration with ${c}.` },
   rejected: { tag: "Couldn't verify", tone: "bad", text: () => "FMD couldn't verify these details. Check them and send again." },
 };
-
-/** the frontend-only demo (README): shows the verification demo controls */
-const DEMO_MODE = process.env.NEXT_PUBLIC_FMD_DEMO === "1";
 
 /** the MDS subjects in India, as suggestions for a qualification's specialisation */
 const MDS_SUBJECTS = [

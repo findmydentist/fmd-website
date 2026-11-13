@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DiscoveryProvider } from "@/components/discovery";
 import Hero from "@/components/hero/Hero";
 import ModelPreloader from "@/components/ModelPreloader";
+import { TabBar } from "@/components/main/MainShell";
 import Navbar from "@/components/nav/Navbar";
 import AiFeatures from "@/components/sections/AiFeatures";
 import ComingSoon from "@/components/sections/ComingSoon";
@@ -18,6 +19,8 @@ import Ribbon from "@/components/sections/Ribbon";
 import Trust from "@/components/sections/Trust";
 import Universe from "@/components/sections/Universe";
 import Walkthrough from "@/components/sections/Walkthrough";
+
+import { SHOW_ACCOUNT } from "@/toggle";
 
 // the home page's own address (set here, not in the layout, so other pages don't inherit it)
 export const metadata: Metadata = { alternates: { canonical: "/" } };
@@ -47,6 +50,8 @@ export default function Home() {
         <ComingSoon /> {/* 12 */}
       </main>
       <Footer /> {/* 13 */}
+      {/* signed in on a phone: the app's bottom tab bar, as on every other page */}
+      {SHOW_ACCOUNT && <TabBar signedInOnly />}
     </DiscoveryProvider>
   );
 }

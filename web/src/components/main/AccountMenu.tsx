@@ -11,8 +11,11 @@ import { logout, useMe } from "@/lib/me";
 
 const itemCls = "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] text-ink-2 hover:bg-[var(--surface-glass)] hover:text-ink";
 
-/** "Log in" when signed out, else an avatar that opens the account menu. Used by the homepage navbar and the app shell. */
-export function AccountMenu({ loginClassName = "" }: { loginClassName?: string }) {
+/**
+ * "Log in" when signed out, else an avatar that opens the account menu. Used by the homepage navbar and the app shell.
+ * `sections`: the homepage's own links, shown at the top of the menu on narrow screens (the avatar replaces the ☰ there).
+ */
+export function AccountMenu({ loginClassName = "", sections = [] }: { loginClassName?: string; sections?: { href: string; label: string }[] }) {
   const me = useMe();
   const { t } = useT();
   const path = usePathname();
@@ -59,11 +62,20 @@ export function AccountMenu({ loginClassName = "" }: { loginClassName?: string }
         {initials(me.full_name)}
       </button>
       {open && (
-        <div ref={box} className="app-panel app-solid absolute right-0 top-[calc(100%+8px)] z-50 w-[260px] p-1.5">
+        <div ref={box} className="app-panel app-solid absolute right-0 top-[calc(100%+8px)] z-50 max-h-[calc(100dvh-96px)] w-[260px] max-w-[calc(100vw-24px)] overflow-y-auto p-1.5">
           <div className="border-b border-line px-3 pb-2.5 pt-2">
             <p className="truncate text-[14.5px] font-medium text-ink">{me.full_name}</p>
             <p className="text-[13px] text-ink-3">{fmtPhone(me.phone)}</p>
           </div>
+          {sections.length > 0 && (
+            <div className="border-b border-line py-1.5 xl:hidden">
+              {sections.map((l) => (
+                <a key={l.href} href={l.href} onClick={close} className={itemCls}>
+                  {l.label}
+                </a>
+              ))}
+            </div>
+          )}
           <div className="pt-1.5">
             {/* hidden for now, with the Appointments tab (MainShell); uncomment with CalendarDays in the import to bring it back
             <Link href="/appointments" onClick={close} className={itemCls}>

@@ -51,7 +51,7 @@ There are no passwords. Sign in with an email or Indian mobile number; a 6-digit
 
 ### Frontend-only demo (no backend)
 
-Set `NEXT_PUBLIC_FMD_DEMO=1` in `web/.env.local` and restart `npm run dev`. FMD Main then signs in against four fixed accounts in the browser (`web/src/lib/fmdDemo.ts`); nothing is sent to a server. The login page lists them: tap one to fill it in.
+**On by default, the live site included** (`DEMO_MODE` in `web/src/toggle.ts`): Log in shows everywhere and FMD Main signs in against four fixed accounts in the browser (`web/src/lib/fmdDemo.ts`); nothing is sent to a server. To use the real FastAPI backend instead, build with `NEXT_PUBLIC_FMD_DEMO=0` (in `web/.env.local`, or the host's environment variables, then redeploy). The login page lists them: tap one to fill it in.
 
 | Role | Mobile | Email | Password |
 |---|---|---|---|

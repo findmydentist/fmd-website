@@ -1,10 +1,10 @@
 "use client";
 
-import { Baby, BadgeCheck, CalendarCheck, CalendarClock, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock3, Grid2x2, HeartPulse, Languages, LoaderCircle, LocateFixed, MapPin, Search as SearchIcon, ShieldQuestion, SlidersHorizontal, Smile, Sparkles, Stethoscope, X } from "lucide-react";
+import { Baby, BadgeCheck, CalendarCheck, CalendarClock, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock3, Grid2x2, HeartPulse, Languages, LoaderCircle, LocateFixed, MapPin, Maximize2, Search as SearchIcon, ShieldQuestion, SlidersHorizontal, Smile, Sparkles, Stethoscope, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Button, ButtonLink, Panel } from "@/components/app/kit";
 import { Field, fieldCls, Sheet } from "@/components/app/Sheet";
 import { Notice } from "@/components/Page";
@@ -13,7 +13,7 @@ import { LANGUAGES, SERVICES, SPECIALTIES } from "@/lib/catalog";
 import { feeRange, when } from "@/lib/format";
 import { noteSearch } from "@/sample/content";
 import { useMe } from "@/lib/me";
-import { PLACES, searchProviders, type Filters, type ProviderCard, type SearchResult } from "@/sample/providers";
+import { getProvider, PLACES, searchProviders, type Filters, type ProviderCard, type ProviderProfile, type SearchResult } from "@/sample/providers";
 import { track } from "@/lib/analytics";
 import { coverOf } from "../explore/Explore";
 
@@ -114,6 +114,25 @@ export function DentistSearch() {
   const [locating, setLocating] = useState(false);
   const [geoErr, setGeoErr] = useState<string | null>(null);
   const [locOpen, setLocOpen] = useState(false);
+  // the dentist previewed in the right margin (very wide screens); `shown` keeps the content while it slides away
+  const [preview, setPreview] = useState<string | null>(null);
+  const [shown, setShown] = useState<ProviderProfile | null>(null);
+  // every result's full profile, loaded with the results, so a tap opens the preview at once
+  const profiles = useRef(new Map<string, ProviderProfile>());
+  const toggle = useCallback((id: string) => {
+    setPreview((cur) => (cur === id ? null : id));
+    const hit = profiles.current.get(id);
+    if (hit) setShown(hit);
+    else getProvider(id).then((x) => x && (profiles.current.set(id, x), setShown(x)));
+  }, []);
+  useEffect(() => {
+    if (!preview) return;
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setPreview(null);
+    const narrow = () => !matchMedia(WIDE).matches && !matchMedia(PHONE).matches && setPreview(null);
+    window.addEventListener("keydown", esc);
+    window.addEventListener("resize", narrow);
+    return () => (window.removeEventListener("keydown", esc), window.removeEventListener("resize", narrow));
+  }, [preview]);
   const circles = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
@@ -123,6 +142,7 @@ export function DentistSearch() {
       (r) => {
         if (!live) return;
         setRes({ key, r, items: r.items });
+        for (const d of [...r.items, ...r.sponsored]) if (!profiles.current.has(d.id)) getProvider(d.id).then((x) => x && profiles.current.set(d.id, x));
         setErr(null);
         // counts only: never the search words or the concern
         track("dentist_search", { filters: [...q.keys()].filter((k) => k !== "lat" && k !== "lng").length, near_me: q.has("lat"), results: r.total });
@@ -207,7 +227,14 @@ export function DentistSearch() {
   );
 
   return (
-    <div className="mx-auto grid w-full max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-6">
+    <div
+      className={`mx-auto grid w-full max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-6 transition-[padding] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${
+        preview ? "min-[115rem]:pr-[88px]" : ""
+      }`}
+    >
+      {/* both open on the tap itself; until the dentist's details are in, they show a skeleton */}
+      <DentistPreview open={!!preview} p={preview && shown?.id === preview ? shown : null} last={shown} onClose={() => setPreview(null)} />
+      <DentistSheet open={!!preview} p={preview && shown?.id === preview ? shown : null} last={shown} onClose={() => setPreview(null)} />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
         <div>
           <h1 className="text-[26px] font-semibold text-ink sm:text-[30px]">Find a dentist</h1>
@@ -453,14 +480,14 @@ export function DentistSearch() {
                     <p className="text-[12px] uppercase tracking-[0.14em] text-ink-3">Sponsored</p>
                     <div className="grid gap-x-4 gap-y-2 sm:grid-cols-2 xl:grid-cols-3">
                       {res.r.sponsored.map((p) => (
-                        <DentistCard key={p.id} p={p} />
+                        <DentistCard key={p.id} p={p} selected={preview === p.id} onSelect={toggle} />
                       ))}
                     </div>
                   </section>
                 )}
                 <section aria-label="Results" className="grid gap-x-4 gap-y-2 sm:grid-cols-2 xl:grid-cols-3">
                   {res.items.map((p) => (
-                    <DentistCard key={p.id} p={p} />
+                    <DentistCard key={p.id} p={p} selected={preview === p.id} onSelect={toggle} />
                   ))}
                 </section>
                 <div className="flex flex-wrap items-center justify-center gap-3 text-[13.5px] text-ink-3">
@@ -496,6 +523,240 @@ export function DentistSearch() {
   );
 }
 
+/** `want`, one frame late: a panel that appears already open has nothing to slide from, so it first draws closed */
+function useOpenLate(want: boolean) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setOpen(want)));
+    return () => cancelAnimationFrame(id);
+  }, [want]);
+  return open;
+}
+
+/** A dentist's mini profile: photo, details, fees and the two actions. In the wide-screen panel and the phone's sheet. */
+function PreviewContent({ d, onClose, photo = "aspect-[4/3]" }: { d: ProviderProfile; onClose: () => void; photo?: string }) {
+  const c = d.clinicDetails;
+  return (
+    <>
+    <div className={`relative ${photo} shrink-0 bg-[var(--surface-elevated)]`}>
+      {d.photo ? (
+        <Image key={d.id} src={d.photo} alt={`${d.name}${d.demo ? " (demo profile)" : ""}`} fill sizes="340px" className="object-cover object-[center_22%]" />
+      ) : (
+        <span className="grid size-full place-items-center text-[44px] font-light text-ink-3">{d.name.replace(/^Dr\.?\s*/, "").split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
+      )}
+      <span className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent" />
+      <div className="absolute right-3 top-3 flex gap-2">
+        <Link href={`/dentists/${d.id}`} aria-label="Open the full profile" title="Open the full profile" className="grid size-9 place-items-center rounded-full bg-black/55 text-white backdrop-blur hover:bg-black/70">
+          <Maximize2 className="size-[18px]" strokeWidth={2} />
+        </Link>
+        <button type="button" onClick={onClose} aria-label="Close preview" title="Close" className="grid size-9 place-items-center rounded-full bg-black/55 text-white backdrop-blur hover:bg-black/70">
+          <X className="size-5" strokeWidth={2} />
+        </button>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 grid gap-0.5 p-4 text-white">
+        <p className="flex items-center gap-1.5 text-[19px] font-semibold">
+          {d.name}
+          {d.verification.status === "verified" && <BadgeCheck className="size-5 text-sky-400" strokeWidth={2} aria-label="Verified" />}
+        </p>
+        <p className="text-[13.5px] text-white/80">
+          {d.specialty}
+          {d.experienceYears ? ` · ${d.experienceYears} yrs experience` : ""}
+        </p>
+      </div>
+    </div>
+
+    <div key={d.id} className="fmd-enter grid min-h-0 auto-rows-max gap-4 overflow-y-auto p-4">
+      <div className="flex flex-wrap gap-1.5">
+        <VerifiedBadge v={d.verification} />
+        {d.sponsored && <SponsoredBadge />}
+        <span className="rounded-md bg-white/[0.08] px-1.5 py-0.5 text-[12px] text-ink-3">Demo</span>
+      </div>
+      <dl className="grid gap-2.5 text-[13.5px]">
+        <div className="flex items-start gap-2.5">
+          <MapPin className="mt-0.5 size-4 shrink-0 text-ink-3" strokeWidth={1.75} />
+          <dd className="text-ink-2">
+            <span className="font-medium text-ink">{c.name}</span>
+            <br />
+            {c.address}, {c.city}
+          </dd>
+        </div>
+        <div className="flex items-start gap-2.5">
+          <CalendarClock className="mt-0.5 size-4 shrink-0 text-ink-3" strokeWidth={1.75} />
+          <dd className="text-ink-2">{d.nextAvailable ? `Next: ${when(d.nextAvailable)}` : "Clinic will confirm a time"}</dd>
+        </div>
+        <div className="flex items-start gap-2.5">
+          <Clock3 className="mt-0.5 size-4 shrink-0 text-ink-3" strokeWidth={1.75} />
+          <dd className="text-ink-2">{c.hours}</dd>
+        </div>
+        <div className="flex items-start gap-2.5">
+          <Languages className="mt-0.5 size-4 shrink-0 text-ink-3" strokeWidth={1.75} />
+          <dd className="text-ink-2">{d.languages.join(", ")}</dd>
+        </div>
+      </dl>
+      <p className="line-clamp-4 text-[13.5px] leading-relaxed text-ink-2">{d.bio}</p>
+      <div className="grid gap-1.5">
+        <p className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-ink-3">Treatments and fees</p>
+        <ul className="divide-y divide-[var(--border)] rounded-xl border border-line text-[13px]">
+          <li className="flex justify-between gap-2 px-3 py-2">
+            <span className="text-ink">Consultation</span>
+            <span className="text-ink-2">{d.fee ? feeRange(d.fee) : "Confirmed by the clinic"}</span>
+          </li>
+          {d.serviceFees.slice(0, 4).map((f) => (
+            <li key={f.service} className="flex justify-between gap-2 px-3 py-2">
+              <span className="truncate text-ink">{f.service}</span>
+              <span className="shrink-0 text-ink-2">{feeRange(f)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <p className="text-[12.5px] text-ink-3">{d.qualifications.join(", ")}</p>
+    </div>
+
+    <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-line p-3">
+      <Link href={`/dentists/${d.id}`} className="inline-flex h-10 items-center justify-center rounded-xl bg-white/[0.08] text-[13.5px] font-semibold text-ink hover:bg-white/[0.12]">
+        Full profile
+      </Link>
+      <Link href={`/book/${d.id}`} className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 text-[13.5px] font-semibold text-white hover:bg-sky-500">
+        Book
+      </Link>
+    </div>
+    </>
+  );
+}
+
+/** The mini profile's shape while the details load: the panel and the sheet open on the tap, never waiting. */
+function PreviewSkeleton({ photo = "aspect-[4/3]", onClose }: { photo?: string; onClose: () => void }) {
+  const bar = "animate-pulse rounded-md bg-white/[0.08]";
+  return (
+    <div aria-busy aria-label="Loading the dentist's details" className="flex min-h-0 flex-1 flex-col">
+      <div className={`relative ${photo} shrink-0 animate-pulse bg-white/[0.06]`}>
+        <button type="button" onClick={onClose} aria-label="Close preview" className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-black/55 text-white backdrop-blur hover:bg-black/70">
+          <X className="size-5" strokeWidth={2} />
+        </button>
+        <div className="absolute inset-x-0 bottom-0 grid gap-2 p-4">
+          <span className={`h-5 w-2/3 ${bar}`} />
+          <span className={`h-3.5 w-1/2 ${bar}`} />
+        </div>
+      </div>
+      <div className="grid gap-4 p-4">
+        <span className={`h-5 w-24 ${bar}`} />
+        {[0, 1, 2, 3].map((i) => (
+          <span key={i} className="flex items-center gap-2.5">
+            <span className={`size-4 shrink-0 ${bar}`} />
+            <span className={`h-3.5 ${bar}`} style={{ width: `${[78, 55, 48, 62][i]}%` }} />
+          </span>
+        ))}
+        <span className="grid gap-2">
+          <span className={`h-3.5 w-full ${bar}`} />
+          <span className={`h-3.5 w-11/12 ${bar}`} />
+          <span className={`h-3.5 w-3/4 ${bar}`} />
+        </span>
+        <span className={`h-28 w-full ${bar}`} />
+      </div>
+    </div>
+  );
+}
+
+/** A dentist's mini profile, in the empty right margin of very wide screens; slides in, and away again on close. */
+function DentistPreview({ open: want, p, last, onClose }: { open: boolean; p: ProviderProfile | null; last: ProviderProfile | null; onClose: () => void }) {
+  const open = useOpenLate(want);
+  // open: this dentist, or a skeleton until they load; closing: the last one, while it slides away
+  const d = want ? p : (p ?? last);
+  if (!want && !d) return null;
+  return (
+    <aside
+      aria-label={d ? `${d.name}, preview` : "Dentist preview"}
+      aria-hidden={!open}
+      inert={!open}
+      className={`fixed right-5 top-[92px] z-30 hidden max-h-[calc(100dvh-110px)] w-[340px] flex-col overflow-hidden rounded-2xl border border-line bg-[var(--surface)] shadow-[0_16px_50px_rgba(0,0,0,0.5)] transition-[opacity,translate] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none min-[115rem]:flex ${
+        open ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-8 opacity-0"
+      }`}
+    >
+      {d ? <PreviewContent d={d} onClose={onClose} /> : <PreviewSkeleton onClose={onClose} />}
+    </aside>
+  );
+}
+
+/**
+ * On phones, the same mini profile as a sheet that rises from the bottom over 2/3 of the screen (LinkedIn's profile
+ * preview), slowly and smoothly: a grab handle,
+ * drag it down (or tap outside, or Esc) to close.
+ */
+function DentistSheet({ open: want, p, last, onClose }: { open: boolean; p: ProviderProfile | null; last: ProviderProfile | null; onClose: () => void }) {
+  const router = useRouter();
+  const [expanded, setExpanded] = useState(false);
+  const [drag, setDrag] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const start = useRef<number | null>(null);
+  const open = useOpenLate(want);
+  useEffect(() => {
+    if (!open || !matchMedia(PHONE).matches) return;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => void (document.body.style.overflow = overflow);
+  }, [open]);
+  const d = want ? p : (p ?? last);
+  if (!want && !d) return null;
+  const down = (e: React.PointerEvent) => {
+    start.current = e.clientY;
+    setDragging(true);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  // down: follows the finger, closes past 110px; up: grows with the finger, past 70px fills the screen and opens the page
+  const move = (e: React.PointerEvent) => start.current !== null && setDrag(Math.max(-window.innerHeight * 0.33, e.clientY - start.current));
+  const expand = () => {
+    if (!d) return; // still loading: nothing to open yet
+    setExpanded(true);
+    setTimeout(() => {
+      router.push(`/dentists/${d.id}`);
+    }, 480);
+  };
+  const up = () => {
+    if (drag > 110) onClose();
+    else if (drag < -70) expand();
+    start.current = null;
+    setDragging(false);
+    setDrag(0);
+  };
+  const grow = expanded ? null : Math.max(0, -drag);
+  return (
+    <div className="md:hidden" aria-hidden={!open} inert={!open}>
+      <button
+        type="button"
+        aria-label="Close"
+        tabIndex={-1}
+        onClick={onClose}
+        className={`fixed inset-0 z-[60] bg-black/60 backdrop-blur-[2px] transition-opacity duration-[700ms] ease-out ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
+      />
+      <section
+        role="dialog"
+        aria-modal={open}
+        aria-label={d ? `${d.name}, preview` : "Dentist preview"}
+        style={{
+          translate: open ? `0 ${Math.max(0, drag)}px` : "0 100%",
+          height: grow === null ? "100dvh" : `calc(67dvh + ${grow}px)`,
+          borderRadius: expanded ? 0 : undefined,
+          transitionDuration: dragging ? "0ms" : expanded ? "480ms" : undefined,
+        }}
+        className="fixed inset-x-0 bottom-0 z-[61] flex flex-col overflow-hidden rounded-t-[28px] border-t border-line-strong bg-[var(--surface)] pb-[env(safe-area-inset-bottom)] shadow-[0_-20px_60px_rgba(0,0,0,0.6)] transition-[translate,height,border-radius] duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[translate,height] motion-reduce:transition-none"
+      >
+        {/* the grab handle: drag down to close, up to open the full profile */}
+        <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} className="grid shrink-0 cursor-grab touch-none place-items-center py-2.5 active:cursor-grabbing">
+          <span className="h-1.5 w-11 rounded-full bg-white/25" />
+          <span className={`mt-1 text-[11px] text-ink-3 transition-opacity ${drag < -20 ? "opacity-100" : "opacity-0"}`}>{drag < -70 ? "Release to open the profile" : "Pull up for the full profile"}</span>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+          {d ? (
+            <PreviewContent d={d} onClose={onClose} photo="mx-3 aspect-[16/10] overflow-hidden rounded-2xl" />
+          ) : (
+            <PreviewSkeleton onClose={onClose} photo="mx-3 aspect-[16/10] overflow-hidden rounded-2xl" />
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 /** Verification as the card's rating-style badge: solid green when FMD has checked the dentist. */
 function VerifiedBadge({ v }: { v: ProviderCard["verification"] }) {
   if (v.status === "verified")
@@ -512,10 +773,29 @@ function VerifiedBadge({ v }: { v: ProviderCard["verification"] }) {
   );
 }
 
-export function DentistCard({ p }: { p: ProviderCard }) {
+/** wide enough for the preview panel in the right margin (the treatments sidebar takes the left one) */
+const WIDE = "(min-width: 115rem)";
+/** phones: the preview rises from the bottom instead */
+const PHONE = "(max-width: 767px)";
+
+/** memo: tapping one card re-renders only the cards whose selection changed, not the whole list */
+export const DentistCard = memo(function DentistCard({ p, selected = false, onSelect }: { p: ProviderCard; selected?: boolean; onSelect?: (id: string) => void }) {
   const extra = p.services.filter((s) => s !== "Consultation");
+  const router = useRouter();
+  // on very wide screens one click opens a preview beside the results (another closes it), on phones a sheet from the
+  // bottom; a double click opens the page
+  const open = (e: React.MouseEvent) => {
+    if (onSelect && (matchMedia(WIDE).matches || matchMedia(PHONE).matches)) {
+      e.preventDefault();
+      onSelect(p.id);
+    }
+  };
   return (
-    <section className="group relative grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2.5 rounded-3xl p-3 transition-[background-color,box-shadow,translate] duration-300 hover:-translate-y-0.5 hover:bg-[var(--surface-elevated)] hover:shadow-[0_10px_36px_rgba(0,0,0,0.45)]">
+    <section
+      className={`group relative grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2.5 rounded-3xl p-3 transition-[background-color,box-shadow,translate] duration-300 hover:-translate-y-0.5 hover:bg-[var(--surface-elevated)] hover:shadow-[0_10px_36px_rgba(0,0,0,0.45)] ${
+        selected ? "bg-[var(--surface-elevated)] ring-2 ring-sky-400/70" : ""
+      }`}
+    >
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[var(--surface-elevated)]">
         {p.photo ? (
           <Image src={p.photo} alt={`${p.name}${p.demo ? " (demo profile)" : ""}`} fill sizes="(min-width: 1280px) 340px, (min-width: 640px) 45vw, 92vw" className="object-cover object-[center_22%] transition-transform duration-500 group-hover:scale-105" />
@@ -554,7 +834,7 @@ export function DentistCard({ p }: { p: ProviderCard }) {
         <div className="flex items-center justify-between gap-3">
           <h2 className="min-w-0 truncate text-[17px] font-semibold text-ink">
             {/* the whole card opens the profile */}
-            <Link href={`/dentists/${p.id}`} aria-label={`View profile: ${p.name}`} className="after:absolute after:inset-0 after:rounded-3xl after:content-['']">
+            <Link href={`/dentists/${p.id}`} onClick={open} onDoubleClick={() => onSelect && router.push(`/dentists/${p.id}`)} aria-label={`View profile: ${p.name}`} aria-pressed={onSelect ? selected : undefined} className="after:absolute after:inset-0 after:rounded-3xl after:content-['']">
               {p.name}
             </Link>
           </h2>
@@ -592,4 +872,4 @@ export function DentistCard({ p }: { p: ProviderCard }) {
       </div>
     </section>
   );
-}
+});
