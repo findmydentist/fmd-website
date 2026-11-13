@@ -120,8 +120,9 @@ export default function Navbar() {
           })}
         </ul>
         <div className="flex items-center gap-1.5">
-          {/* signed out on phones, Log in sits in the menu card: the bar has no room for it */}
-          {SHOW_ACCOUNT && <AccountMenu loginClassName="hidden sm:inline-flex" />}
+          {/* signed out on phones, Log in sits in the menu card: the bar has no room for it. Signed in, the avatar sits at
+              the end instead, where the ☰ was (below xl), and its menu holds the section links too */}
+          {SHOW_ACCOUNT && <span className={me ? "hidden xl:block" : ""}><AccountMenu loginClassName="hidden sm:inline-flex" /></span>}
           <Link
             href="/#coming-soon"
             onClick={() => setOpen(false)}
@@ -133,7 +134,7 @@ export default function Navbar() {
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
             onClick={() => setOpen((o) => !o)}
-            className="grid size-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-ink-2 transition-colors hover:text-ink xl:hidden"
+            className={`size-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-ink-2 transition-colors hover:text-ink xl:hidden ${SHOW_ACCOUNT && me ? "hidden" : "grid"}`}
           >
             <AnimatePresence mode="wait" initial={false}>
               <motion.span
@@ -147,6 +148,11 @@ export default function Navbar() {
               </motion.span>
             </AnimatePresence>
           </button>
+          {SHOW_ACCOUNT && me && (
+            <span className="xl:hidden">
+              <AccountMenu sections={LINKS} />
+            </span>
+          )}
         </div>
       </nav>
 

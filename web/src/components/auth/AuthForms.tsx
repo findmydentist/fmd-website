@@ -13,6 +13,7 @@ import { auth, fmtPhone, initials, passwordRules } from "@/lib/fmd";
 import { DEMO_ACCOUNTS, DEMO_OTP, DEMO_PASSWORD, demoRole } from "@/lib/fmdDemo";
 import { authChanged } from "@/lib/me";
 import { track } from "@/lib/analytics";
+import { DEMO_MODE } from "@/toggle";
 
 /* ---------------- shared parts ---------------- */
 
@@ -172,9 +173,6 @@ function PasswordRules({ password }: { password: string }) {
   );
 }
 
-/** the frontend-only demo (README): shows the demo accounts on the login page */
-const DEMO_MODE = process.env.NEXT_PUBLIC_FMD_DEMO === "1";
-
 const RESEND_AFTER = 30; // the backend allows one OTP per number every 30s
 
 /** Enter the 6-digit code sent to `to`, with resend after a cooldown. On dev backends the code is shown. */
@@ -207,7 +205,7 @@ export function OtpStep({
     return () => clearTimeout(t);
   }, [wait]);
   useEffect(() => {
-    if (!demoCode && (process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_FMD_DEMO === "1")) auth.devOtp().then(setDev);
+    if (!demoCode && (process.env.NODE_ENV !== "production" || DEMO_MODE)) auth.devOtp().then(setDev);
   }, [sent, demoCode]);
 
   const resend = () =>

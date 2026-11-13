@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ApiError, errorMessage, fmd, passwordRules } from "./fmd.ts";
 
+// these test the real backend client: switch the browser demo off (fmd() checks it on every call)
+process.env.NEXT_PUBLIC_FMD_DEMO = "0";
+
 test("error messages from both backend error shapes", () => {
   assert.equal(errorMessage(409, { error: { code: "conflict", message: "Taken" } }), "Taken");
   assert.equal(errorMessage(422, { detail: [{ msg: "Value error, Password must include a number." }] }), "Password must include a number.");

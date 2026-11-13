@@ -5,7 +5,7 @@ import { AlertTriangle, ArrowUp, Bell, Check, ChevronDown, Copy, FileClock, Glob
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { ButtonLink, Tag } from "@/components/app/kit";
 import Contain from "@/components/Contain";
 import { typeMs } from "@/components/hero/Assistant";
@@ -92,6 +92,15 @@ export function AssistantPage() {
   const [listOpen, setListOpen] = useState(false);
   const [listening, setListening] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const phone = useSyncExternalStore(
+    (cb) => {
+      const q = matchMedia("(max-width: 639px)");
+      q.addEventListener("change", cb);
+      return () => q.removeEventListener("change", cb);
+    },
+    () => matchMedia("(max-width: 639px)").matches,
+    () => false,
+  );
   const [find, setFind] = useState("");
   /** the question on its way (shown at once, before the answer comes back) */
   const [pending, setPending] = useState<{ text: string; attachments: Attachment[] } | null>(null);
@@ -337,6 +346,16 @@ export function AssistantPage() {
   );
 
   /* the message box: centred on a new chat, docked at the bottom once there are messages */
+  /** the 3D mascot; its still stands in if the model can't load */
+  const mascot = (
+    <span aria-hidden className="pointer-events-none absolute inset-0">
+      {/* eslint-disable-next-line @next/next/no-img-element -- the fallback is a versioned still, cached forever */}
+      <Contain fallback={<img src="/models/stills/guide.webp?v=3" alt="" decoding="async" className="size-full object-contain object-bottom" />}>
+        <AssistantMascot mood={mood} active />
+      </Contain>
+    </span>
+  );
+
   const composer = (
     <div className="grid w-full gap-2">
       {err && (
@@ -353,13 +372,8 @@ export function AssistantPage() {
         </p>
       )}
       <div className="flex items-end gap-2 sm:gap-3">
-      {/* FMD AI's mascot, beside the box (as on the homepage); its still stands in if the model can't load */}
-      <div aria-hidden className="pointer-events-none relative h-[92px] w-[68px] shrink-0 translate-y-2 sm:h-32 sm:w-24 sm:translate-y-5">
-        {/* eslint-disable-next-line @next/next/no-img-element -- the fallback is a versioned still, cached forever */}
-        <Contain fallback={<img src="/models/stills/guide.webp?v=3" alt="" decoding="async" className="size-full object-contain object-bottom" />}>
-          <AssistantMascot mood={mood} active />
-        </Contain>
-      </div>
+      {/* FMD AI's mascot, beside the box (as on the homepage); on a phone's new chat it sits mid-screen instead */}
+      {!(phone && !conv && !pending) && <div className="relative h-[92px] w-[68px] shrink-0 translate-y-2 sm:h-32 sm:w-24 sm:translate-y-5">{mascot}</div>}
       <form onSubmit={submit} className="min-w-0 flex-1 rounded-[28px] border border-line-strong bg-[var(--surface-elevated)] p-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition-[border-color,box-shadow] duration-300 focus-within:border-sky-500/50 focus-within:shadow-[0_0_40px_-12px_rgba(56,189,248,0.6)]">
         {files.length > 0 && (
           <ul className="flex flex-wrap gap-1.5 px-1.5 pb-1.5 pt-0.5">
@@ -433,12 +447,13 @@ export function AssistantPage() {
         </div>
       </form>
       </div>
-      <p className="px-2 text-center text-[12px] text-ink-3">{disclaimer}</p>
+      {/* not on phones (ChatGPT-style clean bottom); the same rules show in each answer and in Privacy and data */}
+      <p className="hidden px-2 text-center text-[12px] text-ink-3 sm:block">{disclaimer}</p>
     </div>
   );
 
   return (
-    <div className="flex h-[calc(100dvh-12.5rem-env(safe-area-inset-bottom))] min-h-[460px] overflow-hidden rounded-2xl border border-line bg-[var(--surface)] lg:h-[calc(100dvh-8.75rem)]">
+    <div className="-mx-3 -mb-10 -mt-3 flex h-[calc(100dvh-9.25rem-env(safe-area-inset-bottom))] min-h-[460px] sm:h-[calc(100dvh-13.5rem-env(safe-area-inset-bottom))] overflow-hidden bg-transparent sm:bg-[var(--surface)] sm:mx-0 sm:mb-0 sm:mt-0 sm:rounded-2xl sm:border sm:border-line lg:h-[calc(100dvh-8.75rem)]">
       {/* desktop sidebar */}
       <aside aria-label="Chats and tools" className={`hidden shrink-0 border-r border-line bg-black/20 p-2 transition-[width] duration-300 lg:block ${collapsed ? "w-[60px]" : "w-[272px]"}`}>
         {collapsed ? rail : side}
@@ -478,15 +493,18 @@ export function AssistantPage() {
         </header>
 
         {!conv && !pending ? (
-          <div key="new" className="fmd-enter flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-4 py-6">
-            {/* my-auto centres it, and unlike justify-center it never cuts off the top when the screen is short */}
-            <div className="my-auto grid w-full max-w-[720px] justify-items-center gap-6">
-              <div className="grid justify-items-center gap-3 text-center">
-                <p className="text-[26px] font-semibold text-ink sm:text-[30px]">Ask about your teeth, in your own words</p>
-                <p className="max-w-[52ch] text-[14px] text-ink-3">FMD AI explains and points you to the right care. It doesn&apos;t diagnose, prescribe, or book anything for you.</p>
+          <div key="new" className="fmd-enter flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-3 pb-3 pt-4 sm:px-4 sm:py-6">
+            {/* phones, as in ChatGPT's app: the greeting in the middle of the screen, the box at the bottom.
+                Wider screens: both together in the middle (my-auto centres without cutting off the top) */}
+            <div className="flex w-full max-w-[720px] flex-1 flex-col items-center gap-6 sm:my-auto sm:flex-none">
+              <div className="my-auto grid justify-items-center gap-3 text-center sm:my-0">
+                {phone && <span className="relative block h-[92px] w-[68px]">{mascot}</span>}
+                <p className="text-[24px] font-semibold leading-tight text-ink sm:text-[30px]">Ask about your teeth, in your own words</p>
+                <p className="hidden max-w-[52ch] text-[14px] text-ink-3 sm:block">FMD AI explains and points you to the right care. It doesn&apos;t diagnose, prescribe, or book anything for you.</p>
               </div>
               {composer}
-              <div className="flex flex-wrap justify-center gap-2">
+              {/* not on phones: the 💡 button in the box types a suggestion in instead */}
+              <div className="hidden flex-wrap justify-center gap-2 sm:flex">
                 {SUGGESTIONS.map((s, i) => (
                   <motion.button
                     key={s}

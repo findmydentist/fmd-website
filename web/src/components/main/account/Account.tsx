@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, BadgeCheck, Bookmark, Check, ChevronDown, ChevronRight, CreditCard, Lock, LogOut, Mail, Monitor, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Stethoscope, UserPlus, UserRound, X, type LucideIcon } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Bookmark, Briefcase, Building2, Camera, Check, Clapperboard, GraduationCap, Grid3x3, HeartPulse, ChevronDown, ChevronRight, CreditCard, Lock, LogOut, Mail, Monitor, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Stethoscope, UserPlus, UserRound, X, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
@@ -12,7 +12,7 @@ import { account, deviceName, fmtPhone, initials, type Me, type Session } from "
 import { authChanged, logout, useRequireMe } from "@/lib/me";
 import { ACCOUNT_TYPES, getAccountType, type AccountType } from "@/sample/onboarding";
 import { getDocument } from "@/sample/dentist";
-import { following, getPost, type Author, type FeedItem } from "@/sample/content";
+import { feed, following, getPost, type Author, type FeedItem } from "@/sample/content";
 import { getSaved } from "@/sample/saved";
 import { PostGrid } from "../dentists/Profile";
 import { coverOf, Ring } from "../explore/Explore";
@@ -22,7 +22,6 @@ import { STATUS, VerifyStatus } from "./Dentist";
 /* ---------------- formatting ---------------- */
 
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
-const since = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
 const rtf = new Intl.RelativeTimeFormat("en-IN", { numeric: "auto" });
 function ago(iso: string) {
   const s = (Date.parse(iso) - Date.now()) / 1000;
@@ -109,6 +108,9 @@ const HIGHLIGHTS: Story[] = [
 export function Account() {
   const me = useRequireMe();
   const [savedPosts, setSavedPosts] = useState<FeedItem[] | null>(null);
+  // your own published posts (the reels are the videos among them), and which grid is showing
+  const [mine, setMine] = useState<FeedItem[] | null>(null);
+  const [grid, setGrid] = useState<"posts" | "reels" | "saved">("posts");
   const [savedDentists, setSavedDentists] = useState(0);
   // for the "Get verified" card: did they say they're a dentist, and have they sent their certificate?
   const [accountType, setAccountType] = useState<AccountType | null>(null);
@@ -145,6 +147,7 @@ export function Account() {
       .then((l) => setSavedPosts(l.filter((x): x is FeedItem => !!x)));
     getSaved(userId, "dentist").then((l) => setSavedDentists(l.length));
     getAccountType(userId).then(setAccountType);
+    feed(userId, "for_you").then((l) => setMine(l.filter((x) => x.author.id === `me-${userId}`)));
     getDocument(userId).then((d) => setCertificate(!!d));
     following(userId).then(setFollows);
   }, [userId]);
@@ -192,8 +195,9 @@ export function Account() {
             )}
             <div className="hidden items-center gap-2 sm:flex">{actions}</div>
           </div>
+          <RoleTags me={me} accountType={accountType} />
           <div className="flex justify-between gap-3 sm:justify-start sm:gap-10">
-            <a href="#saved" className={stat}>
+            <a href="#saved" onClick={() => setGrid("saved")} className={stat}>
               <span className={num}>{savedPosts?.length ?? "–"}</span> saved posts
             </a>
             <Link href="/saved" className={stat}>
@@ -212,7 +216,6 @@ export function Account() {
         <p>{fmtPhone(me.phone)}</p>
         {me.email && <p className="break-all">{me.email}</p>}
         {me.city && <p>{me.city}</p>}
-        <p className="text-[13px] text-ink-3">Member since {since(me.created_at)}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">{actions}</div>
       </div>
 
@@ -264,34 +267,54 @@ export function Account() {
       </ul>
       {watching && <StoryViewer stories={watching.list} start={watching.start} onClose={() => setWatching(null)} onSeen={markSeen} />}
 
-      {/* saved posts, under Instagram's single-tab bar */}
-      <section id="saved" aria-label="Saved posts" className="scroll-mt-24">
-        <p className="flex h-12 items-center justify-center gap-1.5 border-t border-line text-[12px] font-semibold uppercase tracking-[0.08em] text-ink">
-          <span className="-mt-px flex h-12 items-center gap-1.5 border-t border-ink">
-            <Bookmark className="size-4" strokeWidth={1.75} /> Saved
-          </span>
-        </p>
-        {!savedPosts ? (
-          <div className="aspect-[3/1] animate-pulse bg-[var(--surface-glass)]" aria-busy />
-        ) : savedPosts.length ? (
-          <div className="fmd-enter grid gap-4">
-            <PostGrid posts={savedPosts} />
-            <Link href="/saved" className="w-fit text-[14px] font-medium text-sky-400 hover:underline">
-              All saved dentists, posts and jobs
-            </Link>
-          </div>
-        ) : (
-          <div className="grid justify-items-center gap-3 py-14 text-center">
-            <span className="grid size-16 place-items-center rounded-full border-2 border-ink text-ink">
-              <Bookmark className="size-7" strokeWidth={1.5} />
-            </span>
-            <p className="text-[20px] font-semibold text-ink">Save posts</p>
-            <p className="text-[14px] text-ink-3">Tap the bookmark on a post in Explore to keep it here. Only you can see what you save.</p>
-            <Link href="/explore" className="text-[14px] font-medium text-sky-400 hover:underline">
-              Go to Explore
-            </Link>
-          </div>
-        )}
+      {/* Instagram's tabs: your posts, your reels, what you've saved */}
+      <section id="saved" aria-label="Your posts and saves" className="scroll-mt-24">
+        <div role="tablist" aria-label="Profile" className="grid grid-cols-3 border-t border-line">
+          {(
+            [
+              ["posts", "Posts", Grid3x3],
+              ["reels", "Reels", Clapperboard],
+              ["saved", "Saved", Bookmark],
+            ] as const
+          ).map(([t, label, Icon]) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={grid === t}
+              onClick={() => setGrid(t)}
+              className={`-mt-px flex h-12 items-center justify-center gap-1.5 border-t text-[12px] font-semibold uppercase tracking-[0.08em] transition-colors ${grid === t ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink"}`}
+            >
+              <Icon className="size-4" strokeWidth={1.75} /> {label}
+            </button>
+          ))}
+        </div>
+        <div key={grid} role="tabpanel" className="fmd-enter">
+          {grid === "saved" ? (
+          !savedPosts ? (
+            <div className="aspect-[3/1] animate-pulse bg-[var(--surface-glass)]" aria-busy />
+          ) : savedPosts.length ? (
+            <div className="fmd-enter grid gap-4">
+              <PostGrid posts={savedPosts} />
+              <Link href="/saved" className="w-fit text-[14px] font-medium text-sky-400 hover:underline">
+                All saved dentists, posts and jobs
+              </Link>
+            </div>
+          ) : (
+            <div className="grid justify-items-center gap-3 py-14 text-center">
+              <span className="grid size-16 place-items-center rounded-full border-2 border-ink text-ink">
+                <Bookmark className="size-7" strokeWidth={1.5} />
+              </span>
+              <p className="text-[20px] font-semibold text-ink">Save posts</p>
+              <p className="text-[14px] text-ink-3">Tap the bookmark on a post in Explore to keep it here. Only you can see what you save.</p>
+              <Link href="/explore" className="text-[14px] font-medium text-sky-400 hover:underline">
+                Go to Explore
+              </Link>
+            </div>
+          )
+          ) : (
+            <OwnGrid me={me} posts={mine} reels={grid === "reels"} />
+          )}
+        </div>
       </section>
 
       {showFollowing && (
@@ -316,6 +339,86 @@ export function Account() {
             <p className="text-[14px] text-ink-3">You don&apos;t follow anyone yet. Follow dentists from their posts in Explore or their profiles.</p>
           )}
         </Sheet>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- the role tags under the name ---------------- */
+
+const ROLE_LOOK: Record<string, { label: string; Icon: LucideIcon; cls: string }> = {
+  owner: { label: "Clinic owner", Icon: Building2, cls: "border-violet-400/40 bg-violet-500/15 text-violet-200" },
+  dentist: { label: "Dentist", Icon: Stethoscope, cls: "border-sky-400/40 bg-sky-500/15 text-sky-200" },
+  student: { label: "Dental student", Icon: GraduationCap, cls: "border-amber-400/40 bg-amber-500/15 text-amber-200" },
+  company: { label: "Dental company", Icon: Briefcase, cls: "border-emerald-400/40 bg-emerald-500/15 text-emerald-200" },
+  patient: { label: "Patient", Icon: HeartPulse, cls: "border-rose-400/40 bg-rose-500/15 text-rose-200" },
+};
+
+/** who this account is, as clear pills: a clinic owner who is also a dentist gets both */
+function RoleTags({ me, accountType }: { me: Me; accountType: AccountType | null }) {
+  const roles: string[] = [];
+  if (me.dentist_profile || accountType === "dentist") roles.push("dentist");
+  if (me.workspaces.some((w) => w.role === "owner")) roles.unshift("owner");
+  if (accountType === "student" || accountType === "company") roles.push(accountType);
+  if (!roles.length) roles.push("patient");
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {roles.map((r) => {
+        const { label, Icon, cls } = ROLE_LOOK[r];
+        return (
+          <span key={r} className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-semibold ${cls}`}>
+            <Icon className="size-3.5" strokeWidth={2} /> {label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Your own posts or reels, Instagram style; what to do when there are none yet */
+function OwnGrid({ me, posts, reels }: { me: Me; posts: FeedItem[] | null; reels: boolean }) {
+  if (!posts) return <div className="aspect-[3/1] animate-pulse bg-[var(--surface-glass)]" aria-busy />;
+  const shown = reels ? posts.filter((p) => p.kind === "video") : posts;
+  if (shown.length)
+    return (
+      <div className="grid gap-4">
+        <PostGrid posts={shown} />
+        {me.dentist_profile && (
+          <Link href="/explore/mine" className="w-fit text-[14px] font-medium text-sky-400 hover:underline">
+            Drafts and posts in review
+          </Link>
+        )}
+      </div>
+    );
+  const verified = me.dentist_profile?.verification_status === "verified";
+  const Icon = reels ? Clapperboard : Camera;
+  return (
+    <div className="grid justify-items-center gap-3 py-14 text-center">
+      <span className="grid size-16 place-items-center rounded-full border-2 border-ink text-ink">
+        <Icon className="size-7" strokeWidth={1.5} />
+      </span>
+      <p className="text-[20px] font-semibold text-ink">{reels ? "No reels yet" : "No posts yet"}</p>
+      <p className="max-w-[40ch] text-[14px] text-ink-3">
+        {verified
+          ? reels
+            ? "Share a short video of dental tips. It shows here and in Explore's Reels."
+            : "Share dental tips with patients. Your posts show here and in Explore."
+          : me.dentist_profile || me.workspaces.length
+            ? "Once FMD verifies your registration, you can share posts and reels."
+            : "Posts and reels are shared by verified dentists on FMD."}
+      </p>
+      {verified ? (
+        <Link href="/explore/new" className="text-[14px] font-semibold text-sky-400 hover:underline">
+          {reels ? "Create a reel" : "Create your first post"}
+        </Link>
+      ) : me.dentist_profile ? (
+        <Link href="/account/dentist" className="text-[14px] font-semibold text-sky-400 hover:underline">
+          Get verified
+        </Link>
+      ) : (
+        <Link href="/explore" className="text-[14px] font-semibold text-sky-400 hover:underline">
+          Go to Explore
+        </Link>
       )}
     </div>
   );
@@ -484,7 +587,6 @@ export function AccountSettings() {
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[17px] font-semibold text-ink">{me.full_name}</span>
           <span className="block text-[14px] text-ink-3">{fmtPhone(me.phone)}</span>
-          <span className="block text-[13px] text-ink-3">Member since {since(me.created_at)}</span>
         </span>
         <ChevronRight className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} />
       </Link>

@@ -1,7 +1,7 @@
 "use client";
 
 // CalendarDays and FolderLock come back with the Appointments and Records tabs
-import { Briefcase, Compass, House, Search, Send, Sparkles, UserRound, type LucideIcon } from "lucide-react";
+import { Briefcase, Compass, House, Search, Sparkles, UserRound, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -10,6 +10,7 @@ import { available, setLang, useT, type Lang, type MessageKey } from "@/lib/i18n
 import { useMe } from "@/lib/me";
 import { SHOW_ACCOUNT } from "@/toggle";
 import { AccountMenu } from "./AccountMenu";
+import { MobileMenu } from "./MobileMenu";
 import { NotificationsBell } from "./help/Support";
 
 /**
@@ -35,8 +36,8 @@ const TABS: Item[] = [
   { href: "/explore", label: "nav.explore", Icon: Compass, ready: true },
   // hidden for now, with Records in the top bar above
   // { href: "/records", label: "nav.records", Icon: FolderLock, ready: true },
-  // Records' place: the Explore direct messages (desktop has them beside the feed)
-  { href: "/explore/messages", label: "tab.messages", Icon: Send, ready: true },
+  // Records' place: FMD AI (messages stay one tap away from Explore's header)
+  { href: "/assistant", label: "tab.ai", Icon: Sparkles, ready: true },
   { href: "/account", label: "tab.me", Icon: UserRound, ready: true },
 ];
 
@@ -90,6 +91,49 @@ function ProfileButton() {
   );
 }
 
+/**
+ * The phone's bottom tab bar (Home, Find, Explore, Messages, Me). In the app shell for everyone; on the homepage too once
+ * someone is signed in (`signedInOnly`).
+ */
+export function TabBar({ signedInOnly = false }: { signedInOnly?: boolean }) {
+  const path = usePathname();
+  const { t } = useT();
+  const me = useMe();
+  if (signedInOnly && !me) return null;
+  return (
+    <>
+    {/* on the homepage, room at the very end so the bar never covers the footer */}
+    {signedInOnly && <div aria-hidden className="h-[calc(76px+env(safe-area-inset-bottom))] lg:hidden" />}
+    <nav
+      aria-label="FMD"
+      className="app-panel app-solid fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 rounded-b-none border-x-0 border-b-0 px-1 pb-[env(safe-area-inset-bottom)] lg:hidden"
+    >
+      {TABS.map(({ href, label, Icon, ready }) => {
+        // the most specific tab wins: on /explore/messages that's Messages, not Explore; Home is on only at /
+        const on = href === "/" ? path === "/" : TABS.filter((x) => isOn(path, x.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href === href;
+        const inner = (
+          <>
+            <Icon className="size-5" strokeWidth={on ? 2 : 1.5} />
+            <span className="text-[11.5px]">{t(label)}</span>
+            {!ready && <span className="sr-only">(coming soon)</span>}
+          </>
+        );
+        const cls = "flex min-h-[60px] flex-col items-center justify-center gap-1";
+        return ready ? (
+          <Link key={href} href={href} aria-current={on ? "page" : undefined} className={`${cls} ${on ? "text-ink" : "text-ink-3 hover:text-ink"}`}>
+            {inner}
+          </Link>
+        ) : (
+          <span key={href} aria-disabled className={`${cls} text-ink-4 opacity-60`}>
+            {inner}
+          </span>
+        );
+      })}
+    </nav>
+    </>
+  );
+}
+
 export function MainShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { t } = useT();
@@ -124,11 +168,17 @@ export function MainShell({ children }: { children: ReactNode }) {
               )}
             </nav>
           )}
-          <div className="ml-auto flex items-center gap-2">
+          {/* desktop: profile, notifications and the account menu; phones and tablets: one ☰ that opens a sidebar */}
+          <div className="ml-auto hidden items-center gap-2 lg:flex">
             {SHOW_ACCOUNT && <ProfileButton />}
             {SHOW_ACCOUNT && <NotificationsBell />}
             {SHOW_ACCOUNT && <AccountMenu />}
           </div>
+          {SHOW_ACCOUNT && (
+            <div className="ml-auto lg:hidden">
+              <MobileMenu />
+            </div>
+          )}
         </div>
       </header>
 
@@ -138,34 +188,7 @@ export function MainShell({ children }: { children: ReactNode }) {
       </main>
       {/* No footer on FMD Main pages for now (no extra scrolling). To bring it back: <MainFooter /> here. */}
 
-      {SHOW_ACCOUNT && (
-        <nav
-          aria-label="FMD"
-          className="app-panel app-solid fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 rounded-b-none border-x-0 border-b-0 px-1 pb-[env(safe-area-inset-bottom)] lg:hidden"
-        >
-          {TABS.map(({ href, label, Icon, ready }) => {
-            // the most specific tab wins: on /explore/messages that's Messages, not Explore
-            const on = TABS.filter((x) => isOn(path, x.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href === href;
-            const inner = (
-              <>
-                <Icon className="size-5" strokeWidth={on ? 2 : 1.5} />
-                <span className="text-[11.5px]">{t(label)}</span>
-                {!ready && <span className="sr-only">(coming soon)</span>}
-              </>
-            );
-            const cls = "flex min-h-[60px] flex-col items-center justify-center gap-1";
-            return ready ? (
-              <Link key={href} href={href} aria-current={on ? "page" : undefined} className={`${cls} ${on ? "text-ink" : "text-ink-3 hover:text-ink"}`}>
-                {inner}
-              </Link>
-            ) : (
-              <span key={href} aria-disabled className={`${cls} text-ink-4 opacity-60`}>
-                {inner}
-              </span>
-            );
-          })}
-        </nav>
-      )}
+      {SHOW_ACCOUNT && <TabBar />}
     </div>
   );
 }
