@@ -47,7 +47,18 @@ const YOU: Entry[] = [
  * Phones and tablets: the header's one button, ☰, opening a sidebar with everything (pages, your account, log out).
  * Desktop keeps the full header.
  */
-export function MobileMenu() {
+export function MobileMenu({
+  sections = [],
+  account = true,
+  className = "lg:hidden",
+}: {
+  /** the homepage's own sections (#assistant, #treatments…), listed first */
+  sections?: { href: string; label: string }[];
+  /** the signed-in parts and Log in/out (off when the site hides accounts) */
+  account?: boolean;
+  /** where the ☰ shows: the app below desktop, the homepage below its full link bar */
+  className?: string;
+}) {
   const me = useMe();
   const path = usePathname();
   const router = useRouter();
@@ -98,7 +109,7 @@ export function MobileMenu() {
   );
 
   return (
-    <div className="lg:hidden">
+    <div className={className}>
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -127,7 +138,7 @@ export function MobileMenu() {
         >
           {/* who's signed in */}
           <div className="flex items-center gap-3 border-b border-line p-4">
-            {me ? (
+            {me && account ? (
               <Link href="/account" onClick={close} className="flex min-w-0 flex-1 items-center gap-3">
                 <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] text-[15px] font-semibold text-ink ring-2 ring-sky-500/60">{initials(me.full_name)}</span>
                 <span className="min-w-0 leading-tight">
@@ -144,6 +155,20 @@ export function MobileMenu() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
+            {sections.length > 0 && (
+              <>
+                <p className="px-3 pb-1.5 pt-1 text-[12px] font-semibold uppercase tracking-[0.1em] text-ink-3">On this page</p>
+                <div className="mb-4 grid gap-0.5">
+                  {sections.map((x) => (
+                    <a key={x.href} href={x.href} onClick={close} className="flex items-center rounded-xl px-3 py-3 text-[15px] text-ink-2 transition-colors hover:bg-white/[0.06] hover:text-ink">
+                      {x.label}
+                    </a>
+                  ))}
+                </div>
+              </>
+            )}
+            {account && (
+              <>
             <p className="px-3 pb-1.5 pt-1 text-[12px] font-semibold uppercase tracking-[0.1em] text-ink-3">Go to</p>
             <div className="grid gap-0.5">{GO.map(([h, l, I]) => item(h, l, I))}</div>
             {me && (
@@ -152,8 +177,11 @@ export function MobileMenu() {
                 <div className="grid gap-0.5">{YOU.map(([h, l, I]) => item(h, l, I))}</div>
               </>
             )}
+              </>
+            )}
           </div>
 
+          {account && (
           <div className="border-t border-line p-3">
             {err && <p role="alert" className="px-3 pb-2 text-[12.5px] text-ink-2">{err}</p>}
             {me ? (
@@ -170,6 +198,7 @@ export function MobileMenu() {
               </Link>
             )}
           </div>
+          )}
         </nav>
       </div>,
           document.body,

@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { motion } from "motion/react";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { AccountMenu } from "@/components/main/AccountMenu";
-import { useMe } from "@/lib/me";
+import { MobileMenu } from "@/components/main/MobileMenu";
 import { SHOW_ACCOUNT } from "@/toggle";
 
 /** The brand mark: public/logo.png (fmd + the meditating mascot + FindMyDentist), trimmed to public/img/logo-fmd.webp */
@@ -61,11 +60,8 @@ function useCurrentSection() {
  *  waitlist. Below xl the sections fold into a matte menu card. */
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
   const [hover, setHover] = useState<string | null>(null);
   const current = useCurrentSection();
-  const me = useMe();
-  const path = usePathname();
 
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 24);
@@ -78,7 +74,7 @@ export default function Navbar() {
     <header className="fixed inset-x-0 top-0 z-40 px-3 pt-3 sm:px-5">
       <nav
         className={`nav-matte mx-auto flex max-w-[1280px] items-center justify-between gap-4 rounded-full pl-5 pr-2 transition-[height,background-color,box-shadow] duration-500 ${
-          scrolled || open ? "h-[58px] !bg-[color-mix(in_srgb,var(--surface)_80%,transparent)]" : "h-[64px]"
+          scrolled ? "h-[58px] !bg-[color-mix(in_srgb,var(--surface)_80%,transparent)]" : "h-[64px]"
         }`}
       >
         <Logo />
@@ -120,81 +116,19 @@ export default function Navbar() {
           })}
         </ul>
         <div className="flex items-center gap-1.5">
-          {/* signed out on phones, Log in sits in the menu card: the bar has no room for it. Signed in, the avatar sits at
-              the end instead, where the ☰ was (below xl), and its menu holds the section links too */}
-          {SHOW_ACCOUNT && <span className={me ? "hidden xl:block" : ""}><AccountMenu loginClassName="hidden sm:inline-flex" /></span>}
-          <Link
-            href="/#coming-soon"
-            onClick={() => setOpen(false)}
-            className="btn-primary cta-pulse h-11 gap-1.5 whitespace-nowrap pl-5 pr-4 text-[13.5px]"
-          >
-            Join Waitlist<ArrowRight className="cta-arrow size-4" strokeWidth={2} />
-          </Link>
-          <button
-            aria-label={open ? "Close menu" : "Open menu"}
-            aria-expanded={open}
-            onClick={() => setOpen((o) => !o)}
-            className={`size-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-ink-2 transition-colors hover:text-ink xl:hidden ${SHOW_ACCOUNT && me ? "hidden" : "grid"}`}
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={open ? "x" : "menu"}
-                initial={{ opacity: 0, scale: 0.6 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.6 }}
-                transition={{ duration: 0.18 }}
-              >
-                {open ? <X className="size-5" strokeWidth={1.5} /> : <Menu className="size-5" strokeWidth={1.5} />}
-              </motion.span>
-            </AnimatePresence>
-          </button>
-          {SHOW_ACCOUNT && me && (
-            <span className="xl:hidden">
-              <AccountMenu sections={LINKS} />
+          {/* desktop: Log in or the account avatar; below that, Join Waitlist stays and everything else is in the ☰ sidebar */}
+          {SHOW_ACCOUNT && (
+            <span className="hidden xl:block">
+              <AccountMenu />
             </span>
           )}
+          <Link href="/#coming-soon" className="btn-primary cta-pulse h-11 gap-1.5 whitespace-nowrap pl-5 pr-4 text-[13.5px]">
+            Join Waitlist<ArrowRight className="cta-arrow size-4" strokeWidth={2} />
+          </Link>
+          <MobileMenu sections={LINKS} account={SHOW_ACCOUNT} className="xl:hidden" />
         </div>
       </nav>
 
-      <AnimatePresence>
-        {open && (
-          <motion.ul
-            initial={{ opacity: 0, y: -12, scale: 0.97, filter: "blur(8px)" }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -8, scale: 0.98, filter: "blur(6px)" }}
-            transition={{ duration: 0.35, ease: EASE }}
-            className="nav-matte mx-auto mt-2 max-w-[1280px] origin-top overflow-hidden rounded-[28px] !bg-[color-mix(in_srgb,var(--surface)_93%,transparent)] p-2 xl:hidden"
-          >
-            {LINKS.map((l, i) => {
-              const on = current === l.href.slice(2);
-              return (
-                <motion.li key={l.href} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35, ease: EASE, delay: 0.04 * i }}>
-                  <a
-                    href={l.href}
-                    onClick={() => setOpen(false)}
-                    className={`flex items-center justify-between rounded-2xl px-4 py-3 text-[16px] transition-colors hover:bg-white/[0.06] ${on ? "bg-white/[0.06] text-ink" : "text-ink-2"}`}
-                  >
-                    {l.label}
-                    {on && <span aria-hidden className="size-1.5 rounded-full bg-[rgb(var(--accent-rgb))]" />}
-                  </a>
-                </motion.li>
-              );
-            })}
-            {SHOW_ACCOUNT && me === null && (
-              <li className="sm:hidden">
-                <Link
-                  href={path === "/" ? "/login" : `/login?next=${encodeURIComponent(path)}`}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center justify-between rounded-2xl px-4 py-3 text-[16px] font-medium text-ink transition-colors hover:bg-white/[0.06]"
-                >
-                  Log in
-                  <ArrowRight className="size-4" strokeWidth={1.5} />
-                </Link>
-              </li>
-            )}
-          </motion.ul>
-        )}
-      </AnimatePresence>
     </header>
   );
 }
