@@ -307,11 +307,11 @@ body {
   }
 }
 
-/* Theme change: a crossfade, as if the lighting changes */
+/* The page itself animates as "page" (PageTransition); the root (just the backdrop behind it) doesn't, so a view
+   transition ends as soon as the page's own animation does and the next click never waits on it */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 0.7s;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation: none;
 }
 html.theme-anim *,
 html.theme-anim *::before,
@@ -1403,16 +1403,18 @@ html.theme-anim *::after {
 :root { --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1); }
 ::view-transition { pointer-events: none; } /* clicks during a transition reach the page */
 /* page open, like an app on an iPhone or a Mac: the new page zooms up from where you tapped (--vt-x/--vt-y, set by
-   PageTransition), corners rounded at first and opening out to the full screen; the old page sinks back, dims and blurs */
+   PageTransition), corners rounded at first and opening out to the full screen; the old page sinks back and fades.
+   Kept short and filter-free (a blur over two full-screen snapshots costs frames on modest graphics), so a page change
+   feels instant; computers drawing in software skip it altogether (PageTransition). */
 ::view-transition-group(.page) { animation: none; }
-::view-transition-old(.page) { animation: 300ms cubic-bezier(0.4, 0, 1, 1) both fmd-app-out; transform-origin: 50% 30vh; }
-::view-transition-new(.page) { animation: 560ms cubic-bezier(0.32, 0.72, 0, 1) both fmd-app-in; transform-origin: var(--vt-x, 50%) var(--vt-y, 40vh); }
+::view-transition-old(.page) { animation: 160ms cubic-bezier(0.4, 0, 1, 1) both fmd-app-out; transform-origin: 50% 30vh; }
+::view-transition-new(.page) { animation: 320ms cubic-bezier(0.22, 1, 0.36, 1) both fmd-app-in; transform-origin: var(--vt-x, 50%) var(--vt-y, 40vh); }
 @keyframes fmd-app-in {
-  from { opacity: 0; scale: 0.82; clip-path: inset(3% round 44px); filter: blur(8px); }
-  45% { opacity: 1; filter: blur(0); }
-  to { opacity: 1; scale: 1; clip-path: inset(0 round 0); filter: none; }
+  from { opacity: 0; scale: 0.94; clip-path: inset(2% round 32px); }
+  40% { opacity: 1; }
+  to { opacity: 1; scale: 1; clip-path: inset(0 round 0); }
 }
-@keyframes fmd-app-out { to { opacity: 0; scale: 0.93; filter: blur(6px) brightness(0.6); } }
+@keyframes fmd-app-out { to { opacity: 0; scale: 0.97; } }
 html[data-vt="dock"]::view-transition-old(root) { display: none; }
 html[data-vt="dock"]::view-transition-new(root) { animation: none; }
 ::view-transition-group(dm-dock) { animation-duration: 420ms; animation-timing-function: var(--ease-out-soft); z-index: 70; }

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { rigPath } from "@/lib/device";
+import { rigPath, SLOW_GPU } from "@/lib/device";
 import Image from "next/image";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Contain from "./Contain";
@@ -53,7 +53,8 @@ const VIDEO_V = 1;
 const IOS =
   typeof navigator !== "undefined" &&
   (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1));
-export const VIDEOS = typeof window !== "undefined" && window.matchMedia("(hover: none) and (pointer: coarse)").matches && !IOS;
+// …and so do computers drawing in software (lib/device.ts), where live 3D would freeze the page
+export const VIDEOS = typeof window !== "undefined" && (window.matchMedia("(hover: none) and (pointer: coarse)").matches || SLOW_GPU) && !IOS;
 // served from web/public (not uploaded to Cloudinary, unlike the models)
 const videoOf = (model: string) => `/models/videos/${model.split("/").pop()!.split("?")[0].replace(".glb", ".webm")}?v=${VIDEO_V}`;
 const playsVideo = (url?: string) => VIDEOS && !!url;
