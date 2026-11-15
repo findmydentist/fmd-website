@@ -17,7 +17,7 @@ import { getAvailability, getClinicPage, getClaims, getProvider, submitClaim, ty
 import { getSaved, toggleSaved } from "@/sample/saved";
 import { feed, following, toggleFollow, type FeedItem } from "@/sample/content";
 import { dentistReviews } from "@/sample/reviews";
-import { coverOf, PostCard, Ring } from "../explore/Explore";
+import { coverOf, PostCard, PostFeed, Ring } from "../explore/Explore";
 import { LayoutPicker, useProfileLayout } from "../ProfileLayout";
 import { ReviewsSection } from "../trust/Trust";
 import { DentistCard } from "./Search";
@@ -309,6 +309,85 @@ export function ProviderPage() {
         </div>
         <div className={tab === "posts" ? "" : "pt-5"}>{body(true)}</div>
       </div>
+    </div>
+  );
+
+  /* ---- layout 6: Explore style: one narrow column like the feed, the dentist as a post's author row, treatments as stories, posts as full posts ---- */
+  const chipBase = "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[13.5px] font-medium transition-colors";
+  const exploreStyle = (
+    <div className="mx-auto grid w-full max-w-[470px] grid-cols-1 gap-4">
+      <header className="flex items-center gap-3">
+        <Ring>
+          <Avatar p={p} className="size-14 !border-0" />
+        </Ring>
+        <div className="min-w-0 flex-1 leading-tight">
+          <h1 className="flex items-center gap-1 text-[17px] font-semibold text-ink">
+            <span className="truncate">{p.name}</span>
+            {tick}
+          </h1>
+          <p className="mt-0.5 truncate text-[12.5px] text-ink-3">
+            {p.specialty} · {c.city}
+          </p>
+        </div>
+        <button
+          type="button"
+          aria-pressed={followed}
+          onClick={follow}
+          className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-3 text-[13px] font-semibold ${followed ? "border border-line text-ink-2 hover:text-ink" : "bg-sky-600 text-white hover:bg-sky-500"}`}
+        >
+          {followed ? "Following" : <><Plus className="size-3.5" strokeWidth={2.5} /> Follow</>}
+        </button>
+        <button type="button" aria-pressed={saved} aria-label={saved ? "Saved" : "Save"} title={saved ? "Saved" : "Save"} onClick={save} className="grid size-8 shrink-0 place-items-center rounded-lg text-ink-3 hover:bg-white/[0.06] hover:text-ink">
+          <SaveIcon className="size-[18px]" strokeWidth={1.75} />
+        </button>
+      </header>
+      <p className="flex flex-wrap gap-x-4 gap-y-1 text-[13.5px] text-ink-3">
+        {stats.map(([n, label]) => (
+          <span key={label}>
+            <span className="font-semibold text-ink">{n}</span> {label}
+          </span>
+        ))}
+        <Tag tone="muted">Demo</Tag>
+      </p>
+      <div className="grid gap-1.5">{trust}</div>
+      <ButtonLink href={`/book/${p.id}`} size="sm">
+        {bookLabel}
+      </ButtonLink>
+      {claimNote}
+
+      {p.serviceFees.length > 0 && (
+        <ul aria-label="Treatments" className="-mx-4 flex gap-3.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+          {p.serviceFees.map((f) => (
+            <li key={f.service} className="shrink-0">
+              <button type="button" onClick={() => setPicked("book")} className="grid w-[74px] justify-items-center gap-1.5 text-center">
+                <span className="block rounded-[34%] bg-[linear-gradient(135deg,#93c5fd,#3b82f6,#67e8f9)] p-[2.5px]">
+                  <span className="block rounded-[32%] bg-[var(--background)] p-[2.5px]">
+                    <span className={`grid size-16 place-items-center rounded-[30%] bg-gradient-to-br ${coverOf(f.service)} to-[var(--surface-elevated)] text-[16px] font-semibold text-ink`}>{short(f.service)}</span>
+                  </span>
+                </span>
+                <span className="w-full truncate text-[11.5px] text-ink-2">{f.service}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div role="tablist" aria-label="Profile" className="-mx-4 flex gap-2 overflow-x-auto border-b border-line px-4 pb-4 [scrollbar-width:none]">
+        {PROFILE_TABS.map(([t, label, Icon]) => (
+          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setPicked(t)} className={`${chipBase} ${tab === t ? "bg-sky-500/20 text-sky-200" : "bg-white/[0.05] text-ink-2 hover:bg-white/[0.09] hover:text-ink"}`}>
+            <Icon className="size-4" strokeWidth={1.75} /> {label}
+          </button>
+        ))}
+      </div>
+      {tab === "posts" ? (
+        posts.length ? (
+          <PostFeed key="posts" posts={posts} userId={userId ?? null} onChange={reload} />
+        ) : (
+          noPosts(false)
+        )
+      ) : (
+        body(false)
+      )}
     </div>
   );
 
@@ -715,7 +794,7 @@ export function ProviderPage() {
         <LayoutPicker value={layout} onChange={pickLayout} />
       </div>
       <div key={layout} className="fmd-enter">
-        {layout === "insta" ? insta : layout === "insta2" ? insta2 : layout === "cards" ? cards : layout === "facebook" ? facebook : linkedin}
+        {layout === "insta" ? insta : layout === "insta2" ? insta2 : layout === "explore" ? exploreStyle : layout === "cards" ? cards : layout === "facebook" ? facebook : linkedin}
       </div>
       {claiming && <ClaimSheet me={me ?? null} p={p} onClose={() => setClaiming(false)} onDone={(c) => (setClaim(c), setClaiming(false))} />}
     </div>

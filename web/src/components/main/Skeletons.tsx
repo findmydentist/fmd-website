@@ -5,10 +5,10 @@ const range = (n: number) => Array.from({ length: n }, (_, i) => i);
 
 /* ---------------- Explore ---------------- */
 
-/** one post card: author row, a few lines of text, the 4:3 picture, the action buttons */
+/** one post, as Explore shows it: author row, the square-cornered 4:3 picture, the action buttons, then the caption */
 export function PostSkeleton() {
   return (
-    <div className="grid gap-3 rounded-3xl border border-line bg-[var(--surface)] p-4">
+    <div className="grid gap-3 py-5 first:pt-0">
       <div className="flex items-center gap-3">
         <span className={`${sk} size-10 shrink-0 rounded-[30%]`} />
         <span className="grid flex-1 gap-1.5">
@@ -18,18 +18,29 @@ export function PostSkeleton() {
         <span className={`${sk} h-8 w-20 rounded-lg`} />
         <span className={`${sk} size-8 rounded-lg`} />
       </div>
-      <span className="grid gap-2 py-1">
-        <span className={`${sk} h-3.5 w-full rounded`} />
-        <span className={`${sk} h-3.5 w-[92%] rounded`} />
-        <span className={`${sk} h-3.5 w-[70%] rounded`} />
-      </span>
-      <span className={`${sk} aspect-[4/3] rounded-2xl`} />
+      <span className={`${sk} aspect-[4/3] rounded-lg`} />
       <div className="flex items-center gap-2">
         <span className={`${sk} h-9 w-28 rounded-xl`} />
         <span className={`${sk} h-9 w-14 rounded-xl`} />
         <span className={`${sk} h-9 w-20 rounded-xl`} />
         <span className={`${sk} ml-auto size-9 rounded-xl`} />
       </div>
+      <span className="-mt-1 grid gap-2 py-1">
+        <span className={`${sk} h-3.5 w-full rounded`} />
+        <span className={`${sk} h-3.5 w-[80%] rounded`} />
+        <span className={`${sk} h-3 w-10 rounded`} />
+      </span>
+      <span className={`${sk} h-2.5 w-16 rounded`} />
+    </div>
+  );
+}
+
+/** posts, split by thin lines like the feed */
+export function PostsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 divide-y divide-line" aria-busy aria-label="Loading posts">
+      <PostSkeleton />
+      <PostSkeleton />
     </div>
   );
 }
@@ -77,8 +88,7 @@ export function ExploreSkeleton() {
             </span>
           ))}
         </div>
-        <PostSkeleton />
-        <PostSkeleton />
+        <PostsSkeleton />
       </div>
 
       {/* messages panel, bottom right */}

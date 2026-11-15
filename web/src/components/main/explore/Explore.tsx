@@ -36,7 +36,7 @@ import { MessagesDock, useDock } from "./Messages";
 import { ExploreRail } from "./Rail";
 import { StoryAvatar, StoryViewer, useSeen, type Story } from "./Stories";
 import { photoOf } from "@/sample/providers";
-import { PostSkeleton } from "../Skeletons";
+import { PostsSkeleton } from "../Skeletons";
 
 const TABS: [Tab, string][] = [
   ["for_you", "For you"],
@@ -200,23 +200,14 @@ export function ExplorePage() {
         {watching && <StoryViewer stories={watching.list} start={watching.start} onClose={() => setWatching(null)} onSeen={markSeen} />}
 
         {!items ? (
-          <div className="grid gap-4" aria-busy aria-label="Loading posts">
-            <PostSkeleton />
-            <PostSkeleton />
-          </div>
+          <PostsSkeleton />
         ) : items.length === 0 ? (
           <Panel className="grid justify-items-start gap-2 p-6">
             <p className="text-[15px] text-ink">{tab === "following" ? "You don't follow anyone yet." : "Nothing here yet."}</p>
             {tab === "following" && <p className="text-[14px] text-ink-3">Follow dentists from their posts to see what they share here.</p>}
           </Panel>
         ) : (
-          <ul key={tab} className="fmd-enter grid grid-cols-1 gap-4">
-            {items.map((p) => (
-              <li key={p.id} className="rounded-3xl border border-line bg-[var(--surface)] p-4">
-                <PostCard p={p} userId={me?.id ?? null} onChange={load} />
-              </li>
-            ))}
-          </ul>
+          <PostFeed key={tab} posts={items} userId={me?.id ?? null} onChange={load} />
         )}
       </div>
       {/* room for the open messages panel, which is fixed to the bottom right */}
@@ -232,6 +223,19 @@ export function ExplorePage() {
 }
 
 /* ---------------- a post ---------------- */
+
+/** Posts one under another, split by thin lines: Explore's feed, and the profiles' Explore-style layout. */
+export function PostFeed({ posts, userId, onChange }: { posts: FeedItem[]; userId: string | null; onChange: () => void }) {
+  return (
+    <ul className="fmd-enter grid grid-cols-1 divide-y divide-line">
+      {posts.map((p) => (
+        <li key={p.id} className="py-5 first:pt-0">
+          <PostCard p={p} userId={userId} onChange={onChange} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function PostCard({ p, userId, onChange, full = false }: { p: FeedItem; userId: string | null; onChange: () => void; full?: boolean }) {
   const router = useRouter();
@@ -318,18 +322,8 @@ export function PostCard({ p, userId, onChange, full = false }: { p: FeedItem; u
         </p>
       )}
 
-      {/* the text comes first, then the picture */}
-      <div className="grid gap-1 text-[14px]">
-        <p className={`whitespace-pre-line leading-relaxed text-ink-2 ${more ? "" : "line-clamp-3"}`}>{p.body}</p>
-        {!more && p.body.length > 160 && (
-          <button type="button" onClick={() => setMore(true)} className="w-fit font-medium text-sky-400 hover:text-sky-300">
-            Read more
-          </button>
-        )}
-      </div>
-
       {/* the picture: video as is, everything else as a cover with its title; double-click marks it helpful */}
-      <div className="relative overflow-hidden rounded-2xl border border-line bg-[var(--surface-glass)]" onDoubleClick={p.kind === "video" ? undefined : doubleTap}>
+      <div className="relative overflow-hidden rounded-lg border border-line bg-[var(--surface-glass)]" onDoubleClick={p.kind === "video" ? undefined : doubleTap}>
         {p.media && p.kind === "video" ? (
           <video controls preload="metadata" playsInline className="aspect-video w-full bg-black object-contain" aria-label={p.media.alt}>
             <source src={p.media.src} type="video/mp4" />
@@ -409,6 +403,17 @@ export function PostCard({ p, userId, onChange, full = false }: { p: FeedItem; u
         <button type="button" aria-pressed={p.saved} aria-label={p.saved ? "Saved" : "Save"} title={p.saved ? "Saved" : "Save"} onClick={() => act(() => toggleSaved(userId!, "post", p.id))} className={`ml-auto ${p.saved ? `${chip} bg-sky-500/20 text-sky-200` : idle}`}>
           <Bookmark className={`size-4 ${p.saved ? "fill-current" : ""}`} strokeWidth={1.75} />
         </button>
+      </div>
+      {/* the caption, under the actions as on Instagram: the author's name, then the text */}
+      <div className="-mt-1 grid gap-1 text-[14px]">
+        <p className={`whitespace-pre-line leading-relaxed text-ink-2 ${more ? "" : "line-clamp-2"}`}>
+          <span className="font-semibold text-ink">{p.author.name}</span> {p.body}
+        </p>
+        {!more && p.body.length > 110 && (
+          <button type="button" onClick={() => setMore(true)} className="w-fit text-ink-3 hover:text-ink">
+            more
+          </button>
+        )}
       </div>
       <p className="text-[11.5px] text-ink-3">Demo post</p>
       {note && <p role="status" className="text-[13px] text-ink-2">{note}</p>}
