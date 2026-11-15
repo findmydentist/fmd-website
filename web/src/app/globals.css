@@ -1498,3 +1498,8 @@ html[data-vt="auth"]::view-transition-new(.page) { animation: 520ms cubic-bezier
   .fmd-swap-r, .fmd-swap-l, .fmd-rise { animation: none; }
   html[data-vt="auth"]::view-transition-old(.page), html[data-vt="auth"]::view-transition-new(.page) { animation: none; }
 }
+
+/* the production site shows only the home page: hide what leads into the rest of the app (layout.tsx, toggle.ts LIVE_HOSTS) */
+html[data-live] [data-staging] {
+  display: none !important;
+}
