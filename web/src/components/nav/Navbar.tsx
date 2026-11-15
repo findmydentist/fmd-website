@@ -118,7 +118,7 @@ export default function Navbar() {
         <div className="flex items-center gap-1.5">
           {/* desktop: Log in or the account avatar; below that, Join Waitlist stays and everything else is in the ☰ sidebar */}
           {SHOW_ACCOUNT && (
-            <span className="hidden xl:block">
+            <span data-staging className="hidden xl:block">
               <AccountMenu />
             </span>
           )}

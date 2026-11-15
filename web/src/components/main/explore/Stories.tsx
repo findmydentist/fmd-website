@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { initials } from "@/lib/fmd";
 
 /**
- * Instagram-style stories: a full-screen viewer with progress bars that steps through each person's slides (5 s each),
+ * Stories: a full-screen viewer with progress bars that steps through each person's slides (5 s each),
  * tap the right side for next and the left for back, hold to pause, Esc or X to close. Used by Explore's stories row
  * and the profile page's highlights.
  */
@@ -54,19 +54,19 @@ export function useSeen() {
   return [seen, mark] as const;
 }
 
-/** A round picture with the story ring: blue while unwatched, grey once seen. */
+/** A rounded-square picture with the story ring: blue while unwatched, grey once seen. */
 export function StoryAvatar({ name, photo, size, seen = false, ring = true }: { name: string; photo?: string | null; size: string; seen?: boolean; ring?: boolean }) {
   const face = photo ? (
-    <span className={`relative block ${size} shrink-0 overflow-hidden rounded-full bg-[var(--surface-elevated)]`}>
+    <span className={`relative block ${size} shrink-0 overflow-hidden rounded-[30%] bg-[var(--surface-elevated)]`}>
       <Image src={photo} alt="" fill sizes="96px" className="object-cover object-[center_20%]" />
     </span>
   ) : (
-    <span className={`grid ${size} shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] font-semibold text-ink`}>{initials(name)}</span>
+    <span className={`grid ${size} shrink-0 place-items-center rounded-[30%] bg-[var(--surface-elevated)] font-semibold text-ink`}>{initials(name)}</span>
   );
   if (!ring) return face;
   return (
-    <span className={`block w-fit rounded-full p-[2.5px] ${seen ? "bg-[var(--border-strong)]" : "bg-[linear-gradient(135deg,#93c5fd,#3b82f6,#67e8f9)]"}`}>
-      <span className="block rounded-full bg-[var(--background)] p-[2.5px]">{face}</span>
+    <span className={`block w-fit rounded-[34%] p-[2.5px] ${seen ? "bg-[var(--border-strong)]" : "bg-[linear-gradient(135deg,#93c5fd,#3b82f6,#67e8f9)]"}`}>
+      <span className="block rounded-[32%] bg-[var(--background)] p-[2.5px]">{face}</span>
     </span>
   );
 }
@@ -202,7 +202,7 @@ export function StoryViewer({ stories, start, onClose, onSeen }: { stories: Stor
 
         {slide.link && (
           <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-            <Link href={slide.link.href} onClick={onClose} className="rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-black shadow-lg hover:bg-white/90">
+            <Link href={slide.link.href} onClick={onClose} className="rounded-xl bg-sky-600 px-5 py-2.5 text-[14px] font-semibold text-white shadow-lg hover:bg-sky-500">
               {slide.link.label}
             </Link>
           </div>

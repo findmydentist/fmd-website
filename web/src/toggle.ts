@@ -25,3 +25,10 @@ export const SHOW_ACCOUNT = DEMO_MODE || process.env.NODE_ENV !== "production";
 
 /** Invite friends (plan 10.3). Off until FMD's legal and professional-ethics review approves it (PDR Annex I). */
 export const REFERRALS = false;
+
+/**
+ * The production site (findmydentist.io) shows only the home page for now: every other page, sign-in included, sends
+ * people back to it (src/proxy.ts), and the home page hides its Log in / account buttons. Every other address (the
+ * staging site, previews, localhost) keeps the whole app. Empty the list once the rest of the app is live.
+ */
+export const LIVE_HOSTS = ["findmydentist.io", "www.findmydentist.io"];

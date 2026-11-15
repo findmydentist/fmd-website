@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, BadgeCheck, Bookmark, Flag, Heart, Link2, MessageCircle, MoreHorizontal, Plus, Send, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Bookmark, Flag, Info, Link2, MessageSquare, MessagesSquare, Plus, Share2, ShieldCheck, SquarePen, ThumbsUp, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -36,12 +36,13 @@ import { MessagesDock, useDock } from "./Messages";
 import { ExploreRail } from "./Rail";
 import { StoryAvatar, StoryViewer, useSeen, type Story } from "./Stories";
 import { photoOf } from "@/sample/providers";
+import { PostSkeleton } from "../Skeletons";
 
 const TABS: [Tab, string][] = [
   ["for_you", "For you"],
   ["following", "Following"],
   ["learn", "Learn"],
-  ["reels", "Reels"],
+  ["reels", "Videos"],
 ];
 
 /** Captions for a video, from text, as a data URL the <track> can load. */
@@ -57,11 +58,14 @@ const COVERS = [
 ];
 export const coverOf = (topic: string) => COVERS[[...topic].reduce((a, c) => a + c.charCodeAt(0), 0) % COVERS.length];
 
-/** The story-style ring, in the site's blue, around any round avatar. */
-export function Ring({ children, className = "" }: { children: ReactNode; className?: string }) {
+/** FMD's avatar shape: a rounded square (not a circle), so profiles read as FMD's own. */
+const SQ = "rounded-[30%]";
+
+/** The story-style ring, in the site's blue, around any avatar; it squares off whatever it holds. */
+export function Ring({ children, className = "", round = false }: { children: ReactNode; className?: string; round?: boolean }) {
   return (
-    <span className={`block w-fit rounded-full bg-[linear-gradient(135deg,#93c5fd,#3b82f6,#67e8f9)] p-[2px] ${className}`}>
-      <span className="block rounded-full bg-[var(--surface)] p-[2px]">{children}</span>
+    <span className={`block w-fit bg-[linear-gradient(135deg,#93c5fd,#3b82f6,#67e8f9)] p-[2px] ${round ? "rounded-full" : "rounded-[34%]"} ${className}`}>
+      <span className={`block bg-[var(--surface)] p-[2px] ${round ? "rounded-full [&>*]:!rounded-full" : "rounded-[32%] [&>*]:!rounded-[30%]"}`}>{children}</span>
     </span>
   );
 }
@@ -69,11 +73,11 @@ export function Ring({ children, className = "" }: { children: ReactNode; classN
 /** Round avatar: the dentist's photo when there is one, else initials; `ring` adds the story-style ring. */
 function Avatar({ name, size, ring = false, photo = null }: { name: string; size: string; ring?: boolean; photo?: string | null }) {
   const face = photo ? (
-    <span className={`relative block ${size} shrink-0 overflow-hidden rounded-full bg-[var(--surface-elevated)]`}>
+    <span className={`relative block ${size} shrink-0 overflow-hidden ${SQ} bg-[var(--surface-elevated)]`}>
       <Image src={photo} alt="" fill sizes="64px" className="object-cover object-[center_20%]" />
     </span>
   ) : (
-    <span className={`grid ${size} shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] font-semibold text-ink`}>{initials(name)}</span>
+    <span className={`grid ${size} shrink-0 place-items-center ${SQ} bg-[var(--surface-elevated)] font-semibold text-ink`}>{initials(name)}</span>
   );
   return ring ? <Ring>{face}</Ring> : face;
 }
@@ -91,7 +95,6 @@ const isDentist = (a: Author) => a.kind === "dentist" && !a.name.startsWith("You
 export function ExplorePage() {
   const me = useMe();
   const params = useSearchParams();
-  const router = useRouter();
   const tab = (TABS.find(([t]) => t === params.get("tab"))?.[0] ?? "for_you") as Tab;
   const [items, setItems] = useState<FeedItem[] | null>(null);
   const userId = me === undefined ? undefined : (me?.id ?? null);
@@ -140,12 +143,12 @@ export function ExplorePage() {
         ],
       };
     })
-    // unwatched first, as on Instagram
+    // unwatched first
     .sort((a, b) => Number(seen.includes(a.id)) - Number(seen.includes(b.id)));
 
   return (
     <div className="mx-auto flex w-full max-w-[900px] items-start justify-center">
-      <div className="grid w-full max-w-[470px] gap-4">
+      <div className="grid w-full max-w-[470px] grid-cols-1 gap-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="flex items-center gap-2.5 text-[22px] font-medium text-ink">
             Explore <Tag tone="muted">Demo</Tag>
@@ -157,13 +160,13 @@ export function ExplorePage() {
               </ButtonLink>
             )}
             {canPost && (
-              <Link href="/explore/new" aria-label="Create a post" className="grid size-9 place-items-center rounded-full border border-line text-ink hover:bg-[var(--surface-glass)]">
-                <Plus className="size-5" strokeWidth={1.75} />
+              <Link href="/explore/new" aria-label="Create a post" className="grid size-9 place-items-center rounded-xl border border-line text-ink hover:bg-[var(--surface-glass)]">
+                <SquarePen className="size-[18px]" strokeWidth={1.75} />
               </Link>
             )}
             {/* phones: messages are their own page; desktop has them beside the feed */}
-            <Link href="/explore/messages" aria-label={unread ? `Messages, ${unread} unread` : "Messages"} className="relative grid size-9 place-items-center rounded-full border border-line text-ink hover:bg-[var(--surface-glass)] lg:hidden">
-              <Send className="size-[18px]" strokeWidth={1.75} />
+            <Link href="/explore/messages" aria-label={unread ? `Messages, ${unread} unread` : "Messages"} className="relative grid size-9 place-items-center rounded-xl border border-line text-ink hover:bg-[var(--surface-glass)] lg:hidden">
+              <MessagesSquare className="size-[18px]" strokeWidth={1.75} />
               {unread > 0 && <span className="absolute -right-1 -top-1 grid size-[18px] place-items-center rounded-full bg-sky-500 text-[11px] font-semibold text-white">{unread}</span>}
             </Link>
           </div>
@@ -176,7 +179,7 @@ export function ExplorePage() {
                 <Link href="/explore/new" className="grid w-[74px] justify-items-center gap-1.5 text-center" aria-label="Your story: create a post">
                   <span className="relative">
                     <StoryAvatar name={me.full_name} size="size-16 text-[16px]" ring={false} />
-                    <span className="absolute -bottom-0.5 -right-0.5 grid size-6 place-items-center rounded-full border-2 border-[var(--background)] bg-sky-500 text-white">
+                    <span className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-lg border-2 border-[var(--background)] bg-sky-500 text-white">
                       <Plus className="size-3.5" strokeWidth={3} />
                     </span>
                   </span>
@@ -196,33 +199,20 @@ export function ExplorePage() {
         )}
         {watching && <StoryViewer stories={watching.list} start={watching.start} onClose={() => setWatching(null)} onSeen={markSeen} />}
 
-        <div role="tablist" aria-label="Feed" className="grid grid-cols-4 border-b border-line">
-          {TABS.map(([t, label]) => (
-            <button
-              key={t}
-              role="tab"
-              aria-selected={tab === t}
-              onClick={() => router.replace(t === "for_you" ? "/explore" : `/explore?tab=${t}`, { scroll: false })}
-              className={`-mb-px h-11 border-b-2 text-[13.5px] font-medium ${tab === t ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <p className="text-[12.5px] text-ink-3">Dental know-how from dentists on FMD. Education, not a diagnosis.</p>
-
         {!items ? (
-          <div className="aspect-square animate-pulse rounded-lg bg-[var(--surface-glass)]" aria-busy />
+          <div className="grid gap-4" aria-busy aria-label="Loading posts">
+            <PostSkeleton />
+            <PostSkeleton />
+          </div>
         ) : items.length === 0 ? (
           <Panel className="grid justify-items-start gap-2 p-6">
             <p className="text-[15px] text-ink">{tab === "following" ? "You don't follow anyone yet." : "Nothing here yet."}</p>
             {tab === "following" && <p className="text-[14px] text-ink-3">Follow dentists from their posts to see what they share here.</p>}
           </Panel>
         ) : (
-          <ul key={tab} className="fmd-enter grid">
+          <ul key={tab} className="fmd-enter grid grid-cols-1 gap-4">
             {items.map((p) => (
-              <li key={p.id} className="border-b border-line pb-5 pt-1 [&+li]:pt-4">
+              <li key={p.id} className="rounded-3xl border border-line bg-[var(--surface)] p-4">
                 <PostCard p={p} userId={me?.id ?? null} onChange={load} />
               </li>
             ))}
@@ -280,35 +270,40 @@ export function PostCard({ p, userId, onChange, full = false }: { p: FeedItem; u
   };
   const total = p.votes?.reduce((a, b) => a + b, 0) ?? 0;
   const Title = full ? "h1" : "h2";
-  const icon = "size-6";
+  const chip = "inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-[13.5px] font-medium transition-colors";
+  const idle = `${chip} bg-white/[0.05] text-ink-2 hover:bg-white/[0.09] hover:text-ink`;
 
   return (
-    <article className="grid gap-3">
+    <article className="grid grid-cols-1 gap-3">
       <header className="flex items-center gap-3">
-        <Avatar name={p.author.name} size="size-9 text-[12px]" ring={isDentist(p.author)} photo={photoOf(p.author.id)} />
+        <Avatar name={p.author.name} size="size-10 text-[12px]" ring={isDentist(p.author)} photo={photoOf(p.author.id)} />
         <div className="min-w-0 flex-1 leading-tight">
-          <p className="flex flex-wrap items-center gap-1 text-[14px] font-semibold text-ink">
+          <p className="flex items-center gap-1 text-[14.5px] font-semibold text-ink">
             {isDentist(p.author) ? (
-              <Link href={`/dentists/${p.author.id}`} className="hover:opacity-70">
+              <Link href={`/dentists/${p.author.id}`} className="truncate hover:text-sky-300">
                 {p.author.name}
               </Link>
             ) : (
-              p.author.name
+              <span className="truncate">{p.author.name}</span>
             )}
-            {p.author.verified && <BadgeCheck className="size-4 text-sky-400" strokeWidth={2} aria-label={p.author.kind === "fmd" ? "FMD" : "Verified dentist"} />}
-            {isDentist(p.author) && (
-              <>
-                <span aria-hidden className="text-ink-3">·</span>
-                <button type="button" aria-pressed={p.following} onClick={() => act(() => toggleFollow(userId, p.author.id))} className={p.following ? "text-ink-3 hover:text-ink" : "text-sky-400 hover:text-sky-300"}>
-                  {p.following ? "Following" : "Follow"}
-                </button>
-              </>
-            )}
+            {p.author.verified && <BadgeCheck className="size-4 shrink-0 text-sky-400" strokeWidth={2} aria-label={p.author.kind === "fmd" ? "FMD" : "Verified dentist"} />}
           </p>
-          <p className="mt-0.5 truncate text-[12px] text-ink-3">{p.sponsored_by ? `Sponsored · ${p.sponsored_by}` : [p.author.specialty, p.topic].filter(Boolean).join(" · ")}</p>
+          <p className="mt-0.5 truncate text-[12px] text-ink-3">
+            {p.sponsored_by ? `Sponsored · ${p.sponsored_by}` : [p.author.specialty, p.topic].filter(Boolean).join(" · ")} · {when(Date.parse(p.published_at))}
+          </p>
         </div>
-        <button type="button" aria-expanded={why} aria-label="Why am I seeing this?" onClick={() => setWhy((w) => !w)} className="grid size-8 place-items-center rounded-full text-ink-2 hover:text-ink">
-          <MoreHorizontal className="size-5" strokeWidth={1.75} />
+        {isDentist(p.author) && (
+          <button
+            type="button"
+            aria-pressed={p.following}
+            onClick={() => act(() => toggleFollow(userId, p.author.id))}
+            className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-3 text-[13px] font-semibold ${p.following ? "border border-line text-ink-2 hover:text-ink" : "bg-sky-600 text-white hover:bg-sky-500"}`}
+          >
+            {p.following ? "Following" : <><Plus className="size-3.5" strokeWidth={2.5} /> Follow</>}
+          </button>
+        )}
+        <button type="button" aria-expanded={why} aria-label="Why am I seeing this?" title="Why am I seeing this?" onClick={() => setWhy((w) => !w)} className="grid size-8 shrink-0 place-items-center rounded-lg text-ink-3 hover:bg-white/[0.06] hover:text-ink">
+          <Info className="size-[18px]" strokeWidth={1.75} />
         </button>
       </header>
       {why && p.reason && (
@@ -323,32 +318,42 @@ export function PostCard({ p, userId, onChange, full = false }: { p: FeedItem; u
         </p>
       )}
 
-      {/* the square: video as is, everything else as a cover with its title, double-tap to like */}
-      <div className="relative -mx-4 overflow-hidden bg-[var(--surface-glass)] sm:mx-0 sm:rounded-lg sm:border sm:border-line" onDoubleClick={p.kind === "video" ? undefined : doubleTap}>
+      {/* the text comes first, then the picture */}
+      <div className="grid gap-1 text-[14px]">
+        <p className={`whitespace-pre-line leading-relaxed text-ink-2 ${more ? "" : "line-clamp-3"}`}>{p.body}</p>
+        {!more && p.body.length > 160 && (
+          <button type="button" onClick={() => setMore(true)} className="w-fit font-medium text-sky-400 hover:text-sky-300">
+            Read more
+          </button>
+        )}
+      </div>
+
+      {/* the picture: video as is, everything else as a cover with its title; double-click marks it helpful */}
+      <div className="relative overflow-hidden rounded-2xl border border-line bg-[var(--surface-glass)]" onDoubleClick={p.kind === "video" ? undefined : doubleTap}>
         {p.media && p.kind === "video" ? (
-          <video controls preload="metadata" playsInline className="aspect-[4/5] w-full bg-black object-contain" aria-label={p.media.alt}>
+          <video controls preload="metadata" playsInline className="aspect-video w-full bg-black object-contain" aria-label={p.media.alt}>
             <source src={p.media.src} type="video/mp4" />
             {captions && <track kind="captions" srcLang="en" label="English" src={captions} default />}
           </video>
         ) : (
-          <div className={`grid aspect-square select-none content-center justify-items-center gap-6 bg-gradient-to-br ${coverOf(p.topic)} to-transparent p-8 text-center`}>
+          <div className={`grid aspect-[4/3] select-none content-center justify-items-start gap-4 bg-gradient-to-tr ${coverOf(p.topic)} to-transparent p-6 text-left sm:p-8`}>
             {p.media && (
-              <span className="relative block h-24 w-32 overflow-hidden rounded-xl">
+              <span className="relative block h-20 w-28 overflow-hidden rounded-xl sm:h-24 sm:w-32">
                 <Image src={p.media.src} alt={p.media.alt} fill sizes="128px" className="object-contain" />
               </span>
             )}
-            <span className="text-[12px] font-medium uppercase tracking-[0.16em] text-ink-3">{p.kind === "poll" ? "Poll" : p.topic}</span>
-            <Title className="max-w-[18ch] text-balance text-[26px] font-semibold leading-tight text-ink">{p.title}</Title>
+            <span className="rounded-md bg-black/25 px-2 py-0.5 text-[11.5px] font-semibold uppercase tracking-[0.12em] text-ink-2">{p.kind === "poll" ? "Poll" : p.topic}</span>
+            <Title className="max-w-[20ch] text-balance text-[21px] font-semibold leading-tight text-ink sm:text-[25px]">{p.title}</Title>
           </div>
         )}
         {pop > 0 && (
-          <Heart key={pop} aria-hidden className="fmd-heart-pop pointer-events-none absolute inset-0 m-auto size-24 fill-white text-white drop-shadow-lg" strokeWidth={0} />
+          <ThumbsUp key={pop} aria-hidden className="fmd-heart-pop pointer-events-none absolute inset-0 m-auto size-20 fill-sky-400 text-white drop-shadow-lg" strokeWidth={1} />
         )}
         {(p.is_case || p.sponsored_by) && (
-          <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+          <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-1.5">
             {p.sponsored_by && <SponsoredBadge />}
             {p.is_case && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[11.5px] text-white backdrop-blur">
+              <span className="inline-flex items-center gap-1 rounded-lg bg-black/55 px-2.5 py-1 text-[11.5px] text-white backdrop-blur">
                 <ShieldCheck className="size-3.5" strokeWidth={1.75} /> Shared with consent
               </span>
             )}
@@ -356,72 +361,56 @@ export function PostCard({ p, userId, onChange, full = false }: { p: FeedItem; u
         )}
       </div>
 
-      <div className="flex items-center gap-4 text-ink">
-        <button type="button" aria-pressed={p.liked} aria-label={p.liked ? "Unlike" : "Like"} onClick={like} className="hover:opacity-60">
-          <Heart key={String(p.liked)} className={`${icon} ${p.liked ? "fmd-like fill-[var(--tone-bad)] text-[var(--tone-bad)]" : ""}`} strokeWidth={1.75} />
-        </button>
-        <Link href={`/explore/${p.id}#comments`} aria-label="Comments" className="hover:opacity-60">
-          <MessageCircle className={`${icon} -scale-x-100`} strokeWidth={1.75} />
-        </Link>
-        <button type="button" aria-label="Share" onClick={share} className="hover:opacity-60">
-          <Send className={icon} strokeWidth={1.75} />
-        </button>
-        <button type="button" aria-pressed={p.saved} aria-label={p.saved ? "Saved" : "Save"} onClick={() => act(() => toggleSaved(userId!, "post", p.id))} className="ml-auto hover:opacity-60">
-          <Bookmark className={`${icon} ${p.saved ? "fill-current" : ""}`} strokeWidth={1.75} />
-        </button>
-      </div>
-
-      <div className="grid gap-1.5 text-[14px] text-ink">
-        <p className="font-semibold">{p.likes.toLocaleString("en-IN")} {p.likes === 1 ? "like" : "likes"}</p>
-
-        {p.poll && (
-          <div role="group" aria-label="Poll answers" className="my-1 grid gap-2">
-            {p.poll.map((o, i) =>
-              p.votes ? (
-                <div key={o} className="relative overflow-hidden rounded-xl border border-line px-3.5 py-2.5 text-[14px]">
-                  <span aria-hidden className="absolute inset-y-0 left-0 bg-[var(--accent-soft)]" style={{ width: `${Math.round((p.votes[i] / total) * 100)}%` }} />
-                  <span className="relative flex justify-between gap-2 text-ink">
-                    <span>
-                      {o}
-                      {p.myVote === i && " · your answer"}
-                    </span>
-                    <span>{Math.round((p.votes[i] / total) * 100)}%</span>
+      {p.poll && (
+        <div role="group" aria-label="Poll answers" className="grid gap-2">
+          {p.poll.map((o, i) =>
+            p.votes ? (
+              <div key={o} className="relative overflow-hidden rounded-xl border border-line px-3.5 py-2.5 text-[14px]">
+                <span aria-hidden className="absolute inset-y-0 left-0 bg-[var(--accent-soft)]" style={{ width: `${Math.round((p.votes[i] / total) * 100)}%` }} />
+                <span className="relative flex justify-between gap-2 text-ink">
+                  <span>
+                    {o}
+                    {p.myVote === i && " · your answer"}
                   </span>
-                </div>
-              ) : (
-                <button key={o} type="button" onClick={() => act(() => vote(userId, p.id, i))} className="rounded-xl border border-line px-3.5 py-2.5 text-left text-[14px] text-ink hover:border-[var(--accent)]">
-                  {o}
-                </button>
-              ),
-            )}
-            {p.votes && <p className="text-[12.5px] text-ink-3">{total} answers. A poll, not medical advice.</p>}
-          </div>
-        )}
+                  <span>{Math.round((p.votes[i] / total) * 100)}%</span>
+                </span>
+              </div>
+            ) : (
+              <button key={o} type="button" onClick={() => act(() => vote(userId, p.id, i))} className="rounded-xl border border-line px-3.5 py-2.5 text-left text-[14px] text-ink hover:border-[var(--accent)]">
+                {o}
+              </button>
+            ),
+          )}
+          {p.votes && <p className="text-[12.5px] text-ink-3">{total} answers. A poll, not medical advice.</p>}
+        </div>
+      )}
 
-        <p className={`whitespace-pre-line leading-snug text-ink-2 ${more ? "" : "line-clamp-2"}`}>
-          <span className="mr-1.5 font-semibold text-ink">{p.author.name}</span>
-          {p.body}
+      {p.source && (
+        <p className="flex items-center gap-1.5 text-[13px] text-ink-3">
+          <Link2 className="size-3.5" strokeWidth={1.75} /> From {p.source.platform}, by {p.source.credit}:{" "}
+          <a href={p.source.url} target="_blank" rel="noreferrer" className="underline-offset-4 hover:underline">
+            view the original
+          </a>
         </p>
-        {!more && p.body.length > 110 && (
-          <button type="button" onClick={() => setMore(true)} className="w-fit text-ink-3 hover:text-ink">
-            more
-          </button>
-        )}
-        {p.source && (
-          <p className="flex items-center gap-1.5 text-[13px] text-ink-3">
-            <Link2 className="size-3.5" strokeWidth={1.75} /> From {p.source.platform}, by {p.source.credit}:{" "}
-            <a href={p.source.url} target="_blank" rel="noreferrer" className="underline-offset-4 hover:underline">
-              view the original
-            </a>
-          </p>
-        )}
-        {!full && (
-          <Link href={`/explore/${p.id}#comments`} className="w-fit text-ink-3 hover:text-ink">
-            {p.comments > 0 ? `View ${p.comments === 1 ? "1 comment" : `all ${p.comments} comments`}` : "Add a comment…"}
-          </Link>
-        )}
-        <p className="text-[11px] uppercase tracking-[0.08em] text-ink-3">{when(Date.parse(p.published_at))} · Demo</p>
+      )}
+
+      {/* actions, each with its count */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" aria-pressed={p.liked} aria-label={`${p.liked ? "Marked helpful" : "Helpful"}, ${p.likes}`} onClick={like} className={p.liked ? `${chip} bg-sky-500/20 text-sky-200` : idle}>
+          <ThumbsUp key={String(p.liked)} className={`size-4 ${p.liked ? "fmd-like fill-current" : ""}`} strokeWidth={1.75} />
+          Helpful · {p.likes.toLocaleString("en-IN")}
+        </button>
+        <Link href={`/explore/${p.id}#comments`} aria-label={`Comments, ${p.comments}`} className={idle}>
+          <MessageSquare className="size-4" strokeWidth={1.75} /> {p.comments}
+        </Link>
+        <button type="button" aria-label="Share" onClick={share} className={idle}>
+          <Share2 className="size-4" strokeWidth={1.75} /> Share
+        </button>
+        <button type="button" aria-pressed={p.saved} aria-label={p.saved ? "Saved" : "Save"} title={p.saved ? "Saved" : "Save"} onClick={() => act(() => toggleSaved(userId!, "post", p.id))} className={`ml-auto ${p.saved ? `${chip} bg-sky-500/20 text-sky-200` : idle}`}>
+          <Bookmark className={`size-4 ${p.saved ? "fill-current" : ""}`} strokeWidth={1.75} />
+        </button>
       </div>
+      <p className="text-[11.5px] text-ink-3">Demo post</p>
       {note && <p role="status" className="text-[13px] text-ink-2">{note}</p>}
     </article>
   );

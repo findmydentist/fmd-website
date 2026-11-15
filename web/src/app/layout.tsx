@@ -4,6 +4,7 @@ import CursorFx from "@/components/CursorFx";
 import { PageTransition } from "@/components/PageTransition";
 import { SITE } from "@/lib/site";
 import { noFlashScript } from "@/lib/themes";
+import { LIVE_HOSTS } from "@/toggle";
 import "./globals.css";
 
 // brand face: Plus Jakarta Sans, variable (200–800), self-hosted by next/font
@@ -92,6 +93,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
+        {/* production: mark the page so the staging-only parts (data-staging) hide before paint, and drop any old demo sign-in */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if(${JSON.stringify(LIVE_HOSTS)}.includes(location.hostname)){document.documentElement.dataset.live="";try{localStorage.removeItem("fmd-demo-session")}catch(e){}}`,
+          }}
+        />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       </head>
       <body className="min-h-dvh">

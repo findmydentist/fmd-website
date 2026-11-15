@@ -11,7 +11,7 @@ import {
   LogOut,
   Menu,
   Search,
-  Send,
+  MessagesSquare,
   Settings,
   Sparkles,
   UserRound,
@@ -31,7 +31,7 @@ const GO: Entry[] = [
   ["/assistant", "Ask FMD AI", Sparkles],
   ["/dentists", "Find a dentist", Search],
   ["/explore", "Explore", Compass],
-  ["/explore/messages", "Messages", Send],
+  ["/explore/messages", "Messages", MessagesSquare],
   ["/jobs", "Jobs", Briefcase],
 ];
 const YOU: Entry[] = [
@@ -168,7 +168,7 @@ export function MobileMenu({
               </>
             )}
             {account && (
-              <>
+              <div data-staging>
             <p className="px-3 pb-1.5 pt-1 text-[12px] font-semibold uppercase tracking-[0.1em] text-ink-3">Go to</p>
             <div className="grid gap-0.5">{GO.map(([h, l, I]) => item(h, l, I))}</div>
             {me && (
@@ -177,12 +177,12 @@ export function MobileMenu({
                 <div className="grid gap-0.5">{YOU.map(([h, l, I]) => item(h, l, I))}</div>
               </>
             )}
-              </>
+              </div>
             )}
           </div>
 
           {account && (
-          <div className="border-t border-line p-3">
+          <div data-staging className="border-t border-line p-3">
             {err && <p role="alert" className="px-3 pb-2 text-[12.5px] text-ink-2">{err}</p>}
             {me ? (
               <button type="button" onClick={signOut} className="flex w-full items-center gap-3.5 rounded-xl px-3 py-3 text-[15px] font-medium text-[var(--tone-bad)] hover:bg-white/[0.06]">

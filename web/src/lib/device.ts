@@ -12,3 +12,23 @@ export const rigPath = (name: string) => `/models/${LIGHT_DEVICE ? "rig-mobile" 
 
 /** Touch-only devices (phones, tablets): the hero's rising mascot is a turntable of frames there (hero/HeroTurn.tsx). */
 export const TOUCH = typeof window !== "undefined" && window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
+/**
+ * Graphics drawn in software (no usable GPU: a VM, a remote desktop, a missing driver), where live 3D and full-screen
+ * page animations cost seconds of frozen page. Such browsers get the mascots' videos instead of WebGL (MascotArt's
+ * VIDEOS) and no page animation (PageTransition). Firefox hides the renderer's name, so it's never flagged there.
+ */
+export const SLOW_GPU =
+  typeof window !== "undefined" &&
+  (() => {
+    try {
+      const gl = document.createElement("canvas").getContext("webgl");
+      if (!gl) return true;
+      const info = gl.getExtension("WEBGL_debug_renderer_info");
+      const name = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+      gl.getExtension("WEBGL_lose_context")?.loseContext(); // free the probe's context straight away
+      return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(name);
+    } catch {
+      return false;
+    }
+  })();
