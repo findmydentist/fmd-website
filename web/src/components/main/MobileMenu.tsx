@@ -11,7 +11,7 @@ import {
   LogOut,
   Menu,
   Search,
-  Send,
+  MessagesSquare,
   Settings,
   Sparkles,
   UserRound,
@@ -31,7 +31,7 @@ const GO: Entry[] = [
   ["/assistant", "Ask FMD AI", Sparkles],
   ["/dentists", "Find a dentist", Search],
   ["/explore", "Explore", Compass],
-  ["/explore/messages", "Messages", Send],
+  ["/explore/messages", "Messages", MessagesSquare],
   ["/jobs", "Jobs", Briefcase],
 ];
 const YOU: Entry[] = [

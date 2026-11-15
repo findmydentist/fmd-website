@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 // what tilts toward the cursor: the mascots (their art sits in a box; the box tilts, so stacked crossfading poses move
@@ -27,7 +28,10 @@ type Tilt = { el: HTMLElement; rect: DOMRect; rx: number; ry: number; tx: number
  * touch screens or under reduced motion.
  */
 export default function CursorFx() {
-  const [enabled, setEnabled] = useState(false);
+  const [fine, setEnabled] = useState(false);
+  // the homepage only: the app's pages stay still
+  const home = usePathname() === "/";
+  const enabled = fine && home;
   const orbRef = useRef<HTMLDivElement>(null);
 
   // on only for a fine pointer without reduced motion; follows either preference if it changes

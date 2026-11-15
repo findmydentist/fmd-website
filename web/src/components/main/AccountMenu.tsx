@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, CircleHelp, LogOut, Sparkles, UserRound } from "lucide-react";
+import { Briefcase, Compass, LogOut, Search, Sparkles, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
@@ -81,17 +81,20 @@ export function AccountMenu({ loginClassName = "", sections = [] }: { loginClass
             <Link href="/appointments" onClick={close} className={itemCls}>
               <CalendarDays className="size-4" strokeWidth={1.5} /> {t("menu.appointments")}
             </Link> */}
+            <Link href="/dentists" onClick={close} className={itemCls}>
+              <Search className="size-4" strokeWidth={1.5} /> Find a dentist
+            </Link>
+            <Link href="/explore" onClick={close} className={itemCls}>
+              <Compass className="size-4" strokeWidth={1.5} /> Explore
+            </Link>
+            <Link href="/jobs" onClick={close} className={itemCls}>
+              <Briefcase className="size-4" strokeWidth={1.5} /> Jobs
+            </Link>
             <Link href="/concierge/enquiries" onClick={close} className={itemCls}>
               <Sparkles className="size-4" strokeWidth={1.5} /> {t("menu.edge")}
             </Link>
-            <Link href="/saved" onClick={close} className={itemCls}>
-              <Bookmark className="size-4" strokeWidth={1.5} /> {t("menu.saved")}
-            </Link>
             <Link href="/account" onClick={close} className={itemCls}>
               <UserRound className="size-4" strokeWidth={1.5} /> {t("menu.account")}
-            </Link>
-            <Link href="/help" onClick={close} className={itemCls}>
-              <CircleHelp className="size-4" strokeWidth={1.5} /> {t("menu.help")}
             </Link>
             <button type="button" onClick={signOut} className={itemCls}>
               <LogOut className="size-4" strokeWidth={1.5} /> {t("menu.logout")}

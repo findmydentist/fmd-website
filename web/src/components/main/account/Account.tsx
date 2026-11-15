@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, BadgeCheck, Bookmark, Briefcase, Building2, Camera, Check, Clapperboard, GraduationCap, Grid3x3, HeartPulse, ChevronDown, ChevronRight, CreditCard, Lock, LogOut, Mail, Monitor, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Stethoscope, UserPlus, UserRound, X, type LucideIcon } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Bookmark, Briefcase, Building2, Camera, Check, Clapperboard, GraduationCap, Grid3x3, HeartPulse, LayoutGrid, MapPin, Shapes, SquarePlay, ChevronDown, ChevronRight, CreditCard, ArrowRight, Eye, Pencil, Lock, LogOut, Mail, Monitor, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Stethoscope, UserPlus, UserRound, X, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
@@ -15,9 +15,10 @@ import { getDocument } from "@/sample/dentist";
 import { feed, following, getPost, type Author, type FeedItem } from "@/sample/content";
 import { getSaved } from "@/sample/saved";
 import { PostGrid } from "../dentists/Profile";
-import { coverOf, Ring } from "../explore/Explore";
+import { coverOf, PostCard, Ring } from "../explore/Explore";
 import { StoryViewer, useSeen, type Story } from "../explore/Stories";
 import { STATUS, VerifyStatus } from "./Dentist";
+import { LayoutPicker, useProfileLayout } from "../ProfileLayout";
 
 /* ---------------- formatting ---------------- */
 
@@ -40,7 +41,7 @@ const submit = (fn: () => void) => (e: FormEvent) => {
 
 /* ---------------- /account: the profile ---------------- */
 
-/** Instagram-style "Suggested for you" cards: the account's other pages, each a tap away (and dismissable) */
+/** "Shortcuts for you" cards: the account's other pages, each a tap away (and dismissable) */
 const SUGGESTIONS: { id: string; href: string; title: string; text: string; action: string; Icon: LucideIcon }[] = [
   { id: "membership", href: "/membership", title: "Membership", text: "Your plan, renewal, payments and receipts.", action: "Manage", Icon: CreditCard },
   { id: "personalise", href: "/account/personalisation", title: "Personalise", text: "Choose what Explore and suggestions show you.", action: "Set up", Icon: SlidersHorizontal },
@@ -104,7 +105,7 @@ const HIGHLIGHTS: Story[] = [
   },
 ];
 
-/** /account, laid out like an Instagram profile: who you are, counts, shortcuts and what you've saved. Changes live in /account/settings. */
+/** /account: a profile card (who you are, counts), shortcuts, highlights and what you've saved. Changes live in /account/settings. */
 export function Account() {
   const me = useRequireMe();
   const [savedPosts, setSavedPosts] = useState<FeedItem[] | null>(null);
@@ -120,6 +121,8 @@ export function Account() {
   const [watching, setWatching] = useState<{ list: Story[]; start: number } | null>(null);
   const [seen, markSeen] = useSeen();
   const [showSuggest, setShowSuggest] = useState(true);
+  const [layout, pickLayout] = useProfileLayout();
+  const [fbTab, setFbTab] = useState<"posts" | "about" | "photos" | "videos" | "saved">("posts");
   const [dismissed, setDismissed] = useState<string[]>([]);
   useEffect(() => {
     try {
@@ -153,9 +156,52 @@ export function Account() {
   }, [userId]);
   if (!me) return <div className="app-panel h-40 animate-pulse" aria-busy />;
 
-  const stat = "text-center text-[13px] leading-tight text-ink-2 hover:opacity-70 sm:text-left sm:text-[15px]";
-  const num = "block text-[16px] font-semibold text-ink sm:inline sm:text-[15px]";
-  const actions = (
+  const card = "rounded-xl border border-line bg-[var(--surface)]";
+  const pill = "inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-[14px] font-semibold transition-colors";
+  const roleWords = [
+    me.workspaces.some((w) => w.role === "owner") && "Clinic owner",
+    (me.dentist_profile || accountType === "dentist") && "Dentist",
+  ].filter(Boolean);
+  const headline = [me.dentist_profile?.specialisation, ...roleWords].filter(Boolean).join(" · ") || "Patient on FindMyDentist";
+  const clinic = me.workspaces[0];
+  const sectionTitle = "text-[19px] font-semibold text-ink";
+
+  const getVerifiedChip = (me.dentist_profile ? ["unverified", "rejected"].includes(me.dentist_profile.verification_status) : accountType === "dentist") && (
+    <a href="#get-verified" className="inline-flex h-8 items-center gap-1.5 rounded-full border border-dashed border-sky-500/60 px-3 text-[13px] font-semibold text-sky-400 hover:bg-sky-500/10">
+      <BadgeCheck className="size-4" strokeWidth={2} /> Get verified
+    </a>
+  );
+  const status = (me.dentist_profile || accountType === "dentist") && <VerifyStatus status={me.dentist_profile?.verification_status ?? null} className="text-[14px]" />;
+  const verifiedTick = me.dentist_profile?.verification_status === "verified" && <BadgeCheck className="size-5 text-sky-400" strokeWidth={2} aria-label="Verified dentist" />;
+  const shortcuts = SUGGESTIONS.filter((x) => !dismissed.includes(x.id));
+  const openHighlight = (i: number) => setWatching({ list: HIGHLIGHTS.map((x) => ({ ...x, name: `${me.full_name} · ${x.name}` })), start: i });
+  const savedPanel = (insta: boolean) =>
+    !savedPosts ? (
+      <div className="aspect-[3/1] animate-pulse rounded-lg bg-[var(--surface-glass)]" aria-busy />
+    ) : savedPosts.length ? (
+      <PostGrid posts={savedPosts} square={insta} />
+    ) : (
+      <div className="grid justify-items-center gap-3 py-12 text-center">
+        <span className={`grid size-16 place-items-center ${insta ? "rounded-full border-2 border-ink text-ink" : "rounded-3xl bg-sky-500/15 text-sky-300"}`}>
+          <Bookmark className="size-7" strokeWidth={1.5} />
+        </span>
+        <p className="text-[20px] font-semibold text-ink">Save posts</p>
+        <p className="text-[14px] text-ink-3">Tap the bookmark on a post in Explore to keep it here. Only you can see what you save.</p>
+        <Link href="/explore" className="text-[14px] font-medium text-sky-400 hover:underline">
+          Go to Explore
+        </Link>
+      </div>
+    );
+  const panel = (insta: boolean) => (
+    <div key={grid} role="tabpanel" className="fmd-enter">
+      {grid === "saved" ? savedPanel(insta) : <OwnGrid me={me} posts={mine} reels={grid === "reels"} insta={insta} />}
+    </div>
+  );
+
+  /* ---- layout 1: Instagram style ---- */
+  const instaStat = "text-center text-[13px] leading-tight text-ink-2 hover:opacity-70 sm:text-left sm:text-[15px]";
+  const instaNum = "block text-[16px] font-semibold text-ink sm:inline sm:text-[15px]";
+  const instaActions = (
     <>
       <ButtonLink href="/account/settings" variant="secondary" size="sm">
         Edit profile
@@ -171,58 +217,48 @@ export function Account() {
       </Link>
     </>
   );
-
-  return (
-    <div className="mx-auto grid w-full max-w-[935px] gap-6">
-      <h1 className="sr-only">Your profile</h1>
-
+  const insta = (
+    <div className="mx-auto grid w-full max-w-[935px] grid-cols-1 gap-6">
       <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-5 sm:gap-12 sm:px-8">
-        <Ring>
+        <Ring round>
           <span className="grid size-20 place-items-center rounded-full bg-[var(--surface-elevated)] text-[24px] font-semibold text-ink sm:size-36 sm:text-[44px]">{initials(me.full_name)}</span>
         </Ring>
         <div className="grid gap-3 sm:gap-4">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <p className="flex items-center gap-2 text-[20px] font-medium text-ink sm:text-[22px]">
               {me.full_name}
-              {me.dentist_profile?.verification_status === "verified" && <BadgeCheck className="size-5 text-sky-400" strokeWidth={2} aria-label="Verified dentist" />}
+              {verifiedTick}
             </p>
-            {/* a dentist's status, in bold: red not verified, yellow pending, green verified; and, LinkedIn style, a nudge to verify */}
-            {(me.dentist_profile || accountType === "dentist") && <VerifyStatus status={me.dentist_profile?.verification_status ?? null} className="text-[14px]" />}
-            {(me.dentist_profile ? ["unverified", "rejected"].includes(me.dentist_profile.verification_status) : accountType === "dentist") && (
-              <a href="#get-verified" className="inline-flex h-8 items-center gap-1.5 rounded-full border border-dashed border-sky-500/60 px-3 text-[13px] font-semibold text-sky-400 hover:bg-sky-500/10">
-                <BadgeCheck className="size-4" strokeWidth={2} /> Get verified
-              </a>
-            )}
-            <div className="hidden items-center gap-2 sm:flex">{actions}</div>
+            {status}
+            {getVerifiedChip}
+            <div className="hidden items-center gap-2 sm:flex">{instaActions}</div>
           </div>
           <RoleTags me={me} accountType={accountType} />
           <div className="flex justify-between gap-3 sm:justify-start sm:gap-10">
-            <a href="#saved" onClick={() => setGrid("saved")} className={stat}>
-              <span className={num}>{savedPosts?.length ?? "–"}</span> saved posts
+            <a href="#saved" onClick={() => setGrid("saved")} className={instaStat}>
+              <span className={instaNum}>{savedPosts?.length ?? "–"}</span> saved posts
             </a>
-            <Link href="/saved" className={stat}>
-              <span className={num}>{savedDentists}</span> saved dentists
+            <Link href="/saved" className={instaStat}>
+              <span className={instaNum}>{savedDentists}</span> saved dentists
             </Link>
-            <button type="button" onClick={() => setShowFollowing(true)} className={stat}>
-              <span className={num}>{follows.length}</span> following
+            <button type="button" onClick={() => setShowFollowing(true)} className={instaStat}>
+              <span className={instaNum}>{follows.length}</span> following
             </button>
           </div>
         </div>
       </header>
 
-      {/* bio */}
       <div className="grid gap-0.5 text-[14px] text-ink-2 sm:px-8">
         {me.dentist_profile?.specialisation && <p className="font-semibold text-ink">{me.dentist_profile.specialisation}</p>}
         <p>{fmtPhone(me.phone)}</p>
         {me.email && <p className="break-all">{me.email}</p>}
         {me.city && <p>{me.city}</p>}
-        <div className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">{actions}</div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">{instaActions}</div>
       </div>
 
       <GetVerified me={me} accountType={accountType} certificate={certificate} />
 
-      {/* suggested for you: the account's other pages, as Instagram suggests accounts */}
-      {showSuggest && SUGGESTIONS.some((x) => !dismissed.includes(x.id)) && (
+      {showSuggest && shortcuts.length > 0 && (
         <section aria-label="Suggested for you" className="fmd-enter grid gap-3 sm:px-8">
           <div className="flex items-center justify-between">
             <h2 className="text-[14px] font-semibold text-ink">Suggested for you</h2>
@@ -231,7 +267,7 @@ export function Account() {
             </Link>
           </div>
           <ul className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0">
-            {SUGGESTIONS.filter((x) => !dismissed.includes(x.id)).map(({ id, href, title, text, action, Icon }) => (
+            {shortcuts.map(({ id, href, title, text, action, Icon }) => (
               <li key={id} className="relative grid w-[164px] shrink-0 justify-items-center gap-2 rounded-xl border border-line bg-[var(--surface)] px-3 pb-3 pt-5 text-center">
                 <button type="button" onClick={() => dismiss(id)} aria-label={`Dismiss ${title}`} className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full text-ink-3 hover:bg-white/[0.06] hover:text-ink">
                   <X className="size-4" strokeWidth={2} />
@@ -250,11 +286,10 @@ export function Account() {
         </section>
       )}
 
-      {/* highlights: demo stories, opened in the story viewer */}
       <ul aria-label="Highlights" className="-mx-4 flex gap-5 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-8">
         {HIGHLIGHTS.map((h, i) => (
           <li key={h.id} className="shrink-0">
-            <button type="button" onClick={() => setWatching({ list: HIGHLIGHTS.map((x) => ({ ...x, name: `${me.full_name} · ${x.name}` })), start: i })} className="grid w-[76px] justify-items-center gap-1.5 text-center" aria-label={`Highlight: ${h.name}`}>
+            <button type="button" onClick={() => openHighlight(i)} className="grid w-[76px] justify-items-center gap-1.5 text-center" aria-label={`Highlight: ${h.name}`}>
               <span className={`block rounded-full border p-[3px] ${seen.includes(h.id) ? "border-line" : "border-line-strong"}`}>
                 <span className="relative block size-16 overflow-hidden rounded-full bg-[var(--surface-elevated)]">
                   <Image src={h.photo!} alt="" fill sizes="64px" className="object-cover object-[center_20%]" />
@@ -265,9 +300,7 @@ export function Account() {
           </li>
         ))}
       </ul>
-      {watching && <StoryViewer stories={watching.list} start={watching.start} onClose={() => setWatching(null)} onSeen={markSeen} />}
 
-      {/* Instagram's tabs: your posts, your reels, what you've saved */}
       <section id="saved" aria-label="Your posts and saves" className="scroll-mt-24">
         <div role="tablist" aria-label="Profile" className="grid grid-cols-3 border-t border-line">
           {(
@@ -288,35 +321,835 @@ export function Account() {
             </button>
           ))}
         </div>
-        <div key={grid} role="tabpanel" className="fmd-enter">
-          {grid === "saved" ? (
-          !savedPosts ? (
-            <div className="aspect-[3/1] animate-pulse bg-[var(--surface-glass)]" aria-busy />
-          ) : savedPosts.length ? (
-            <div className="fmd-enter grid gap-4">
-              <PostGrid posts={savedPosts} />
-              <Link href="/saved" className="w-fit text-[14px] font-medium text-sky-400 hover:underline">
-                All saved dentists, posts and jobs
-              </Link>
-            </div>
-          ) : (
-            <div className="grid justify-items-center gap-3 py-14 text-center">
-              <span className="grid size-16 place-items-center rounded-full border-2 border-ink text-ink">
-                <Bookmark className="size-7" strokeWidth={1.5} />
-              </span>
-              <p className="text-[20px] font-semibold text-ink">Save posts</p>
-              <p className="text-[14px] text-ink-3">Tap the bookmark on a post in Explore to keep it here. Only you can see what you save.</p>
-              <Link href="/explore" className="text-[14px] font-medium text-sky-400 hover:underline">
-                Go to Explore
-              </Link>
-            </div>
-          )
-          ) : (
-            <OwnGrid me={me} posts={mine} reels={grid === "reels"} />
-          )}
+        {panel(true)}
+      </section>
+    </div>
+  );
+
+  /* ---- layout 5: Instagram's structure, rearranged: photo on the right, square shapes, stats and buttons in their own rows, icon-only tabs ---- */
+  const insta2 = (
+    <div className="mx-auto grid w-full max-w-[935px] grid-cols-1 gap-5">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-5 sm:gap-10 sm:px-8">
+        <div className="grid min-w-0 content-start gap-2">
+          <p className="flex flex-wrap items-center gap-2 text-[22px] font-semibold text-ink sm:text-[26px]">
+            {me.full_name}
+            {verifiedTick}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {status}
+            {getVerifiedChip}
+          </div>
+          <RoleTags me={me} accountType={accountType} />
+          <div className="grid gap-0.5 text-[14px] text-ink-2">
+            {me.dentist_profile?.specialisation && <p className="font-semibold text-ink">{me.dentist_profile.specialisation}</p>}
+            <p className="flex items-center gap-1.5">
+              <Smartphone className="size-3.5 text-ink-3" strokeWidth={2} /> {fmtPhone(me.phone)}
+            </p>
+            {me.email && (
+              <p className="flex items-center gap-1.5 break-all">
+                <Mail className="size-3.5 shrink-0 text-ink-3" strokeWidth={2} /> {me.email}
+              </p>
+            )}
+            {me.city && (
+              <p className="flex items-center gap-1.5">
+                <MapPin className="size-3.5 text-ink-3" strokeWidth={2} /> {me.city}
+              </p>
+            )}
+          </div>
         </div>
+        <Ring>
+          <span className="grid size-20 place-items-center bg-[var(--surface-elevated)] text-[24px] font-semibold text-ink sm:size-32 sm:text-[40px]">{initials(me.full_name)}</span>
+        </Ring>
+      </header>
+
+      {/* the counts, in one row with dividers */}
+      <div className="grid grid-cols-3 divide-x divide-[var(--border)] rounded-2xl border border-line py-3 sm:mx-8">
+        <a href="#saved" onClick={() => setGrid("saved")} className="grid justify-items-center text-[12.5px] text-ink-3 hover:text-ink">
+          <span className="text-[18px] font-semibold text-ink">{savedPosts?.length ?? "–"}</span> saved posts
+        </a>
+        <Link href="/saved" className="grid justify-items-center text-[12.5px] text-ink-3 hover:text-ink">
+          <span className="text-[18px] font-semibold text-ink">{savedDentists}</span> saved dentists
+        </Link>
+        <button type="button" onClick={() => setShowFollowing(true)} className="grid justify-items-center text-[12.5px] text-ink-3 hover:text-ink">
+          <span className="text-[18px] font-semibold text-ink">{follows.length}</span> following
+        </button>
+      </div>
+
+      {/* the buttons, sharing one row */}
+      <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-2 sm:px-8">
+        <Link href="/account/settings" className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-sky-600 text-[14px] font-semibold text-white hover:bg-sky-500">
+          <Pencil className="size-4" strokeWidth={2} /> Edit profile
+        </Link>
+        <Link href="/saved" className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-white/[0.08] text-[14px] font-semibold text-ink hover:bg-white/[0.12]">
+          <Bookmark className="size-4" strokeWidth={2} /> Saved
+        </Link>
+        <button type="button" aria-pressed={showSuggest} aria-label={showSuggest ? "Hide shortcuts" : "Show shortcuts"} title="Shortcuts" onClick={() => setShowSuggest((v) => !v)} className={`grid size-9 place-items-center rounded-xl ${showSuggest ? "bg-sky-500/20 text-sky-300" : "bg-white/[0.08] text-ink"} hover:bg-white/[0.12]`}>
+          <Shapes className="size-4" strokeWidth={2} />
+        </button>
+        <Link href="/account/settings" aria-label="Settings" title="Settings" className="grid size-9 place-items-center rounded-xl bg-white/[0.08] text-ink hover:bg-white/[0.12]">
+          <SlidersHorizontal className="size-4" strokeWidth={2} />
+        </Link>
+      </div>
+
+      <GetVerified me={me} accountType={accountType} certificate={certificate} />
+
+      {showSuggest && shortcuts.length > 0 && (
+        <section aria-label="Discover" className="fmd-enter grid gap-3 sm:px-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[14px] font-semibold text-ink">Discover</h2>
+            <Link href="/account/settings" className="text-[13.5px] font-semibold text-sky-400 hover:text-sky-300">
+              See all
+            </Link>
+          </div>
+          <ul className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0">
+            {shortcuts.map(({ id, href, title, text, action, Icon }) => (
+              <li key={id} className="relative grid w-[164px] shrink-0 justify-items-center gap-2 rounded-2xl border border-line bg-[var(--surface)] px-3 pb-3 pt-5 text-center">
+                <button type="button" onClick={() => dismiss(id)} aria-label={`Dismiss ${title}`} className="absolute left-1.5 top-1.5 grid size-7 place-items-center rounded-lg text-ink-3 hover:bg-white/[0.06] hover:text-ink">
+                  <X className="size-4" strokeWidth={2} />
+                </button>
+                <span className={`grid size-16 place-items-center rounded-[30%] bg-gradient-to-br ${coverOf(title)} to-[var(--surface-elevated)] text-ink`}>
+                  <Icon className="size-7" strokeWidth={1.5} />
+                </span>
+                <p className="text-[14px] font-semibold text-ink">{id === "dentist" && me.dentist_profile ? "Your dentist profile" : title}</p>
+                <p className="line-clamp-2 min-h-[2lh] text-[12px] leading-snug text-ink-3">{text}</p>
+                <Link href={href} className="mt-1 w-full rounded-xl border border-sky-500/60 py-1.5 text-[13.5px] font-semibold text-sky-300 hover:bg-sky-500/10">
+                  {id === "dentist" ? (me.dentist_profile ? "Edit" : "Set up") : action}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <ul aria-label="Highlights" className="-mx-4 flex gap-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-8">
+        {HIGHLIGHTS.map((h, i) => (
+          <li key={h.id} className="shrink-0">
+            <button type="button" onClick={() => openHighlight(i)} className="grid w-[76px] justify-items-center gap-1.5 text-center" aria-label={`Highlight: ${h.name}`}>
+              <span className={`block rounded-[32%] border-2 p-[3px] ${seen.includes(h.id) ? "border-line" : "border-sky-500/70"}`}>
+                <span className="relative block size-16 overflow-hidden rounded-[28%] bg-[var(--surface-elevated)]">
+                  <Image src={h.photo!} alt="" fill sizes="64px" className="object-cover object-[center_20%]" />
+                </span>
+              </span>
+              <span className="w-full truncate text-[12px] font-medium text-ink-2">{h.name}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <section id="saved" aria-label="Your posts and saves" className="scroll-mt-24">
+        <div role="tablist" aria-label="Profile" className="grid grid-cols-3 border-b border-line">
+          {(
+            [
+              ["posts", "Posts", LayoutGrid],
+              ["reels", "Videos", SquarePlay],
+              ["saved", "Saved", Bookmark],
+            ] as const
+          ).map(([t, label, Icon]) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={grid === t}
+              aria-label={label}
+              title={label}
+              onClick={() => setGrid(t)}
+              className={`-mb-px grid h-12 place-items-center border-b-2 transition-colors ${grid === t ? "border-sky-400 text-sky-300" : "border-transparent text-ink-3 hover:text-ink"}`}
+            >
+              <Icon className="size-[22px]" strokeWidth={grid === t ? 2.1 : 1.75} />
+            </button>
+          ))}
+        </div>
+        <div className="pt-1">{panel(true)}</div>
+      </section>
+    </div>
+  );
+
+  /* ---- layout 2: cards ---- */
+  const stat = "grid gap-0.5 rounded-2xl bg-white/[0.04] px-3 py-2.5 text-left text-[12.5px] leading-tight text-ink-3 transition-colors hover:bg-white/[0.08]";
+  const num = "text-[18px] font-semibold text-ink";
+  const contact = "inline-flex items-center gap-1.5";
+  const cardActions = (
+    <>
+      <ButtonLink href="/account/settings" variant="secondary" size="sm">
+        Edit profile
+      </ButtonLink>
+      <ButtonLink href="/saved" variant="secondary" size="sm">
+        Saved items
+      </ButtonLink>
+      <Button variant="secondary" size="sm" aria-pressed={showSuggest} aria-label={showSuggest ? "Hide shortcuts" : "Show shortcuts"} title="Shortcuts" onClick={() => setShowSuggest((v) => !v)} className="!px-3">
+        <Shapes className="size-4" strokeWidth={2} />
+      </Button>
+      <Link href="/account/settings" aria-label="Settings" title="Settings" className="grid size-9 place-items-center rounded-xl border border-line text-ink hover:bg-[var(--surface-glass)]">
+        <Settings className="size-[18px]" strokeWidth={1.75} />
+      </Link>
+    </>
+  );
+  const cards = (
+    <div className="mx-auto grid w-full max-w-[935px] grid-cols-1 gap-6">
+      <header className="overflow-hidden rounded-3xl border border-line bg-[var(--surface)]">
+        <div aria-hidden className="h-24 bg-[linear-gradient(120deg,rgba(14,165,233,0.45),rgba(99,102,241,0.25)_55%,rgba(34,211,238,0.18))] sm:h-32" />
+        <div className="grid gap-4 px-4 pb-5 sm:px-6">
+          <div className="-mt-10 flex items-end justify-between gap-3 sm:-mt-14">
+            <span className="relative grid size-20 shrink-0 place-items-center rounded-[30%] border-4 border-[var(--surface)] bg-[var(--surface-elevated)] text-[24px] font-semibold text-ink sm:size-28 sm:text-[34px]">{initials(me.full_name)}</span>
+            <div className="hidden items-center gap-2 sm:flex">{cardActions}</div>
+          </div>
+          <div className="grid gap-2.5">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <p className="flex items-center gap-2 text-[21px] font-semibold text-ink sm:text-[24px]">
+                {me.full_name}
+                {verifiedTick}
+              </p>
+              {status}
+              {getVerifiedChip}
+            </div>
+            <RoleTags me={me} accountType={accountType} />
+            {me.dentist_profile?.specialisation && <p className="text-[14px] font-semibold text-ink">{me.dentist_profile.specialisation}</p>}
+            <p className="flex flex-wrap gap-x-4 gap-y-1 text-[13.5px] text-ink-3">
+              <span className={contact}>
+                <Smartphone className="size-4" strokeWidth={1.75} /> {fmtPhone(me.phone)}
+              </span>
+              {me.email && (
+                <span className={`${contact} break-all`}>
+                  <Mail className="size-4 shrink-0" strokeWidth={1.75} /> {me.email}
+                </span>
+              )}
+              {me.city && (
+                <span className={contact}>
+                  <MapPin className="size-4" strokeWidth={1.75} /> {me.city}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:max-w-[480px]">
+            <a href="#saved" onClick={() => setGrid("saved")} className={stat}>
+              <span className={num}>{savedPosts?.length ?? "–"}</span> saved posts
+            </a>
+            <Link href="/saved" className={stat}>
+              <span className={num}>{savedDentists}</span> saved dentists
+            </Link>
+            <button type="button" onClick={() => setShowFollowing(true)} className={stat}>
+              <span className={num}>{follows.length}</span> following
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:hidden">{cardActions}</div>
+        </div>
+      </header>
+
+      <GetVerified me={me} accountType={accountType} certificate={certificate} />
+
+      {showSuggest && shortcuts.length > 0 && (
+        <section aria-label="Shortcuts for you" className="fmd-enter grid gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[14px] font-semibold text-ink">Shortcuts for you</h2>
+            <Link href="/account/settings" className="text-[13.5px] font-semibold text-sky-400 hover:text-sky-300">
+              See all
+            </Link>
+          </div>
+          <ul className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0">
+            {shortcuts.map(({ id, href, title, text, action, Icon }) => (
+              <li key={id} className="relative grid w-[176px] shrink-0 content-start justify-items-start gap-2 rounded-2xl border border-line bg-[var(--surface)] p-3.5 text-left">
+                <button type="button" onClick={() => dismiss(id)} aria-label={`Dismiss ${title}`} className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full text-ink-3 hover:bg-white/[0.06] hover:text-ink">
+                  <X className="size-4" strokeWidth={2} />
+                </button>
+                <span className={`grid size-11 place-items-center rounded-xl bg-gradient-to-br ${coverOf(title)} to-[var(--surface-elevated)] text-ink`}>
+                  <Icon className="size-5" strokeWidth={1.75} />
+                </span>
+                <p className="text-[14px] font-semibold text-ink">{id === "dentist" && me.dentist_profile ? "Your dentist profile" : title}</p>
+                <p className="line-clamp-2 min-h-[2lh] text-[12px] leading-snug text-ink-3">{text}</p>
+                <Link href={href} className="mt-1 inline-flex items-center gap-1 text-[13.5px] font-semibold text-sky-400 hover:text-sky-300">
+                  {id === "dentist" ? (me.dentist_profile ? "Edit" : "Set up") : action} <ChevronRight className="size-4" strokeWidth={2} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section aria-label="Highlights" className="grid gap-3">
+        <h2 className="text-[14px] font-semibold text-ink">Highlights</h2>
+        <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
+          {HIGHLIGHTS.map((h, i) => (
+            <li key={h.id} className="shrink-0">
+              <button
+                type="button"
+                onClick={() => openHighlight(i)}
+                aria-label={`Highlight: ${h.name}`}
+                className={`relative block h-[128px] w-[96px] overflow-hidden rounded-2xl border-2 bg-[var(--surface-elevated)] transition-transform hover:-translate-y-0.5 ${seen.includes(h.id) ? "border-line" : "border-sky-500/70"}`}
+              >
+                <Image src={h.photo!} alt="" fill sizes="96px" className="object-cover object-[center_20%]" />
+                <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/85 to-transparent px-2 pb-2 pt-8 text-left text-[12px] font-semibold text-white">{h.name}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </section>
 
+      <section id="saved" aria-label="Your posts and saves" className="scroll-mt-24">
+        <div role="tablist" aria-label="Profile" className="mb-4 grid grid-cols-3 gap-1 rounded-2xl border border-line bg-[var(--surface-glass)] p-1">
+          {(
+            [
+              ["posts", "Posts", LayoutGrid],
+              ["reels", "Videos", SquarePlay],
+              ["saved", "Saved", Bookmark],
+            ] as const
+          ).map(([t, label, Icon]) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={grid === t}
+              onClick={() => setGrid(t)}
+              className={`flex h-10 items-center justify-center gap-1.5 rounded-xl text-[13.5px] font-medium transition-colors ${grid === t ? "bg-sky-500/20 text-sky-200" : "text-ink-3 hover:bg-white/[0.05] hover:text-ink"}`}
+            >
+              <Icon className="size-4" strokeWidth={1.75} /> {label}
+            </button>
+          ))}
+        </div>
+        {panel(false)}
+      </section>
+    </div>
+  );
+
+  /* ---- layout 4: Facebook style: wide cover, big round photo, a tab bar, Intro on the left and a feed on the right ---- */
+  const fbCard = "rounded-xl border border-line bg-[var(--surface)] p-4";
+  const fbGrey = "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-white/[0.1] px-3 text-[14.5px] font-semibold text-ink hover:bg-white/[0.15]";
+  const fbBlue = "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#1877f2] px-3 text-[14.5px] font-semibold text-white hover:bg-[#166fe5]";
+  const firstName = me.full_name.replace(/^Dr\.?\s*/, "").split(" ")[0];
+  const canPost = me.dentist_profile?.verification_status === "verified";
+  const intro = (
+    <section aria-label="Intro" className={`grid gap-3 ${fbCard}`}>
+      <h2 className="text-[20px] font-bold text-ink">Intro</h2>
+      {me.dentist_profile?.specialisation && <p className="text-center text-[15px] text-ink">{me.dentist_profile.specialisation}</p>}
+      <ul className="grid gap-3 text-[15px] text-ink-2">
+        {clinic && (
+          <li className="flex items-center gap-3">
+            <Building2 className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} /> <span>Works at <b className="font-semibold text-ink">{clinic.clinic_name}</b></span>
+          </li>
+        )}
+        {me.dentist_profile && (
+          <li className="flex items-center gap-3">
+            <BadgeCheck className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} /> <span>Registered with <b className="font-semibold text-ink">{me.dentist_profile.council}</b></span>
+          </li>
+        )}
+        {me.city && (
+          <li className="flex items-center gap-3">
+            <MapPin className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} /> <span>Lives in <b className="font-semibold text-ink">{me.city}</b></span>
+          </li>
+        )}
+        <li className="flex items-center gap-3">
+          <Smartphone className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} /> {fmtPhone(me.phone)}
+        </li>
+        {me.email && (
+          <li className="flex items-center gap-3 break-all">
+            <Mail className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} /> {me.email}
+          </li>
+        )}
+      </ul>
+      <RoleTags me={me} accountType={accountType} />
+      <Link href="/account/settings" className={`${fbGrey} w-full`}>
+        Edit details
+      </Link>
+    </section>
+  );
+  const photos = (all: boolean) => (
+    <section aria-label="Featured" className={`grid gap-3 ${fbCard}`}>
+      <div className="flex items-center justify-between">
+        <h2 className="text-[20px] font-bold text-ink">Featured</h2>
+        {!all && (
+          <button type="button" onClick={() => setFbTab("photos")} className="rounded-md px-2 py-1 text-[15px] text-[#4599ff] hover:bg-white/[0.06]">
+            See all
+          </button>
+        )}
+      </div>
+      <ul className={`grid gap-1.5 overflow-hidden rounded-lg ${all ? "grid-cols-3 sm:grid-cols-4" : "grid-cols-3"}`}>
+        {HIGHLIGHTS.slice(0, all ? undefined : 6).map((h, i) => (
+          <li key={h.id}>
+            <button type="button" onClick={() => openHighlight(i)} aria-label={`Featured: ${h.name}`} className="relative block aspect-square w-full overflow-hidden bg-[var(--surface-elevated)] hover:opacity-90">
+              <Image src={h.photo!} alt="" fill sizes="160px" className="object-cover object-[center_20%]" />
+              <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-4 text-left text-[11.5px] font-semibold text-white">{h.name}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+  const friends = (
+    <section aria-label="Following" className={`grid gap-3 ${fbCard}`}>
+      <div>
+        <h2 className="text-[20px] font-bold text-ink">Following</h2>
+        <p className="text-[15px] text-ink-3">{follows.length} dentists</p>
+      </div>
+      {follows.length ? (
+        <ul className="grid grid-cols-3 gap-3">
+          {follows.slice(0, 9).map((a) => (
+            <li key={a.id}>
+              <Link href={`/dentists/${a.id}`} className="grid gap-1 text-[13px] font-semibold leading-tight text-ink hover:underline">
+                <span className="grid aspect-square place-items-center rounded-lg bg-[var(--surface-elevated)] text-[20px] font-semibold">{initials(a.name)}</span>
+                <span className="line-clamp-2">{a.name}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[14px] text-ink-3">
+          Follow dentists from{" "}
+          <Link href="/explore" className="font-semibold text-[#4599ff] hover:underline">
+            Explore
+          </Link>{" "}
+          to see them here.
+        </p>
+      )}
+    </section>
+  );
+  const fbFeed = (
+    <div className="grid min-w-0 gap-4">
+      {/* "What's on your mind?" */}
+      <div className={`grid gap-3 ${fbCard}`}>
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] text-[13px] font-semibold text-ink">{initials(me.full_name)}</span>
+          <Link href={canPost ? "/explore/new" : "/explore"} className="flex h-10 flex-1 items-center rounded-full bg-white/[0.08] px-4 text-[15px] text-ink-3 hover:bg-white/[0.12]">
+            {canPost ? `What's on your mind, ${firstName}?` : "See what dentists are sharing…"}
+          </Link>
+        </div>
+        <div className="grid grid-cols-3 border-t border-line pt-2 text-[14px] font-semibold text-ink-2">
+          <Link href={canPost ? "/explore/new" : "/explore"} className="flex h-9 items-center justify-center gap-2 rounded-lg hover:bg-white/[0.06]">
+            <SquarePlay className="size-5 text-rose-400" strokeWidth={1.75} /> Video
+          </Link>
+          <Link href={canPost ? "/explore/new" : "/explore"} className="flex h-9 items-center justify-center gap-2 rounded-lg hover:bg-white/[0.06]">
+            <Camera className="size-5 text-emerald-400" strokeWidth={1.75} /> Photo
+          </Link>
+          <Link href="/saved" className="flex h-9 items-center justify-center gap-2 rounded-lg hover:bg-white/[0.06]">
+            <Bookmark className="size-5 text-amber-400" strokeWidth={1.75} /> Saved
+          </Link>
+        </div>
+      </div>
+      <div className={`flex items-center justify-between ${fbCard}`}>
+        <h2 className="text-[20px] font-bold text-ink">Posts</h2>
+        {me.dentist_profile && (
+          <Link href="/explore/mine" className={fbGrey}>
+            <SlidersHorizontal className="size-4" strokeWidth={2} /> Manage posts
+          </Link>
+        )}
+      </div>
+      {mine === null ? (
+        <div className={`h-40 animate-pulse ${fbCard}`} aria-busy />
+      ) : mine.length ? (
+        mine.map((p) => (
+          <div key={p.id} className={fbCard}>
+            <PostCard p={p} userId={me.id} onChange={() => feed(me.id, "for_you").then((l) => setMine(l.filter((x) => x.author.id === `me-${me.id}`)))} />
+          </div>
+        ))
+      ) : (
+        <div className={fbCard}>
+          <OwnGrid me={me} posts={[]} reels={false} />
+        </div>
+      )}
+    </div>
+  );
+  const FB_TABS = [
+    ["posts", "Posts"],
+    ["about", "About"],
+    ["photos", "Featured"],
+    ["videos", "Videos"],
+    ["saved", "Saved"],
+  ] as const;
+  const facebook = (
+    <div className="mx-auto grid w-full max-w-[1100px] grid-cols-1 gap-4">
+      <header className="-mx-4 overflow-hidden bg-[var(--surface)] sm:mx-0 sm:rounded-xl sm:border sm:border-line">
+        <div className="relative mx-auto h-[180px] max-w-[1100px] bg-[linear-gradient(135deg,rgba(24,119,242,0.55),rgba(99,102,241,0.35)_50%,rgba(34,211,238,0.25))] sm:h-[300px] sm:rounded-b-xl">
+          <Link href="/account/settings" className={`${fbGrey} absolute bottom-3 right-3 bg-black/50 text-white hover:bg-black/60`}>
+            <Camera className="size-4" strokeWidth={2} /> <span className="hidden sm:inline">Edit cover photo</span>
+          </Link>
+        </div>
+        <div className="px-4 sm:px-8">
+          <div className="flex flex-col items-center gap-3 border-b border-line pb-4 sm:flex-row sm:items-end sm:gap-5">
+            <span className="relative z-10 -mt-[84px] grid size-[168px] shrink-0 place-items-center rounded-full border-4 border-[var(--surface)] bg-[var(--surface-elevated)] text-[52px] font-semibold text-ink sm:-mt-[42px]">{initials(me.full_name)}</span>
+            <div className="grid min-w-0 flex-1 justify-items-center gap-1 pb-1 sm:justify-items-start">
+              <p className="flex flex-wrap items-center justify-center gap-2 text-[30px] font-bold leading-tight text-ink sm:justify-start">
+                {me.full_name}
+                {verifiedTick}
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {status}
+                {getVerifiedChip}
+              </div>
+              <button type="button" onClick={() => setShowFollowing(true)} className="text-[15px] font-semibold text-ink-3 hover:underline">
+                {follows.length} following · {savedDentists} saved dentists
+              </button>
+              {follows.length > 0 && (
+                <span className="flex -space-x-2">
+                  {follows.slice(0, 6).map((a) => (
+                    <span key={a.id} className="grid size-8 place-items-center rounded-full border-2 border-[var(--surface)] bg-[var(--surface-elevated)] text-[10.5px] font-semibold text-ink">
+                      {initials(a.name)}
+                    </span>
+                  ))}
+                </span>
+              )}
+            </div>
+            <div className="flex w-full flex-wrap justify-center gap-2 pb-1 sm:w-auto">
+              <Link href={canPost ? "/explore/new" : "/account/settings"} className={`${fbBlue} flex-1 sm:flex-none`}>
+                {canPost ? (
+                  <>
+                    <SquarePlay className="size-4" strokeWidth={2} /> Add post
+                  </>
+                ) : (
+                  <>
+                    <Pencil className="size-4" strokeWidth={2} /> Edit profile
+                  </>
+                )}
+              </Link>
+              {canPost && (
+                <Link href="/account/settings" className={`${fbGrey} flex-1 sm:flex-none`}>
+                  <Pencil className="size-4" strokeWidth={2} /> Edit profile
+                </Link>
+              )}
+              <button type="button" aria-pressed={showSuggest} aria-label={showSuggest ? "Hide shortcuts" : "Show shortcuts"} onClick={() => setShowSuggest((v) => !v)} className={fbGrey}>
+                <ChevronDown className={`size-5 transition-transform ${showSuggest ? "rotate-180" : ""}`} strokeWidth={2} />
+              </button>
+            </div>
+          </div>
+          {/* the tab bar */}
+          <div role="tablist" aria-label="Profile" className="-mx-1 flex overflow-x-auto [scrollbar-width:none]">
+            {FB_TABS.map(([t, label]) => (
+              <button
+                key={t}
+                role="tab"
+                aria-selected={fbTab === t}
+                onClick={() => (setFbTab(t), t === "videos" ? setGrid("reels") : t === "saved" ? setGrid("saved") : null)}
+                className={`relative h-[52px] shrink-0 px-4 text-[15px] font-semibold transition-colors ${fbTab === t ? "text-[#4599ff] after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:rounded-full after:bg-[#4599ff]" : "rounded-lg text-ink-3 hover:bg-white/[0.06]"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <GetVerified me={me} accountType={accountType} certificate={certificate} />
+
+      {showSuggest && shortcuts.length > 0 && (
+        <section aria-label="Shortcuts for you" className={`fmd-enter grid gap-3 ${fbCard}`}>
+          <h2 className="text-[17px] font-bold text-ink">Shortcuts for you</h2>
+          <ul className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+            {shortcuts.map(({ id, href, title, action, Icon }) => (
+              <li key={id} className="relative grid w-[150px] shrink-0 overflow-hidden rounded-lg border border-line">
+                <span className={`grid h-[90px] place-items-center bg-gradient-to-br ${coverOf(title)} to-[var(--surface-elevated)] text-ink`}>
+                  <Icon className="size-8" strokeWidth={1.5} />
+                </span>
+                <button type="button" onClick={() => dismiss(id)} aria-label={`Dismiss ${title}`} className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full bg-black/50 text-white hover:bg-black/70">
+                  <X className="size-4" strokeWidth={2} />
+                </button>
+                <span className="grid gap-2 p-2.5">
+                  <span className="truncate text-[14.5px] font-semibold text-ink">{id === "dentist" && me.dentist_profile ? "Dentist profile" : title}</span>
+                  <Link href={href} className="inline-flex h-8 items-center justify-center rounded-md bg-[#1877f2]/20 text-[13.5px] font-semibold text-[#4599ff] hover:bg-[#1877f2]/30">
+                    {id === "dentist" ? (me.dentist_profile ? "Edit" : "Set up") : action}
+                  </Link>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <div key={fbTab} className="fmd-enter">
+        {fbTab === "posts" ? (
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+            <div className="grid gap-4 lg:sticky lg:top-24">
+              {intro}
+              {photos(false)}
+              {friends}
+            </div>
+            {fbFeed}
+          </div>
+        ) : fbTab === "about" ? (
+          <div className="mx-auto grid w-full max-w-[680px] gap-4">{intro}{friends}</div>
+        ) : fbTab === "photos" ? (
+          photos(true)
+        ) : (
+          <section className={`grid gap-3 ${fbCard}`}>
+            <h2 className="text-[20px] font-bold text-ink">{fbTab === "videos" ? "Videos" : "Saved posts"}</h2>
+            {panel(false)}
+          </section>
+        )}
+      </div>
+    </div>
+  );
+
+  /* ---- layout 3: LinkedIn style ---- */
+  const linkedin = (
+    <div className="mx-auto grid w-full max-w-[1128px] grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid min-w-0 grid-cols-1 gap-3">
+          {/* the top card: banner, round photo over its edge, name and headline, links, buttons */}
+          <header className={`overflow-hidden ${card}`}>
+            <div className="relative h-28 bg-[linear-gradient(120deg,rgba(14,165,233,0.5),rgba(99,102,241,0.3)_55%,rgba(34,211,238,0.2))] sm:h-44">
+              <Link href="/account/settings" aria-label="Edit your profile" className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-[var(--surface)] text-sky-300 shadow hover:bg-[var(--surface-elevated)]">
+                <Pencil className="size-4" strokeWidth={2} />
+              </Link>
+            </div>
+            <div className="px-4 pb-5 sm:px-6">
+              <div className="flex items-end justify-between">
+                <span className="relative z-10 -mt-14 grid size-28 shrink-0 place-items-center rounded-full border-4 border-[var(--surface)] bg-[var(--surface-elevated)] text-[32px] font-semibold text-ink sm:-mt-24 sm:size-40 sm:text-[46px]">{initials(me.full_name)}</span>
+                <Link href="/account/settings" aria-label="Edit intro" title="Edit intro" className="mt-3 grid size-10 place-items-center rounded-full text-ink-2 hover:bg-white/[0.06] hover:text-ink">
+                  <Pencil className="size-5" strokeWidth={1.75} />
+                </Link>
+              </div>
+              <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="grid min-w-0 content-start gap-1.5">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <p className="flex items-center gap-2 text-[22px] font-semibold text-ink sm:text-[24px]">
+                      {me.full_name}
+                      {me.dentist_profile?.verification_status === "verified" && <BadgeCheck className="size-5 text-sky-400" strokeWidth={2} aria-label="Verified dentist" />}
+                    </p>
+                    {/* a dentist's status, in bold: red not verified, yellow pending, green verified; and a nudge to verify */}
+                    {(me.dentist_profile || accountType === "dentist") && <VerifyStatus status={me.dentist_profile?.verification_status ?? null} className="text-[14px]" />}
+                    {(me.dentist_profile ? ["unverified", "rejected"].includes(me.dentist_profile.verification_status) : accountType === "dentist") && (
+                      <a href="#get-verified" className="inline-flex h-7 items-center gap-1.5 rounded-full border border-dashed border-sky-500/60 px-3 text-[12.5px] font-semibold text-sky-400 hover:bg-sky-500/10">
+                        <BadgeCheck className="size-4" strokeWidth={2} /> Get verified
+                      </a>
+                    )}
+                  </div>
+                  <p className="text-[15px] text-ink">{headline}</p>
+                  <p className="text-[13.5px] text-ink-3">
+                    {me.city ?? "India"} ·{" "}
+                    <a href="#about" className="font-semibold text-sky-400 hover:underline">
+                      Contact info
+                    </a>
+                  </p>
+                  <p className="text-[13.5px] font-semibold text-sky-400">
+                    <button type="button" onClick={() => setShowFollowing(true)} className="hover:underline">
+                      {follows.length} following
+                    </button>
+                    {" · "}
+                    <Link href="/saved" className="hover:underline">
+                      {savedDentists} saved {savedDentists === 1 ? "dentist" : "dentists"}
+                    </Link>
+                  </p>
+                  <div className="mt-1">
+                    <RoleTags me={me} accountType={accountType} />
+                  </div>
+                </div>
+                {clinic && (
+                  <Link href="/clinic" className="flex h-fit items-center gap-2.5 text-[14px] font-semibold text-ink hover:underline sm:max-w-[220px]">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-md bg-violet-500/20 text-violet-200">
+                      <Building2 className="size-5" strokeWidth={1.75} />
+                    </span>
+                    <span className="truncate">{clinic.clinic_name}</span>
+                  </Link>
+                )}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link href="/account/settings" className={`${pill} bg-sky-600 text-white hover:bg-sky-500`}>
+                  Edit profile
+                </Link>
+                <Link href="/saved" className={`${pill} border border-sky-500 text-sky-300 hover:bg-sky-500/10`}>
+                  Saved items
+                </Link>
+                <button type="button" aria-pressed={showSuggest} onClick={() => setShowSuggest((v) => !v)} className={`${pill} border border-line-strong text-ink-2 hover:bg-white/[0.06] hover:text-ink`}>
+                  <Shapes className="size-4" strokeWidth={2} /> {showSuggest ? "Hide shortcuts" : "Shortcuts"}
+                </button>
+              </div>
+            </div>
+          </header>
+  
+          <GetVerified me={me} accountType={accountType} certificate={certificate} />
+  
+          {/* shortcuts: the account's other pages, as small cards */}
+          {showSuggest && SUGGESTIONS.some((x) => !dismissed.includes(x.id)) && (
+            <section aria-label="Shortcuts for you" className={`fmd-enter grid gap-3 p-4 sm:p-6 ${card}`}>
+              <div>
+                <h2 className={sectionTitle}>Shortcuts for you</h2>
+                <p className="flex items-center gap-1.5 text-[13px] text-ink-3">
+                  <Eye className="size-4" strokeWidth={1.75} /> Private to you
+                </p>
+              </div>
+              <ul className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0">
+                {SUGGESTIONS.filter((x) => !dismissed.includes(x.id)).map(({ id, href, title, text, action, Icon }) => (
+                  <li key={id} className="relative grid w-[180px] shrink-0 content-start justify-items-start gap-2 rounded-lg border border-line p-3.5 text-left">
+                    <button type="button" onClick={() => dismiss(id)} aria-label={`Dismiss ${title}`} className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full text-ink-3 hover:bg-white/[0.06] hover:text-ink">
+                      <X className="size-4" strokeWidth={2} />
+                    </button>
+                    <span className={`grid size-10 place-items-center rounded-lg bg-gradient-to-br ${coverOf(title)} to-[var(--surface-elevated)] text-ink`}>
+                      <Icon className="size-5" strokeWidth={1.75} />
+                    </span>
+                    <p className="text-[14px] font-semibold text-ink">{id === "dentist" && me.dentist_profile ? "Your dentist profile" : title}</p>
+                    <p className="line-clamp-2 min-h-[2lh] text-[12.5px] leading-snug text-ink-3">{text}</p>
+                    <Link href={href} className={`${pill} mt-1 h-8 border border-line-strong px-3.5 text-[13px] text-ink-2 hover:border-ink-2 hover:text-ink`}>
+                      {id === "dentist" ? (me.dentist_profile ? "Edit" : "Set up") : action}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+  
+          {/* about: what you do and how to reach you */}
+          <section id="about" aria-label="About" className={`scroll-mt-24 grid gap-3 p-4 sm:p-6 ${card}`}>
+            <div className="flex items-center justify-between">
+              <h2 className={sectionTitle}>About</h2>
+              <Link href="/account/settings" aria-label="Edit about" className="grid size-9 place-items-center rounded-full text-ink-2 hover:bg-white/[0.06] hover:text-ink">
+                <Pencil className="size-[18px]" strokeWidth={1.75} />
+              </Link>
+            </div>
+            {me.dentist_profile && (
+              <p className="text-[14px] text-ink-2">
+                {me.dentist_profile.specialisation || "Dentist"}
+                {me.dentist_profile.qualifications ? `, ${me.dentist_profile.qualifications}` : ""}. Registered with {me.dentist_profile.council}.
+              </p>
+            )}
+            <ul className="grid gap-2.5 text-[14px] text-ink-2">
+              <li className="flex items-center gap-3">
+                <Smartphone className="size-[18px] text-ink-3" strokeWidth={1.75} /> {fmtPhone(me.phone)}
+              </li>
+              {me.email && (
+                <li className="flex items-center gap-3 break-all">
+                  <Mail className="size-[18px] shrink-0 text-ink-3" strokeWidth={1.75} /> {me.email}
+                </li>
+              )}
+              {me.city && (
+                <li className="flex items-center gap-3">
+                  <MapPin className="size-[18px] text-ink-3" strokeWidth={1.75} /> {me.city}
+                </li>
+              )}
+            </ul>
+          </section>
+  
+          {/* featured: demo stories as tall cards, opened in the story viewer */}
+          <section aria-label="Featured" className={`grid gap-3 p-4 sm:p-6 ${card}`}>
+            <h2 className={sectionTitle}>Featured</h2>
+            <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
+              {HIGHLIGHTS.map((h, i) => (
+                <li key={h.id} className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setWatching({ list: HIGHLIGHTS.map((x) => ({ ...x, name: `${me.full_name} · ${x.name}` })), start: i })}
+                    aria-label={`Featured: ${h.name}`}
+                    className={`relative block h-[128px] w-[96px] overflow-hidden rounded-lg border-2 bg-[var(--surface-elevated)] transition-transform hover:-translate-y-0.5 ${seen.includes(h.id) ? "border-line" : "border-sky-500/70"}`}
+                  >
+                    <Image src={h.photo!} alt="" fill sizes="96px" className="object-cover object-[center_20%]" />
+                    <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/85 to-transparent px-2 pb-2 pt-8 text-left text-[12px] font-semibold text-white">{h.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+  
+          {/* activity: your posts, your videos, what you've saved */}
+          <section id="saved" aria-label="Activity" className={`scroll-mt-24 overflow-hidden ${card}`}>
+            <div className="grid gap-3 p-4 sm:p-6">
+              <div>
+                <h2 className={sectionTitle}>Activity</h2>
+                <button type="button" onClick={() => setShowFollowing(true)} className="text-[13.5px] font-semibold text-sky-400 hover:underline">
+                  {follows.length} following
+                </button>
+              </div>
+              <div role="tablist" aria-label="Activity" className="flex flex-wrap gap-2">
+                {(
+                  [
+                    ["posts", "Posts"],
+                    ["reels", "Videos"],
+                    ["saved", `Saved${savedPosts ? ` (${savedPosts.length})` : ""}`],
+                  ] as const
+                ).map(([t, label]) => (
+                  <button
+                    key={t}
+                    role="tab"
+                    aria-selected={grid === t}
+                    onClick={() => setGrid(t)}
+                    className={`${pill} h-8 px-3.5 ${grid === t ? "bg-emerald-600 text-white" : "border border-line-strong text-ink-2 hover:bg-white/[0.06] hover:text-ink"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div key={grid} role="tabpanel" className="fmd-enter">
+                {grid === "saved" ? (
+                  !savedPosts ? (
+                    <div className="aspect-[3/1] animate-pulse rounded-lg bg-[var(--surface-glass)]" aria-busy />
+                  ) : savedPosts.length ? (
+                    <PostGrid posts={savedPosts} />
+                  ) : (
+                    <div className="grid justify-items-center gap-3 py-10 text-center">
+                      <span className="grid size-16 place-items-center rounded-3xl bg-sky-500/15 text-sky-300">
+                        <Bookmark className="size-7" strokeWidth={1.5} />
+                      </span>
+                      <p className="text-[18px] font-semibold text-ink">Save posts</p>
+                      <p className="text-[14px] text-ink-3">Tap the bookmark on a post in Explore to keep it here. Only you can see what you save.</p>
+                      <Link href="/explore" className="text-[14px] font-medium text-sky-400 hover:underline">
+                        Go to Explore
+                      </Link>
+                    </div>
+                  )
+                ) : (
+                  <OwnGrid me={me} posts={mine} reels={grid === "reels"} />
+                )}
+              </div>
+            </div>
+            <Link href={grid === "saved" ? "/saved" : "/explore/mine"} className="flex items-center justify-center gap-1.5 border-t border-line py-3 text-[14px] font-semibold text-ink-2 hover:bg-white/[0.04] hover:text-ink">
+              {grid === "saved" ? "Show all saved items" : "Show all posts"} <ArrowRight className="size-4" strokeWidth={2} />
+            </Link>
+          </section>
+        </div>
+  
+        {/* the side column: your account links, and the dentists you follow */}
+        <aside className="grid gap-3">
+          <section className={`grid gap-1 p-4 ${card}`}>
+            <h2 className="mb-1 text-[16px] font-semibold text-ink">Your account</h2>
+            {(
+              [
+                ["/account/settings", "Settings", Settings],
+                ["/account/privacy", "Privacy and data", Lock],
+                ["/membership", "Membership", CreditCard],
+                ...(me.dentist_profile ? ([["/account/dentist", "Dentist profile", Stethoscope]] as const) : []),
+              ] as const
+            ).map(([href, label, Icon]) => (
+              <Link key={href} href={href} className="flex items-center gap-3 rounded-lg px-2 py-2 text-[14px] text-ink-2 hover:bg-white/[0.05] hover:text-ink">
+                <Icon className="size-[18px] text-ink-3" strokeWidth={1.75} /> {label}
+                <ChevronRight className="ml-auto size-4 text-ink-3" strokeWidth={2} />
+              </Link>
+            ))}
+          </section>
+          <section className={`grid gap-3 p-4 ${card}`}>
+            <h2 className="text-[16px] font-semibold text-ink">Dentists you follow</h2>
+            {follows.length ? (
+              <ul className="grid gap-3">
+                {follows.slice(0, 5).map((a) => (
+                  <li key={a.id} className="flex items-start gap-3 border-b border-line pb-3 last:border-0 last:pb-0">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] text-[13px] font-semibold text-ink">{initials(a.name)}</span>
+                    <span className="grid min-w-0 gap-1.5">
+                      <span className="leading-tight">
+                        <span className="block truncate text-[14px] font-semibold text-ink">{a.name}</span>
+                        <span className="block truncate text-[12.5px] text-ink-3">{a.specialty}</span>
+                      </span>
+                      <Link href={`/dentists/${a.id}`} className={`${pill} h-8 w-fit border border-line-strong px-3.5 text-[13px] text-ink-2 hover:border-ink-2 hover:text-ink`}>
+                        View profile
+                      </Link>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[13.5px] text-ink-3">
+                Follow dentists from their posts in{" "}
+                <Link href="/explore" className="font-semibold text-sky-400 hover:underline">
+                  Explore
+                </Link>{" "}
+                to see them here.
+              </p>
+            )}
+          </section>
+        </aside>
+      </div>
+  );
+
+  return (
+    <div className="grid gap-3">
+      <h1 className="sr-only">Your profile</h1>
+      {/* pick a layout: the link keeps it (?layout=), so each can be shared and compared */}
+      <div className="mx-auto flex w-full max-w-[1128px] justify-end">
+        <LayoutPicker value={layout} onChange={pickLayout} />
+      </div>
+      <div key={layout} className="fmd-enter">
+        {layout === "insta" ? insta : layout === "insta2" ? insta2 : layout === "cards" ? cards : layout === "facebook" ? facebook : linkedin}
+      </div>
+      {watching && <StoryViewer stories={watching.list} start={watching.start} onClose={() => setWatching(null)} onSeen={markSeen} />}
       {showFollowing && (
         <Sheet title="Following" onClose={() => setShowFollowing(false)}>
           {follows.length ? (
@@ -343,7 +1176,6 @@ export function Account() {
     </div>
   );
 }
-
 /* ---------------- the role tags under the name ---------------- */
 
 const ROLE_LOOK: Record<string, { label: string; Icon: LucideIcon; cls: string }> = {
@@ -375,14 +1207,14 @@ function RoleTags({ me, accountType }: { me: Me; accountType: AccountType | null
   );
 }
 
-/** Your own posts or reels, Instagram style; what to do when there are none yet */
-function OwnGrid({ me, posts, reels }: { me: Me; posts: FeedItem[] | null; reels: boolean }) {
+/** Your own posts or videos; what to do when there are none yet */
+function OwnGrid({ me, posts, reels, insta = false }: { me: Me; posts: FeedItem[] | null; reels: boolean; insta?: boolean }) {
   if (!posts) return <div className="aspect-[3/1] animate-pulse bg-[var(--surface-glass)]" aria-busy />;
   const shown = reels ? posts.filter((p) => p.kind === "video") : posts;
   if (shown.length)
     return (
       <div className="grid gap-4">
-        <PostGrid posts={shown} />
+        <PostGrid posts={shown} square={insta} />
         {me.dentist_profile && (
           <Link href="/explore/mine" className="w-fit text-[14px] font-medium text-sky-400 hover:underline">
             Drafts and posts in review
@@ -391,25 +1223,26 @@ function OwnGrid({ me, posts, reels }: { me: Me; posts: FeedItem[] | null; reels
       </div>
     );
   const verified = me.dentist_profile?.verification_status === "verified";
-  const Icon = reels ? Clapperboard : Camera;
+  const Icon = insta ? (reels ? Clapperboard : Camera) : reels ? SquarePlay : LayoutGrid;
+  const vid = insta ? "reels" : "videos";
   return (
     <div className="grid justify-items-center gap-3 py-14 text-center">
-      <span className="grid size-16 place-items-center rounded-full border-2 border-ink text-ink">
+      <span className={`grid size-16 place-items-center ${insta ? "rounded-full border-2 border-ink text-ink" : "rounded-3xl bg-sky-500/15 text-sky-300"}`}>
         <Icon className="size-7" strokeWidth={1.5} />
       </span>
-      <p className="text-[20px] font-semibold text-ink">{reels ? "No reels yet" : "No posts yet"}</p>
+      <p className="text-[20px] font-semibold text-ink">{reels ? `No ${vid} yet` : "No posts yet"}</p>
       <p className="max-w-[40ch] text-[14px] text-ink-3">
         {verified
           ? reels
-            ? "Share a short video of dental tips. It shows here and in Explore's Reels."
+            ? `Share a short video of dental tips. It shows here and in Explore's ${insta ? "Reels" : "Videos"}.`
             : "Share dental tips with patients. Your posts show here and in Explore."
           : me.dentist_profile || me.workspaces.length
-            ? "Once FMD verifies your registration, you can share posts and reels."
-            : "Posts and reels are shared by verified dentists on FMD."}
+            ? `Once FMD verifies your registration, you can share posts and ${vid}.`
+            : `Posts and ${vid} are shared by verified dentists on FMD.`}
       </p>
       {verified ? (
         <Link href="/explore/new" className="text-[14px] font-semibold text-sky-400 hover:underline">
-          {reels ? "Create a reel" : "Create your first post"}
+          {reels ? (insta ? "Create a reel" : "Share a video") : "Create your first post"}
         </Link>
       ) : me.dentist_profile ? (
         <Link href="/account/dentist" className="text-[14px] font-semibold text-sky-400 hover:underline">
@@ -444,13 +1277,13 @@ function GetVerified({ me, accountType, certificate }: { me: Me; accountType: Ac
   const head = status === "rejected" ? "We couldn't verify your registration" : "You're not verified yet";
   const cta = status === "rejected" ? "Fix your details" : "Verify now";
   return (
-    <section id="get-verified" aria-label="Get verified" className="scroll-mt-24 sm:px-8">
-      <div className="grid gap-4 overflow-hidden rounded-2xl border border-sky-500/30 bg-gradient-to-br from-sky-500/[0.12] via-[var(--surface)] to-[var(--surface)] p-4 sm:p-5">
+    <section id="get-verified" aria-label="Get verified" className="scroll-mt-24">
+      <div className="grid gap-4 overflow-hidden rounded-xl border border-sky-500/30 bg-gradient-to-br from-sky-500/[0.12] via-[var(--surface)] to-[var(--surface)] p-4 sm:p-5">
         <div className="flex flex-wrap items-start gap-4">
           <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-[0_8px_24px_rgba(37,99,235,0.35)]">
             <BadgeCheck className="size-8" strokeWidth={1.75} />
           </span>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 basis-[240px]">
             <p className="text-[17px] font-semibold text-ink">{head}</p>
             <p className="mt-0.5 text-[13.5px] text-ink-2">
               A verified badge shows patients that FMD has checked your dental council registration. Verified dentists get the blue tick, can post in Explore and show as verified in search.
@@ -491,7 +1324,7 @@ function GetVerified({ me, accountType, certificate }: { me: Me; accountType: Ac
   );
 }
 
-/* ---------------- /account/settings: one simple list, like Instagram's settings ---------------- */
+/* ---------------- /account/settings: one simple, grouped list ---------------- */
 
 type Open = "email" | "email-verify" | "email-remove" | "mfa-on" | "mfa-off" | "logout-all" | null;
 type Expand = "email" | "mfa" | "devices" | null;

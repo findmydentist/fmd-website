@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CheckCheck, ChevronDown, Heart, Info, Maximize2, MessageCircle, Minimize2, Search, Send, ShieldCheck, Smile, SquarePen, X } from "lucide-react";
+import { ArrowLeft, CheckCheck, ChevronDown, Info, Maximize2, MessageCircle, MessagesSquare, Minimize2, Search, Send, ShieldCheck, Smile, SquarePen, ThumbsUp, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
@@ -29,11 +29,11 @@ function Face({ name, id, size = "size-14 text-[15px]" }: { name: string; id?: s
   const photo = id ? photoOf(id) : null;
   if (photo)
     return (
-      <span className={`relative block ${size} shrink-0 overflow-hidden rounded-full bg-[var(--surface-elevated)] ring-1 ring-line`}>
+      <span className={`relative block ${size} shrink-0 overflow-hidden rounded-[30%] bg-[var(--surface-elevated)] ring-1 ring-line`}>
         <Image src={photo} alt="" fill sizes="96px" className="object-cover object-[center_20%]" />
       </span>
     );
-  return <span className={`grid ${size} shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] font-semibold text-ink ring-1 ring-line`}>{initials(name)}</span>;
+  return <span className={`grid ${size} shrink-0 place-items-center rounded-[30%] bg-[var(--surface-elevated)] font-semibold text-ink ring-1 ring-line`}>{initials(name)}</span>;
 }
 
 const iconBtn = "grid size-9 place-items-center rounded-full text-ink hover:bg-[var(--surface-glass)]";
@@ -300,8 +300,8 @@ function Chat({ t, inbox, onBack, header }: { t: Thread; inbox: Inbox; onBack?: 
               <Send className="size-5 -translate-x-px translate-y-px" strokeWidth={2} />
             </button>
           ) : (
-            <button type="button" aria-label="Send a heart" onClick={() => go("❤️")} className="grid size-11 shrink-0 place-items-center rounded-full text-ink hover:bg-white/[0.06]">
-              <Heart className="size-6" strokeWidth={1.5} />
+            <button type="button" aria-label="Send a thumbs up" onClick={() => go("👍")} className="grid size-11 shrink-0 place-items-center rounded-xl text-ink hover:bg-white/[0.06]">
+              <ThumbsUp className="size-6" strokeWidth={1.5} />
             </button>
           )}
         </div>
@@ -313,8 +313,8 @@ function Chat({ t, inbox, onBack, header }: { t: Thread; inbox: Inbox; onBack?: 
 function SignedOut() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-      <span className="grid size-20 place-items-center rounded-full border-2 border-ink text-ink">
-        <Send className="size-9" strokeWidth={1.25} />
+      <span className="grid size-20 place-items-center rounded-3xl bg-sky-500/15 text-sky-300">
+        <MessagesSquare className="size-9" strokeWidth={1.5} />
       </span>
       <h2 className="text-[20px] font-semibold text-ink">Your messages</h2>
       <p className="text-[14px] text-ink-3">Ask dentists on FMD general questions.</p>
@@ -381,7 +381,7 @@ export function useDock() {
 }
 
 /**
- * Desktop messages, the way Instagram docks them: a panel at the bottom right that minimises to a pill and expands to a
+ * Desktop messages, docked: a panel at the bottom right that minimises to a pill and expands to a
  * full-screen inbox with the list and the chat side by side. Esc leaves full screen.
  */
 export function MessagesDock() {
@@ -424,16 +424,16 @@ export function MessagesDock() {
         type="button"
         onClick={() => change("open")}
         style={{ viewTransitionName: "dm-dock" }}
-        className="fixed bottom-6 right-6 z-40 hidden h-14 items-center gap-3 rounded-full border border-line-strong bg-[var(--surface-elevated)] pl-5 pr-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)] hover:bg-[var(--surface)] lg:flex"
+        className="fixed bottom-6 right-6 z-40 hidden h-14 items-center gap-3 rounded-2xl border border-line-strong bg-[var(--surface-elevated)] pl-5 pr-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)] hover:bg-[var(--surface)] lg:flex"
       >
         <span className="relative">
-          <Send className="size-6 text-ink" strokeWidth={1.75} />
+          <MessagesSquare className="size-6 text-ink" strokeWidth={1.75} />
           {unread > 0 && <span className="absolute -right-2 -top-2 grid size-[18px] place-items-center rounded-full bg-sky-500 text-[11px] font-semibold text-white">{unread}</span>}
         </span>
         <span className="text-[15px] font-semibold text-ink">Messages</span>
         <span className="flex -space-x-2.5">
           {inbox.list?.slice(0, 3).map((t) => (
-            <span key={t.id} className="rounded-full ring-2 ring-[var(--surface-elevated)]">
+            <span key={t.id} className="rounded-[30%] ring-2 ring-[var(--surface-elevated)]">
               <Face name={t.with.name} id={t.with.id} size="size-8 text-[10.5px]" />
             </span>
           ))}
@@ -462,8 +462,8 @@ export function MessagesDock() {
                   <>
                     <div className="flex justify-end p-3">{controls}</div>
                     <div className="flex flex-1 flex-col items-center justify-center gap-3 pb-16 text-center">
-                      <span className="grid size-24 place-items-center rounded-full border-2 border-ink text-ink">
-                        <Send className="size-11" strokeWidth={1.25} />
+                      <span className="grid size-24 place-items-center rounded-3xl bg-sky-500/15 text-sky-300">
+                        <MessagesSquare className="size-11" strokeWidth={1.5} />
                       </span>
                       <h2 className="text-[20px] font-semibold text-ink">Your messages</h2>
                       <p className="text-[14px] text-ink-3">Pick a chat to ask a dentist a general question.</p>

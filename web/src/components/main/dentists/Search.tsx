@@ -13,6 +13,7 @@ import { LANGUAGES, SERVICES, SPECIALTIES } from "@/lib/catalog";
 import { feeRange, when } from "@/lib/format";
 import { noteSearch } from "@/sample/content";
 import { useMe } from "@/lib/me";
+import { DentistCardsSkeleton } from "../Skeletons";
 import { getProvider, PLACES, searchProviders, type Filters, type ProviderCard, type ProviderProfile, type SearchResult } from "@/sample/providers";
 import { track } from "@/lib/analytics";
 import { coverOf } from "../explore/Explore";
@@ -446,15 +447,7 @@ export function DentistSearch() {
           {err && <Notice kind="error">{err}</Notice>}
 
           {loading && !err ? (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3" aria-busy>
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="grid gap-3 p-3">
-                  <div className="aspect-[4/3] animate-pulse rounded-2xl bg-[var(--surface-glass)]" />
-                  <div className="h-5 w-2/3 animate-pulse rounded bg-[var(--surface-glass)]" />
-                  <div className="h-4 w-1/2 animate-pulse rounded bg-[var(--surface-glass)]" />
-                </div>
-              ))}
-            </div>
+            <DentistCardsSkeleton />
           ) : res && res.r.total === 0 ? (
             <Panel className="grid justify-items-start gap-3 p-6">
               <h2 className="text-[17px] font-medium text-ink">No dentists match{where} yet</h2>

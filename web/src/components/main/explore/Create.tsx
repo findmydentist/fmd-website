@@ -528,7 +528,7 @@ export function SavedPage() {
 function Empty({ icon: Icon, title, text, href, cta }: { icon: LucideIcon; title: string; text: string; href?: string; cta?: string }) {
   return (
     <div className="grid justify-items-center gap-3 py-12 text-center">
-      <span className="grid size-16 place-items-center rounded-full border-2 border-ink text-ink">
+      <span className="grid size-16 place-items-center rounded-3xl bg-sky-500/15 text-sky-300">
         <Icon className="size-7" strokeWidth={1.5} />
       </span>
       <p className="text-[20px] font-semibold text-ink">{title}</p>

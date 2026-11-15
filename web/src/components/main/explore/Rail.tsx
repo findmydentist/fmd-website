@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, CircleHelp, Clapperboard, FilePen, Heart, House, LogOut, Menu, PlusSquare, Search, Send, Settings, Sparkles, type LucideIcon } from "lucide-react";
+import { Bell, Bookmark, CircleHelp, Ellipsis, FilePen, LogOut, MessagesSquare, Newspaper, Search, Settings, Sparkles, SquarePen, SquarePlay, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
@@ -10,8 +10,8 @@ import { logout } from "@/lib/me";
 import { useDock } from "./Messages";
 
 /**
- * Explore's left rail on wide screens, like Instagram's: the logo, then Home, Search, Reels, Messages, Notifications,
- * Create and your profile, with FMD AI and a More menu at the bottom. Icons only; each label slides out on hover.
+ * Explore's left rail on wide screens: the mascot, then Feed, Dentists, Videos, Chats, Alerts, Write and You, with
+ * FMD AI and More at the bottom. Each icon has its short label under it; the open one sits in a blue pill.
  */
 export function ExploreRail({ me, unread, canPost, tab }: { me: Me | null | undefined; unread: number; canPost: boolean; tab: string }) {
   const [dock, setDock] = useDock();
@@ -21,38 +21,38 @@ export function ExploreRail({ me, unread, canPost, tab }: { me: Me | null | unde
   useDismiss(more, () => setMore(false), menu, moreBtn);
 
   return (
-    <nav aria-label="Explore" className="fixed bottom-4 left-4 top-[92px] z-30 hidden w-[68px] flex-col items-center rounded-2xl border border-line bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] py-4 backdrop-blur xl:flex">
-      <Link href="/explore" aria-label="FMD Explore" title="Explore" className="mb-6 grid size-11 place-items-center rounded-xl hover:bg-white/[0.06]">
+    <nav aria-label="Explore" className="fixed bottom-4 left-4 top-[92px] z-30 hidden w-[80px] flex-col items-center overflow-y-auto rounded-3xl [scrollbar-width:none] border border-line bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] py-4 backdrop-blur xl:flex">
+      <Link href="/explore" aria-label="FMD Explore" title="Explore" className="mb-4 grid size-11 shrink-0 place-items-center rounded-xl hover:bg-white/[0.06]">
         <Image src="/img/hero/mascot-512.webp" alt="" width={30} height={30} className="size-[30px]" />
       </Link>
 
-      <div className="flex flex-1 flex-col items-center gap-1.5">
-        <Item href="/explore" icon={House} label="Home" on={tab === "for_you"} />
-        <Item href="/dentists" icon={Search} label="Search dentists" />
-        <Item href="/explore?tab=reels" icon={Clapperboard} label="Reels" on={tab === "reels"} />
+      <div className="flex flex-1 flex-col items-center gap-1">
+        <Item href="/explore" icon={Newspaper} label="Feed" on={tab === "for_you"} />
+        <Item href="/dentists" icon={Search} label="Dentists" />
+        <Item href="/explore?tab=reels" icon={SquarePlay} label="Videos" on={tab === "reels"} />
         <Item
-          icon={Send}
-          label="Messages"
+          icon={MessagesSquare}
+          label="Chats"
           on={dock === "open" || dock === "full"}
           badge={unread || undefined}
           onClick={() => setDock(dock === "open" ? "min" : "open")}
         />
-        <Item href="/notifications" icon={Heart} label="Notifications" />
-        {canPost && <Item href="/explore/new" icon={PlusSquare} label="Create a post" />}
+        <Item href="/notifications" icon={Bell} label="Alerts" />
+        {canPost && <Item href="/explore/new" icon={SquarePen} label="Write" />}
         {me && (
           <Item
             href="/account"
-            label="Profile"
-            face={<span className="grid size-7 place-items-center rounded-full bg-sky-600 text-[10.5px] font-semibold text-white ring-2 ring-[var(--surface)]">{initials(me.full_name)}</span>}
+            label="You"
+            face={<span className="grid size-7 place-items-center rounded-[30%] bg-sky-600 text-[10.5px] font-semibold text-white ring-2 ring-[var(--surface)]">{initials(me.full_name)}</span>}
           />
         )}
       </div>
 
-      <div className="relative flex flex-col items-center gap-1.5">
-        <Item href="/assistant" icon={Sparkles} label="Ask FMD AI" />
-        <Item icon={Menu} label="More" on={more} onClick={() => setMore((v) => !v)} btnRef={moreBtn} />
+      <div className="relative mt-3 flex flex-col items-center gap-1">
+        <Item href="/assistant" icon={Sparkles} label="FMD AI" />
+        <Item icon={Ellipsis} label="More" on={more} onClick={() => setMore((v) => !v)} btnRef={moreBtn} />
         {more && (
-          <div ref={menu} role="menu" className="fmd-enter absolute bottom-0 left-[calc(100%+12px)] grid w-[240px] gap-0.5 rounded-2xl border border-line bg-[var(--surface-elevated)] p-2 shadow-[0_16px_50px_rgba(0,0,0,0.55)]">
+          <div ref={menu} role="menu" className="fmd-enter fixed bottom-4 left-[108px] grid w-[240px] gap-0.5 rounded-2xl border border-line bg-[var(--surface-elevated)] p-2 shadow-[0_16px_50px_rgba(0,0,0,0.55)]">
             <MenuLink href="/account/settings" icon={Settings} label="Settings" />
             <MenuLink href="/saved" icon={Bookmark} label="Saved" />
             {me?.dentist_profile && <MenuLink href="/explore/mine" icon={FilePen} label="Your posts" />}
@@ -94,17 +94,14 @@ function Item({
 }) {
   const inner = (
     <>
-      <span className="relative grid size-6 place-items-center">
-        {face ?? (Icon && <Icon className="size-6" strokeWidth={on ? 2.25 : 1.75} />)}
-        {badge !== undefined && <span className="absolute -right-2 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--tone-bad)] px-1 text-[10.5px] font-bold text-white">{badge}</span>}
+      <span className={`relative grid h-8 w-12 place-items-center rounded-xl transition-colors ${on ? "bg-sky-500/20 text-sky-300" : "group-hover:bg-white/[0.07]"}`}>
+        {face ?? (Icon && <Icon className="size-[22px]" strokeWidth={on ? 2.1 : 1.75} />)}
+        {badge !== undefined && <span className="absolute -right-1 -top-1.5 grid h-[17px] min-w-[17px] place-items-center rounded-md bg-sky-500 px-1 text-[10.5px] font-bold text-white">{badge}</span>}
       </span>
-      {/* the label, Instagram's collapsed-sidebar tooltip */}
-      <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 -translate-y-1/2 translate-x-[-4px] whitespace-nowrap rounded-lg border border-line bg-[var(--surface-elevated)] px-2.5 py-1 text-[13px] font-medium text-ink opacity-0 shadow-lg transition-[opacity,translate] duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
-        {label}
-      </span>
+      <span className={`text-[11px] leading-none ${on ? "font-semibold text-ink" : "font-medium"}`}>{label}</span>
     </>
   );
-  const cls = `group relative grid size-12 place-items-center rounded-xl transition-colors ${on ? "bg-white/[0.08] text-ink" : "text-ink-2 hover:bg-white/[0.06] hover:text-ink"}`;
+  const cls = `group grid w-[72px] shrink-0 justify-items-center gap-1 rounded-xl py-1.5 transition-colors ${on ? "text-ink" : "text-ink-3 hover:text-ink"}`;
   return href ? (
     <Link href={href} aria-label={label} aria-current={on ? "page" : undefined} className={cls}>
       {inner}

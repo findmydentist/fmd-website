@@ -1463,3 +1463,36 @@ html[data-vt="dock"]::view-transition-new(root) { animation: none; }
   ::-webkit-scrollbar-thumb { border-radius: 999px; background: color-mix(in srgb, var(--accent) 32%, transparent); }
   ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--accent) 55%, transparent); }
 }
+
+/* loading skeletons: a soft block with a light sweeping across it */
+.fmd-sk { position: relative; overflow: hidden; background: rgba(255, 255, 255, 0.06); }
+.fmd-sk::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  animation: fmd-shimmer 1.5s ease-in-out infinite;
+}
+@keyframes fmd-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .fmd-sk::after { animation: none; } }
+
+/* ---------------- sign-in pages ----------------
+   Log in ↔ sign up ↔ reset: the brand panel (view-transition-name "auth-brand") holds still while the form side slides
+   across, forward or back (--auth-dir, set by PageTransition from where the link goes). Inside a form, each step slides
+   in from its side (.fmd-swap-r / -l) and the box eases to its new height (AutoHeight in AuthForms). */
+html[data-vt="auth"]::view-transition-old(.page) { animation: 220ms cubic-bezier(0.4, 0, 1, 1) both fmd-auth-out; }
+html[data-vt="auth"]::view-transition-new(.page) { animation: 520ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both fmd-auth-in; }
+::view-transition-group(auth-brand) { z-index: 5; animation-duration: 0s; }
+@keyframes fmd-auth-out { to { opacity: 0; transform: translateX(calc(var(--auth-dir, 1) * -48px)); filter: blur(4px); } }
+@keyframes fmd-auth-in { from { opacity: 0; transform: translateX(calc(var(--auth-dir, 1) * 64px)); filter: blur(4px); } }
+@keyframes fmd-swap-r { from { opacity: 0; transform: translateX(28px); } }
+@keyframes fmd-swap-l { from { opacity: 0; transform: translateX(-28px); } }
+@keyframes fmd-rise { from { opacity: 0; transform: translateY(8px); } }
+.fmd-swap-r { animation: fmd-swap-r 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.fmd-swap-l { animation: fmd-swap-l 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.fmd-rise { animation: fmd-rise 460ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: var(--d, 0ms); }
+@media (prefers-reduced-motion: reduce) {
+  .fmd-swap-r, .fmd-swap-l, .fmd-rise { animation: none; }
+  html[data-vt="auth"]::view-transition-old(.page), html[data-vt="auth"]::view-transition-new(.page) { animation: none; }
+}
