@@ -1525,3 +1525,9 @@ html[data-samsung] .edge-shimmer {
 html[data-samsung] .edge-shimmer {
   --solid: #f3e5ab;
 }
+/* Samsung Internet's dark mode also turns the light primary buttons (Join Waitlist…) dark grey. A white button can't
+   survive it (its dark label is lightened too), but brand blue with white text passes through unchanged. */
+html[data-samsung] .btn-primary {
+  --button-primary: #2563eb;
+  --button-primary-fg: #ffffff;
+}
