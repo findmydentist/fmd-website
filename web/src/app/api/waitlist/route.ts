@@ -53,9 +53,9 @@ export async function POST(request: Request) {
          VALUES ($1, $2, $3, $4, $5)`,
         [cleanName, cleanEmail, role, state, cleanCity]
       );
-    } catch (dbError: any) {
+    } catch (dbError) {
       // Handle unique constraint violation (duplicate email)
-      if (dbError.code === "23505") {
+      if ((dbError as { code?: string }).code === "23505") {
         return NextResponse.json(
           { error: "This email is already on the waitlist!" },
           { status: 409 }

@@ -10,7 +10,6 @@
     "test": "node --experimental-strip-types --no-warnings --test \"src/**/*.test.ts\""
   },
   "dependencies": {
-    "@nestjs-modules/mailer": "^4.0.0",
     "@nestjs/config": "^12.0.1",
     "@nestjs/typeorm": "^12.0.2",
     "@react-three/drei": "^10.7.9",
