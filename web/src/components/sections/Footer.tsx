@@ -83,7 +83,7 @@ export default function Footer() {
         aria-hidden
         className="pointer-events-none absolute inset-x-0 bottom-0 z-0 select-none overflow-hidden text-center text-[clamp(64px,17vw,230px)] font-semibold leading-[0.9] tracking-[-0.04em] text-transparent"
       >
-        <span className="bg-[linear-gradient(180deg,rgb(170_195_255/0.5),rgb(170_195_255/0.08))] bg-clip-text">FindMyDentist</span>
+        <span className="bg-[linear-gradient(180deg,rgb(170_195_255/0.5),rgb(170_195_255/0.08))] bg-clip-text [--solid:rgb(170_195_255/0.22)]">FindMyDentist</span>
       </div> */}
 
       {/* content, no card */}

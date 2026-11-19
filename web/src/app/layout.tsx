@@ -95,6 +95,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
+        {/* Samsung Internet's dark mode darkens gradients, including the ones gradient text shows through: see globals.css */}
+        <script dangerouslySetInnerHTML={{ __html: `if(/SamsungBrowser/.test(navigator.userAgent))document.documentElement.dataset.samsung=""` }} />
         {/* production: mark the page so the staging-only parts (data-staging) hide before paint, and drop any old demo sign-in */}
         <script
           dangerouslySetInnerHTML={{

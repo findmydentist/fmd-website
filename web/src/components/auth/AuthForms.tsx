@@ -47,7 +47,7 @@ export function AuthCard({ title, text, children, footer, wide = false, brand = 
             <div className="grid gap-4">
               <h2 className="text-[44px] font-semibold leading-[1.08] tracking-[-0.025em] text-ink">
                 Your dental care,{" "}
-                <span className="bg-gradient-to-r from-sky-300 to-blue-500 bg-clip-text text-transparent">in one place.</span>
+                <span className="bg-gradient-to-r from-sky-300 to-blue-500 bg-clip-text text-transparent [--solid:#7dd3fc]">in one place.</span>
               </h2>
               <p className="text-[16px] leading-relaxed text-ink-3">Find dentists you can trust, ask questions in plain words and keep your records safe, with one account for FMD and FMD Clinic.</p>
             </div>

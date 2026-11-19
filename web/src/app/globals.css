@@ -1511,3 +1511,17 @@ html[data-live] [data-staging] {
     color-scheme: dark;
   }
 }
+
+/* Gradient text is transparent letters over a gradient. Samsung Internet's dark mode darkens that gradient, so the
+   letters turn near-black (and it ignores the color-scheme opt-out). On Samsung Internet, draw them in a solid colour
+   instead: --solid where an element sets one, else the headline white. Flag set in layout.tsx. */
+html[data-samsung] .bg-clip-text,
+html[data-samsung] .headline-silver,
+html[data-samsung] .edge-shimmer {
+  background-image: none !important;
+  color: var(--solid, var(--headline-from)) !important;
+  -webkit-text-fill-color: var(--solid, var(--headline-from));
+}
+html[data-samsung] .edge-shimmer {
+  --solid: #f3e5ab;
+}
