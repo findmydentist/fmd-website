@@ -139,7 +139,7 @@ export default function Journey() {
         <Reveal className="max-w-3xl">
           <p className="eyebrow mb-4">The FMD Trust Standard</p>
           <h2 className="type-h2-lg text-ink">
-            Engineered for <span className="bg-[linear-gradient(90deg,#9db8ff,#5b8cff)] bg-clip-text text-transparent">absolute clinical safety.</span>
+            Engineered for <span className="bg-[linear-gradient(90deg,#9db8ff,#5b8cff)] bg-clip-text text-transparent [--solid:#9db8ff]">absolute clinical safety.</span>
           </h2>
           <p className="type-lede mt-5 max-w-xl">
             From strict AI guardrails to zero-trust data architecture, discover the technical infrastructure that protects your privacy and ensures verified care.

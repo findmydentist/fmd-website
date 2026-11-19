@@ -284,7 +284,7 @@ export default function Walkthrough() {
             <Reveal className="relative z-10">
               <p className="mb-4 text-[12px] font-semibold uppercase tracking-widest text-[#64748B]">What is FMD</p>
               <h2 className="mb-4 text-[34px] font-bold leading-[1.1] tracking-[-0.025em] text-white [text-wrap:balance] sm:text-[48px]">
-                From a question to <span className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] bg-clip-text text-transparent">the right care</span>
+                From a question to <span className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] bg-clip-text text-transparent [--solid:#60A5FA]">the right care</span>
               </h2>
               <p className="max-w-2xl text-[16px] leading-relaxed text-slate-400 [text-wrap:pretty] xl:max-w-[560px]">
                 One place to understand a concern, explore treatment and find a dentist. Pick a step to see how it works.
