@@ -100,7 +100,6 @@ export const auth = {
   sendOtp: (identifier: string, purpose: OtpPurpose) => fmd<void>("/auth/otp", { body: { identifier, purpose } }),
   /** Non-production backends hand back the last OTP so the demo works without SMS. */
   devOtp: () => fmd<{ code: string | null }>("/auth/otp/dev").then((r) => r.code, () => null),
-  checkPassword: (password: string) => fmd<void>("/auth/password/check", { body: { password } }),
   register: (b: { full_name: string; phone: string; password: string; otp: string; marketing_opt_in: boolean }) =>
     fmd<User>("/auth/register", { body: { ...b, accept_terms: true, age_confirmed: true } }),
   loginPassword: (login: string, password: string) => fmd<User | MfaChallenge>("/auth/login/password", { body: { login, password } }),
@@ -110,6 +109,8 @@ export const auth = {
     fmd<{ proof_token: string }>("/auth/otp/verify", { body: { identifier, code, purpose: "reset_password" } }),
   resetPassword: (identifier: string, proof_token: string, new_password: string) =>
     fmd<void>("/auth/password/reset", { body: { identifier, proof_token, new_password } }),
+  /** after a reset code: log in without changing the password (the proof is used up either way) */
+  loginWithProof: (identifier: string, proof_token: string) => fmd<User>("/auth/login/proof", { body: { identifier, proof_token } }),
   logout: () => fmd<void>("/auth/logout", { method: "POST" }),
   logoutAll: () => fmd<void>("/auth/logout-all", { method: "POST" }),
   me: () => fmd<Me>("/auth/me"),
@@ -126,11 +127,30 @@ export type Session = {
   current: boolean;
 };
 
-/** /me/*: account settings. Changing or removing a verified email and turning two-step off need the current password. */
+/** ProfileUpdateRequest: PATCH /me */
+export type ProfileUpdate = {
+  full_name: string;
+  year_of_birth: number | null;
+  gender: "female" | "male" | "other" | "undisclosed" | null;
+  city: string | null;
+};
+
+/**
+ * /me/*: account settings. Changing a verified email and removing an email are confirmed with a code texted to the
+ * phone; changing the password and turning two-step off need the current password.
+ */
 export const account = {
-  addEmail: (email: string, password?: string) => fmd<void>("/me/email", { body: { email, password } }),
+  updateProfile: (p: ProfileUpdate) => fmd<Me>("/me", { method: "PATCH", body: p }),
+  /** the backend signs every device out afterwards, this one included */
+  changePassword: (current_password: string, new_password: string) => fmd<void>("/me/password", { body: { current_password, new_password } }),
+  /** a new email, or (with the code from startEmailChange) one replacing a verified email; then a code goes to it */
+  addEmail: (email: string, otp_code?: string) => fmd<void>("/me/email", { body: { email, otp_code } }),
+  /** texts a code to the phone, to confirm replacing a verified email */
+  startEmailChange: () => fmd<void>("/me/email/change-start", { method: "POST" }),
   verifyEmail: (code: string) => fmd<void>("/me/email/verify", { body: { code } }),
-  removeEmail: (password: string) => fmd<void>("/me/email", { method: "DELETE", body: { password } }),
+  /** texts a code to the phone, to confirm removing the email */
+  startEmailRemove: () => fmd<void>("/me/email/remove", { method: "POST" }),
+  removeEmail: (otp_code: string) => fmd<void>("/me/email", { method: "DELETE", body: { otp_code } }),
   startMfa: () => fmd<void>("/me/mfa/start", { method: "POST" }),
   enableMfa: (code: string) => fmd<void>("/me/mfa", { body: { code } }),
   disableMfa: (password: string) => fmd<void>("/me/mfa", { method: "DELETE", body: { password } }),
@@ -138,6 +158,52 @@ export const account = {
   revokeSession: (id: string) => fmd<void>(`/me/sessions/${id}`, { method: "DELETE" }),
   /** 409 when the registration number belongs to another FMD account */
   saveDentistProfile: (p: Omit<DentistProfile, "verification_status">) => fmd<DentistProfile>("/me/dentist-profile", { method: "PUT", body: p }),
+  /** 404 when there's none yet (GET /auth/me carries it too) */
+  dentistProfile: () => fmd<DentistProfile>("/me/dentist-profile"),
+};
+
+/* ---------------- clinics and invitations: server/app/schemas/clinic.py ---------------- */
+
+export type Role = "owner" | "dentist" | "receptionist";
+export type Clinic = {
+  id: string;
+  name: string;
+  city: string;
+  phone: string;
+  email: string | null;
+  gstin: string | null;
+  timezone: string;
+  status: string;
+  created_at: string;
+};
+export type ClinicWrite = { name: string; city: string; phone: string; email?: string | null; gstin?: string | null };
+export type Member = {
+  user: { id: string; full_name: string; phone: string; email: string | null };
+  role: Role;
+  status: "active" | "deactivated";
+  created_at: string;
+};
+export type Invite = { id: string; email: string; role: Role; expires_at: string; created_at: string };
+export type InvitePreview = { clinic_name: string; clinic_city: string; role: Role; email_hint: string; expires_at: string };
+
+/** /clinics/*: a clinic's workspace. Editing it, its members and its invitations is for the owner only. */
+export const clinics = {
+  create: (c: ClinicWrite) => fmd<Clinic>("/clinics", { body: c }),
+  /** the clinic, and your role in it */
+  get: (id: string) => fmd<{ clinic: Clinic; role: Role }>(`/clinics/${id}`),
+  update: (id: string, c: Partial<ClinicWrite>) => fmd<Clinic>(`/clinics/${id}`, { method: "PATCH", body: c }),
+  members: (id: string) => fmd<Member[]>(`/clinics/${id}/members`),
+  updateMember: (id: string, userId: string, m: { role?: Role; status?: Member["status"] }) =>
+    fmd<Member>(`/clinics/${id}/members/${userId}`, { method: "PATCH", body: m }),
+  invite: (id: string, email: string, role: Role) => fmd<Invite & { url: string }>(`/clinics/${id}/invitations`, { body: { email, role } }),
+  invitations: (id: string) => fmd<Invite[]>(`/clinics/${id}/invitations`),
+  revokeInvite: (id: string, inviteId: string) => fmd<void>(`/clinics/${id}/invitations/${inviteId}`, { method: "DELETE" }),
+};
+
+/** /invitations/*: an invitation link, before and after signing in */
+export const invitations = {
+  preview: (token: string) => fmd<InvitePreview>(`/invitations/${encodeURIComponent(token)}`),
+  accept: (token: string) => fmd<{ clinic_id: string; role: Role }>(`/invitations/${encodeURIComponent(token)}/accept`, { method: "POST" }),
 };
 
 /** Same rules as Password in server/app/schemas/auth.py; the server still checks, and also rejects breached passwords. */
