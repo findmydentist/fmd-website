@@ -53,7 +53,7 @@ const SOCIALS = [
   },
   {
     label: "Phone",
-    href: "tel:+919553562838",
+    href: "tel:+916309062838",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden className="h-5 w-5">
         <path
@@ -68,7 +68,7 @@ const SOCIALS = [
 
 const CONTACTS = [
   { label: "Email", text: "support@findmydentist.io", href: "mailto:support@findmydentist.io" },
-  { label: "Phone", text: "+91 95535 62838", href: "tel:+919553562838" },
+  { label: "Phone", text: "+91 63090 62838", href: "tel:+916309062838" },
   { label: "LinkedIn", text: "/company/findmydentist-io", href: "https://www.linkedin.com/company/findmydentist-io/" },
 ];
 

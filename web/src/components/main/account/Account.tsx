@@ -15,8 +15,9 @@ import { getDocument } from "@/sample/dentist";
 import { feed, following, getPost, type Author, type FeedItem } from "@/sample/content";
 import { getSaved } from "@/sample/saved";
 import { PostGrid } from "../dentists/Profile";
-import { coverOf, PostCard, Ring } from "../explore/Explore";
-import { StoryViewer, useSeen, type Story } from "../explore/Stories";
+import { coverOf, PostCard, PostFeed, Ring } from "../explore/Explore";
+import { PostsSkeleton } from "../Skeletons";
+import { StoryAvatar, StoryViewer, useSeen, type Story } from "../explore/Stories";
 import { STATUS, VerifyStatus } from "./Dentist";
 import { LayoutPicker, useProfileLayout } from "../ProfileLayout";
 
@@ -143,17 +144,22 @@ export function Account() {
       return next;
     });
   const userId = me?.id;
-  useEffect(() => {
+  // your posts and saves; again after a like or save on them (the Explore-style layout shows them as full posts)
+  const loadPosts = useCallback(() => {
     if (!userId) return;
     getSaved(userId, "post")
       .then((ids) => Promise.all(ids.map((id) => getPost(userId, id))))
       .then((l) => setSavedPosts(l.filter((x): x is FeedItem => !!x)));
+    feed(userId, "for_you").then((l) => setMine(l.filter((x) => x.author.id === `me-${userId}`)));
+  }, [userId]);
+  useEffect(() => {
+    if (!userId) return;
+    loadPosts();
     getSaved(userId, "dentist").then((l) => setSavedDentists(l.length));
     getAccountType(userId).then(setAccountType);
-    feed(userId, "for_you").then((l) => setMine(l.filter((x) => x.author.id === `me-${userId}`)));
     getDocument(userId).then((d) => setCertificate(!!d));
     following(userId).then(setFollows);
-  }, [userId]);
+  }, [userId, loadPosts]);
   if (!me) return <div className="app-panel h-40 animate-pulse" aria-busy />;
 
   const card = "rounded-xl border border-line bg-[var(--surface)]";
@@ -323,6 +329,89 @@ export function Account() {
         </div>
         {panel(true)}
       </section>
+    </div>
+  );
+
+  /* ---- layout 6: Explore style: one narrow column like the feed, you as a post's author row, highlights as stories, your posts as full posts ---- */
+  const chipBase = "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[13.5px] font-medium transition-colors";
+  const feedPosts = grid === "saved" ? savedPosts : grid === "reels" ? (mine?.filter((x) => x.kind === "video") ?? null) : mine;
+  const exploreStyle = (
+    <div className="mx-auto grid w-full max-w-[470px] grid-cols-1 gap-4">
+      <header className="flex items-center gap-3">
+        <Ring>
+          <span className="grid size-14 place-items-center bg-[var(--surface-elevated)] text-[17px] font-semibold text-ink">{initials(me.full_name)}</span>
+        </Ring>
+        <div className="min-w-0 flex-1 leading-tight">
+          <h2 className="flex items-center gap-1 text-[17px] font-semibold text-ink">
+            <span className="truncate">{me.full_name}</span>
+            {verifiedTick}
+          </h2>
+          <p className="mt-0.5 truncate text-[12.5px] text-ink-3">
+            {headline}
+            {me.city ? ` · ${me.city}` : ""}
+          </p>
+        </div>
+        <Link href="/account/settings" className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-sky-600 px-3 text-[13px] font-semibold text-white hover:bg-sky-500">
+          <Pencil className="size-3.5" strokeWidth={2.25} /> Edit
+        </Link>
+        <Link href="/account/settings" aria-label="Settings" title="Settings" className="grid size-8 shrink-0 place-items-center rounded-lg text-ink-3 hover:bg-white/[0.06] hover:text-ink">
+          <Settings className="size-[18px]" strokeWidth={1.75} />
+        </Link>
+      </header>
+      <p className="flex flex-wrap gap-x-4 gap-y-1 text-[13.5px] text-ink-3">
+        <button type="button" onClick={() => setGrid("saved")} className="hover:text-ink">
+          <span className="font-semibold text-ink">{savedPosts?.length ?? "–"}</span> saved posts
+        </button>
+        <Link href="/saved" className="hover:text-ink">
+          <span className="font-semibold text-ink">{savedDentists}</span> saved dentists
+        </Link>
+        <button type="button" onClick={() => setShowFollowing(true)} className="hover:text-ink">
+          <span className="font-semibold text-ink">{follows.length}</span> following
+        </button>
+      </p>
+      {(status || getVerifiedChip) && (
+        <div className="flex flex-wrap items-center gap-3">
+          {status}
+          {getVerifiedChip}
+        </div>
+      )}
+      <GetVerified me={me} accountType={accountType} certificate={certificate} />
+
+      <ul aria-label="Highlights" className="-mx-4 flex gap-3.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+        {HIGHLIGHTS.map((h, i) => (
+          <li key={h.id} className="shrink-0">
+            <button type="button" onClick={() => openHighlight(i)} className="grid w-[74px] justify-items-center gap-1.5 text-center" aria-label={`Highlight: ${h.name}`}>
+              <StoryAvatar name={h.name} photo={h.photo} size="size-16 text-[16px]" seen={seen.includes(h.id)} />
+              <span className={`w-full truncate text-[11.5px] ${seen.includes(h.id) ? "text-ink-3" : "text-ink-2"}`}>{h.name}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div role="tablist" aria-label="Profile" className="flex gap-2 border-b border-line pb-4">
+        {(
+          [
+            ["posts", "Posts", LayoutGrid],
+            ["reels", "Videos", SquarePlay],
+            ["saved", "Saved", Bookmark],
+          ] as const
+        ).map(([t, label, Icon]) => (
+          <button key={t} role="tab" aria-selected={grid === t} onClick={() => setGrid(t)} className={`${chipBase} ${grid === t ? "bg-sky-500/20 text-sky-200" : "bg-white/[0.05] text-ink-2 hover:bg-white/[0.09] hover:text-ink"}`}>
+            <Icon className="size-4" strokeWidth={1.75} /> {label}
+          </button>
+        ))}
+      </div>
+      <div key={grid} role="tabpanel">
+        {!feedPosts ? (
+          <PostsSkeleton />
+        ) : feedPosts.length ? (
+          <PostFeed posts={feedPosts} userId={me.id} onChange={loadPosts} />
+        ) : grid === "saved" ? (
+          savedPanel(false)
+        ) : (
+          <OwnGrid me={me} posts={[]} reels={grid === "reels"} />
+        )}
+      </div>
     </div>
   );
 
@@ -1147,7 +1236,7 @@ export function Account() {
         <LayoutPicker value={layout} onChange={pickLayout} />
       </div>
       <div key={layout} className="fmd-enter">
-        {layout === "insta" ? insta : layout === "insta2" ? insta2 : layout === "cards" ? cards : layout === "facebook" ? facebook : linkedin}
+        {layout === "insta" ? insta : layout === "insta2" ? insta2 : layout === "explore" ? exploreStyle : layout === "cards" ? cards : layout === "facebook" ? facebook : linkedin}
       </div>
       {watching && <StoryViewer stories={watching.list} start={watching.start} onClose={() => setWatching(null)} onSeen={markSeen} />}
       {showFollowing && (
