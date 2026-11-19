@@ -42,3 +42,16 @@ test("the new dentist: registration goes for checking, the demo approves it, and
   assert.equal(call("/demo/reset-dentist", undefined, "POST").status, 204);
   assert.equal((await call("/auth/me").json()).dentist_profile, null);
 });
+
+test("sign-up is off; profile edits are kept; passwords can't change", async () => {
+  assert.equal(call("/auth/otp", { identifier: "9876543210", purpose: "signup" }).status, 403);
+  call("/auth/login/password", { login: "9000000001", password: DEMO_PASSWORD });
+  assert.equal(call("/me", { full_name: " " }, "PATCH").status, 422);
+  assert.equal(call("/me", { full_name: "Priya S", year_of_birth: 1800 }, "PATCH").status, 422);
+  const saved = await call("/me", { full_name: "Priya S", year_of_birth: 1994, gender: "female", city: "Pune" }, "PATCH").json();
+  assert.equal(saved.full_name, "Priya S");
+  const me = await call("/auth/me").json();
+  assert.deepEqual([me.full_name, me.year_of_birth, me.gender, me.city], ["Priya S", 1994, "female", "Pune"]);
+  assert.equal(call("/me/password", { current_password: DEMO_PASSWORD, new_password: "New@12345" }).status, 403);
+  call("/auth/logout", undefined, "POST");
+});

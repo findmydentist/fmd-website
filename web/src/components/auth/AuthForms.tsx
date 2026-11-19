@@ -304,7 +304,7 @@ export function PasswordInput({ value, onChange, autoComplete, required = true }
   );
 }
 
-function PasswordRules({ password }: { password: string }) {
+export function PasswordRules({ password }: { password: string }) {
   return (
     <Collapse open={!!password} gap="">
     <ul className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-xl bg-white/[0.03] p-3 text-[12.5px]" aria-label="Password needs">
@@ -640,7 +640,7 @@ export function RegisterForm() {
     if (f.password !== f.confirm) return setErr("The two passwords don't match.");
     if (!f.adult || !f.terms) return setErr("Confirm you are 18 or older and agree to the Terms and Privacy Notice.");
     run(async () => {
-      await auth.checkPassword(f.password); // breached passwords fail here, before an OTP is spent
+      // the backend checks the password's rules again when the account is created
       await auth.sendOtp(f.phone.trim(), "signup");
       setDir(1);
       setStep("otp");
@@ -794,7 +794,7 @@ function Check2({ checked, onChange, children }: { checked: boolean; onChange: (
 /* ---------------- forgot password ---------------- */
 
 export function ForgotPasswordForm() {
-  const { next } = useFinish();
+  const { next, finish } = useFinish();
   const { busy, err, setErr, run } = useRun();
   const [step, setStep] = useState<"id" | "otp" | "password" | "done">("id");
   const [dir, setDir] = useState(1);
@@ -901,6 +901,20 @@ export function ForgotPasswordForm() {
               ) : (
                 "Save new password"
               )}
+            </button>
+            {/* remembered it after all: the verified code is enough to log in */}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                run(async () => {
+                  await auth.loginWithProof(id.trim(), proof);
+                  finish();
+                })
+              }
+              className="text-[14px] font-medium text-ink-3 hover:text-ink"
+            >
+              Log in without changing it
             </button>
           </form>
           </Step>

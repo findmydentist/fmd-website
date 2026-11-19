@@ -59,10 +59,21 @@ const store = (key: string, next: (v: string | null) => string | null) => {
     // storage blocked: nothing to do
   }
 };
+/* profile edits (PATCH /me), as this browser's demo saved them */
+const DKEY = (id: string) => `fmd-demo:details:${id}`;
+type Details = Pick<Me, "full_name" | "year_of_birth" | "gender" | "city">;
+const savedDetails = (id: string): Partial<Details> => {
+  try {
+    return JSON.parse(localStorage.getItem(DKEY(id)) ?? "{}");
+  } catch {
+    return {};
+  }
+};
 const withProfile = (a: Me): Me => {
   const p = savedProfile(a.id);
-  return p === undefined ? a : { ...a, dentist_profile: p };
+  return { ...a, ...savedDetails(a.id), ...(p === undefined ? {} : { dentist_profile: p }) };
 };
+const GENDERS = ["female", "male", "other", "undisclosed"];
 
 const KEY = "fmd-demo-session";
 const session = {
@@ -99,6 +110,7 @@ export function demoFetch(path: string, init: { method?: string; body?: unknown 
       return a && b.password === DEMO_PASSWORD ? signIn(a) : err(401, `Wrong number or password. ${ONLY} Password ${DEMO_PASSWORD}.`);
     }
     case "POST /auth/otp":
+      if (b.purpose === "signup") return err(403, `Sign-up is off in the demo. ${ONLY}`);
       if (b.purpose === "reset_password") return err(403, `Passwords can't be changed in the demo. It is ${DEMO_PASSWORD}.`);
       return findDemo(b.identifier) ? res(204) : err(404, ONLY);
     case "GET /auth/otp/dev":
@@ -107,8 +119,6 @@ export function demoFetch(path: string, init: { method?: string; body?: unknown 
       const a = findDemo(b.identifier);
       return a && b.code === DEMO_OTP ? signIn(a) : err(401, "Wrong code.");
     }
-    case "POST /auth/password/check":
-      return err(403, `Sign-up is off in the demo. ${ONLY}`);
     case "GET /auth/me":
       if (me?.id === "demo-new-dentist") store("fmd-demo:account-type:demo-new-dentist", (v) => v ?? JSON.stringify("dentist"));
       return me ? res(200, me) : err(401, "Signed out (demo)"); // not the backend's "Not authenticated", so no refresh
@@ -116,6 +126,23 @@ export function demoFetch(path: string, init: { method?: string; body?: unknown 
     case "POST /auth/logout-all":
       session.set(null);
       return res(204);
+    case "PATCH /me": {
+      if (!me) return err(401, "Signed out (demo)");
+      const full_name = String(b.full_name ?? "").trim();
+      if (!full_name || full_name.length > 200) return err(422, "Enter your name.");
+      const year = b.year_of_birth == null || b.year_of_birth === "" ? null : Number(b.year_of_birth);
+      if (year !== null && !(Number.isInteger(year) && year >= 1900 && year <= 2100)) return err(422, "Enter a valid year of birth.");
+      const gender = b.gender || null;
+      if (gender !== null && !GENDERS.includes(gender)) return err(422, "Choose a gender from the list.");
+      const city = String(b.city ?? "").trim().slice(0, 100) || null;
+      store(DKEY(me.id), () => JSON.stringify({ full_name, year_of_birth: year, gender, city } satisfies Details));
+      return res(200, withProfile(found!));
+    }
+    case "POST /me/password":
+      return err(403, `Passwords can't be changed in the demo. It is ${DEMO_PASSWORD}.`);
+    case "GET /me/dentist-profile":
+      if (!me) return err(401, "Signed out (demo)");
+      return me.dentist_profile ? res(200, me.dentist_profile) : err(404, "No dentist profile yet");
     case "GET /me/sessions":
       if (!me) return err(401, "Signed out (demo)");
       return res(200, [{ id: "demo", created_at: me.created_at, last_seen_at: new Date().toISOString(), auth_method: "password", ip: null, user_agent: globalThis.navigator?.userAgent ?? null, current: true }]);

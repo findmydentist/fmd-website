@@ -1,14 +1,14 @@
 "use client";
 
-import { ArrowLeft, BadgeCheck, Bookmark, Briefcase, Building2, Camera, Check, Clapperboard, GraduationCap, Grid3x3, HeartPulse, LayoutGrid, MapPin, Shapes, SquarePlay, ChevronDown, ChevronRight, CreditCard, ArrowRight, Eye, Pencil, Lock, LogOut, Mail, Monitor, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Stethoscope, UserPlus, UserRound, X, type LucideIcon } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Bookmark, Briefcase, Building2, Camera, Check, Clapperboard, GraduationCap, Grid3x3, HeartPulse, LayoutGrid, MapPin, Shapes, SquarePlay, ChevronDown, ChevronRight, CreditCard, ArrowRight, Eye, KeyRound, Pencil, Lock, LogOut, Mail, Monitor, Settings, ShieldCheck, SlidersHorizontal, Smartphone, Stethoscope, UserPlus, UserRound, X, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Button, ButtonLink, Panel, Tag } from "@/components/app/kit";
 import { Field, fieldCls, Sheet } from "@/components/app/Sheet";
-import { OtpStep, PasswordInput, useRun } from "@/components/auth/AuthForms";
+import { OtpStep, PasswordInput, PasswordRules, useRun } from "@/components/auth/AuthForms";
 import { Notice } from "@/components/Page";
-import { account, deviceName, fmtPhone, initials, type Me, type Session } from "@/lib/fmd";
+import { account, deviceName, fmtPhone, initials, passwordRules, type Me, type ProfileUpdate, type Session } from "@/lib/fmd";
 import { authChanged, logout, useRequireMe } from "@/lib/me";
 import { ACCOUNT_TYPES, getAccountType, type AccountType } from "@/sample/onboarding";
 import { getDocument } from "@/sample/dentist";
@@ -1415,7 +1415,7 @@ function GetVerified({ me, accountType, certificate }: { me: Me; accountType: Ac
 
 /* ---------------- /account/settings: one simple, grouped list ---------------- */
 
-type Open = "email" | "email-verify" | "email-remove" | "mfa-on" | "mfa-off" | "logout-all" | null;
+type Open = "profile" | "password" | "email" | "email-verify" | "email-remove" | "mfa-on" | "mfa-off" | "logout-all" | null;
 type Expand = "email" | "mfa" | "devices" | null;
 
 /** a titled group of rows in one rounded box */
@@ -1516,6 +1516,14 @@ export function AccountSettings() {
       {flash && <Notice kind="success">{flash}</Notice>}
 
       <Group id="profile" title="Your account">
+        <button type="button" onClick={() => show("profile")} className={rowCls}>
+          <RowBody
+            icon={Pencil}
+            label="Profile details"
+            sub={[me.full_name, me.city, me.year_of_birth && `Born ${me.year_of_birth}`].filter(Boolean).join(" · ")}
+          />
+          <ChevronRight className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} />
+        </button>
         <LinkRow
           href="/onboarding?next=%2Faccount%2Fsettings"
           icon={UserRound}
@@ -1539,6 +1547,10 @@ export function AccountSettings() {
       </Group>
 
       <Group id="security" title="Login and security">
+        <button type="button" onClick={() => show("password")} className={rowCls}>
+          <RowBody icon={KeyRound} label="Password" sub="Change the password you log in with" />
+          <ChevronRight className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} />
+        </button>
         <ExpandRow open={expand === "email"} onToggle={() => toggle("email")} icon={Mail} label="Email" sub={me.email ?? "Add an email to log in with it"} tag={emailTag}>
           <EmailCard me={me} show={show} flat />
         </ExpandRow>
@@ -1589,17 +1601,10 @@ export function AccountSettings() {
         </button>
       </Group>
 
+      {open === "profile" && <ProfileSheet me={me} onDone={() => done("Profile saved.")} onClose={close} />}
+      {open === "password" && <ChangePasswordSheet onClose={close} />}
       {(open === "email" || open === "email-verify") && <EmailSheet me={me} verifyOnly={open === "email-verify"} onDone={done} onClose={close} />}
-      {open === "email-remove" && (
-        <PasswordSheet
-          title="Remove email"
-          text={`You won't be able to log in with ${me.email} or get security alerts there.`}
-          action="Remove email"
-          onConfirm={(pw) => account.removeEmail(pw)}
-          onDone={() => done("Email removed.")}
-          onClose={close}
-        />
-      )}
+      {open === "email-remove" && <RemoveEmailSheet me={me} onDone={() => done("Email removed.")} onClose={close} />}
       {open === "mfa-on" && <MfaOnSheet me={me} onDone={() => done("Two-step verification is on.")} onClose={close} />}
       {open === "mfa-off" && (
         <PasswordSheet
@@ -1692,25 +1697,33 @@ function EmailCard({ me, show, flat = false }: { me: Me; show: (o: Open) => void
   );
 }
 
-/** Add, change or verify the email: send a code to it, then enter the code. Changing a verified email needs the password. */
+/**
+ * Add, change or verify the email. Adding (or verifying) sends a code to the email. Replacing a verified email is first
+ * confirmed with a code texted to the phone (POST /me/email/change-start), then the new email gets its own code.
+ */
 function EmailSheet({ me, verifyOnly, onDone, onClose }: { me: Me; verifyOnly: boolean; onDone: (msg: string) => void; onClose: () => void }) {
   const changing = me.email_verified && !verifyOnly;
   const { busy, err, run } = useRun();
-  const [step, setStep] = useState<"form" | "code">("form");
+  const [step, setStep] = useState<"form" | "phone" | "code">("form");
   const [email, setEmail] = useState(verifyOnly ? (me.email ?? "") : "");
-  const [password, setPassword] = useState("");
-  const send = () => account.addEmail(email.trim(), changing ? password : undefined);
+  // once saved, the new email is unverified, so sending its code again needs no phone code
+  const sendToEmail = () => account.addEmail(email.trim());
 
   return (
     <Sheet title={verifyOnly ? "Verify your email" : changing ? "Change email" : "Add email"} onClose={onClose}>
       <div className="grid gap-4">
         {err && <Notice kind="error">{err}</Notice>}
-        {step === "form" ? (
+        {step === "form" && (
           <form
             onSubmit={submit(() =>
               run(async () => {
-                await send();
-                authChanged(); // the backend has saved the new address as unverified
+                if (changing) {
+                  await account.startEmailChange();
+                  setStep("phone");
+                  return;
+                }
+                await sendToEmail();
+                authChanged(); // the backend has saved the address as unverified
                 setStep("code");
               }),
             )}
@@ -1721,25 +1734,37 @@ function EmailSheet({ me, verifyOnly, onDone, onClose }: { me: Me; verifyOnly: b
                 We&apos;ll send a 6-digit code to <span className="break-all font-medium text-ink">{email}</span>.
               </p>
             ) : (
-              <Field label={changing ? "New email" : "Email"}>
+              <Field label={changing ? "New email" : "Email"} hint={changing ? `First we'll text a code to ${fmtPhone(me.phone)} to confirm it's you.` : undefined}>
                 <input className={fieldCls} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={320} required />
               </Field>
             )}
-            {changing && (
-              <Field label="Current password" hint="Your current email is replaced as soon as we send the code.">
-                <PasswordInput value={password} onChange={setPassword} autoComplete="current-password" />
-              </Field>
-            )}
-            <Button type="submit" disabled={busy || !email.trim() || (changing && !password)}>
+            <Button type="submit" disabled={busy || !email.trim()}>
               {busy ? "Sending…" : "Send code"}
             </Button>
           </form>
-        ) : (
+        )}
+        {step === "phone" && (
+          <OtpStep
+            to={fmtPhone(me.phone)}
+            busy={busy}
+            run={run}
+            onResend={account.startEmailChange}
+            onBack={() => setStep("form")}
+            onCode={(code) =>
+              run(async () => {
+                await account.addEmail(email.trim(), code);
+                authChanged(); // your old email is replaced by the new, unverified one
+                setStep("code");
+              })
+            }
+          />
+        )}
+        {step === "code" && (
           <OtpStep
             to={email.trim()}
             busy={busy}
             run={run}
-            onResend={send}
+            onResend={sendToEmail}
             onBack={() => setStep("form")}
             onCode={(code) =>
               run(async () => {
@@ -1750,6 +1775,152 @@ function EmailSheet({ me, verifyOnly, onDone, onClose }: { me: Me; verifyOnly: b
           />
         )}
       </div>
+    </Sheet>
+  );
+}
+
+/** Removing the email is confirmed with a code texted to the phone (POST /me/email/remove, then DELETE /me/email). */
+function RemoveEmailSheet({ me, onDone, onClose }: { me: Me; onDone: () => void; onClose: () => void }) {
+  const { busy, err, run } = useRun();
+  const [step, setStep] = useState<"intro" | "code">("intro");
+  return (
+    <Sheet title="Remove email" onClose={onClose}>
+      <div className="grid gap-4">
+        {err && <Notice kind="error">{err}</Notice>}
+        {step === "intro" ? (
+          <>
+            <p className="text-[14.5px] text-ink-2">
+              You won&apos;t be able to log in with <span className="break-all font-medium text-ink">{me.email}</span> or get security alerts there. To confirm, we&apos;ll
+              text a code to <span className="font-medium text-ink">{fmtPhone(me.phone)}</span>.
+            </p>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button disabled={busy} onClick={() => run(async () => (await account.startEmailRemove(), setStep("code")))}>
+                {busy ? "Sending…" : "Send code"}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <OtpStep
+            to={fmtPhone(me.phone)}
+            busy={busy}
+            run={run}
+            onResend={account.startEmailRemove}
+            onBack={() => setStep("intro")}
+            onCode={(code) => run(async () => (await account.removeEmail(code), onDone()))}
+          />
+        )}
+      </div>
+    </Sheet>
+  );
+}
+
+/* ---------------- profile details and password ---------------- */
+
+const GENDERS: [NonNullable<ProfileUpdate["gender"]>, string][] = [
+  ["female", "Female"],
+  ["male", "Male"],
+  ["other", "Other"],
+  ["undisclosed", "Prefer not to say"],
+];
+
+/** Name, year of birth, gender and city (PATCH /me). */
+function ProfileSheet({ me, onDone, onClose }: { me: Me; onDone: () => void; onClose: () => void }) {
+  const { busy, err, setErr, run } = useRun();
+  const [f, setF] = useState({ name: me.full_name, year: me.year_of_birth ? String(me.year_of_birth) : "", gender: me.gender ?? "", city: me.city ?? "" });
+  const set = <K extends keyof typeof f>(k: K, v: string) => setF((p) => ({ ...p, [k]: v }));
+  const thisYear = new Date().getFullYear();
+  const save = () => {
+    const year = f.year.trim() ? Number(f.year) : null;
+    if (year !== null && !(Number.isInteger(year) && year >= 1900 && year <= thisYear)) return setErr(`Enter a year between 1900 and ${thisYear}.`);
+    run(async () => {
+      await account.updateProfile({
+        full_name: f.name.trim(),
+        year_of_birth: year,
+        gender: (f.gender || null) as ProfileUpdate["gender"],
+        city: f.city.trim() || null,
+      });
+      onDone();
+    });
+  };
+  return (
+    <Sheet title="Profile details" onClose={onClose}>
+      <form onSubmit={submit(save)} className="grid gap-4">
+        {err && <Notice kind="error">{err}</Notice>}
+        <Field label="Full name">
+          <input className={fieldCls} value={f.name} onChange={(e) => set("name", e.target.value)} autoComplete="name" maxLength={200} required />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Year of birth" hint="Optional">
+            <input className={fieldCls} value={f.year} onChange={(e) => set("year", e.target.value.replace(/\D/g, "").slice(0, 4))} inputMode="numeric" autoComplete="bday-year" placeholder="1990" />
+          </Field>
+          <Field label="Gender" hint="Optional">
+            <select className={fieldCls} value={f.gender} onChange={(e) => set("gender", e.target.value)}>
+              <option value="">Not set</option>
+              {GENDERS.map(([v, label]) => (
+                <option key={v} value={v}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <Field label="City" hint="Optional">
+          <input className={fieldCls} value={f.city} onChange={(e) => set("city", e.target.value)} autoComplete="address-level2" maxLength={100} />
+        </Field>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={busy || !f.name.trim()}>
+            {busy ? "Saving…" : "Save"}
+          </Button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
+
+/** POST /me/password. The backend then signs out every device, this one included, so the sign-in guard opens /login. */
+function ChangePasswordSheet({ onClose }: { onClose: () => void }) {
+  const { busy, err, setErr, run } = useRun();
+  const [f, setF] = useState({ current: "", password: "", confirm: "" });
+  const save = () => {
+    if (!passwordRules(f.password).every((r) => r.ok)) return setErr("Choose a password that meets every rule below it.");
+    if (f.password !== f.confirm) return setErr("The two new passwords don't match.");
+    run(async () => {
+      await account.changePassword(f.current, f.password);
+      authChanged();
+    });
+  };
+  return (
+    <Sheet title="Change password" onClose={onClose}>
+      <form onSubmit={submit(save)} className="grid gap-4">
+        {err && <Notice kind="error">{err}</Notice>}
+        <p className="text-[14.5px] text-ink-2">After the change you&apos;ll be signed out on every device, this one included, and log in again with the new password.</p>
+        <Field label="Current password">
+          <PasswordInput value={f.current} onChange={(v) => setF((p) => ({ ...p, current: v }))} autoComplete="current-password" />
+        </Field>
+        <div>
+          <Field label="New password">
+            <PasswordInput value={f.password} onChange={(v) => setF((p) => ({ ...p, password: v }))} autoComplete="new-password" />
+          </Field>
+          <PasswordRules password={f.password} />
+        </div>
+        <Field label="Confirm new password">
+          <PasswordInput value={f.confirm} onChange={(v) => setF((p) => ({ ...p, confirm: v }))} autoComplete="new-password" />
+        </Field>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={busy || !f.current || !f.password || !f.confirm}>
+            {busy ? "Saving…" : "Change password"}
+          </Button>
+        </div>
+      </form>
     </Sheet>
   );
 }
