@@ -1503,3 +1503,11 @@ html[data-vt="auth"]::view-transition-new(.page) { animation: 520ms cubic-bezier
 html[data-live] [data-staging] {
   display: none !important;
 }
+
+/* Samsung Internet only skips its forced dark mode on sites it sees handling dark themselves (the meta tag in
+   layout.tsx, and a prefers-color-scheme query like this one); the themes themselves are set by data-theme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}

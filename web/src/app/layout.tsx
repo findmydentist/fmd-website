@@ -81,6 +81,8 @@ const jsonLd = {
 
 export const viewport: Viewport = {
   themeColor: "#04050a",
+  // the site draws its own dark (and light) themes: tells Samsung Internet's and Chrome's forced dark mode to leave it alone
+  colorScheme: "dark light",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
