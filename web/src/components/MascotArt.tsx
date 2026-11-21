@@ -54,7 +54,7 @@ const IOS =
   typeof navigator !== "undefined" &&
   (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1));
 // …and so do computers drawing in software (lib/device.ts), where live 3D would freeze the page
-export const VIDEOS = typeof window !== "undefined" && (window.matchMedia("(hover: none) and (pointer: coarse)").matches || SLOW_GPU) && !IOS;
+export const VIDEOS = typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || SLOW_GPU) && !IOS;
 // served from web/public (not uploaded to Cloudinary, unlike the models)
 const videoOf = (model: string) => `/models/videos/${model.split("/").pop()!.split("?")[0].replace(".glb", ".webm")}?v=${VIDEO_V}`;
 const playsVideo = (url?: string) => VIDEOS && !!url;
@@ -100,7 +100,7 @@ export const MODEL_URLS = [...new Set([...Object.values(MODELS).map((a) => a.mod
 // painting a white "sad face" box); the hero and assistant hold two more, so 5 + 2 leaves one spare. A released canvas
 // keeps showing a snapshot of its last frame, so nothing visibly changes
 // ponytail: fixed cap; if low-end phones still lose contexts, scale it by navigator.deviceMemory
-const LIVE = typeof window !== "undefined" && window.matchMedia("(hover: none) and (pointer: coarse)").matches ? 5 : 9;
+const LIVE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches ? 5 : 9;
 const live = new Map<number, { seen: number; visible: boolean; key: string; release: () => void }>();
 const snapshots = new Map<string, string>();
 let nextId = 0;

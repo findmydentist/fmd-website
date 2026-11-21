@@ -21,7 +21,7 @@ type Props = {
 
 const FOV = 20;
 /** touch-only devices: phones and tablets */
-export const PHONE = typeof window !== "undefined" && window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+export const PHONE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 
 type V3 = [number, number, number];
 /** a studio: ambient, lavender bounce from below, directional lights [position, intensity, colour] and the softboxes

@@ -10,8 +10,11 @@ export const LIGHT_DEVICE =
 /** A section mascot's path under web/public: the phone build on light devices. */
 export const rigPath = (name: string) => `/models/${LIGHT_DEVICE ? "rig-mobile" : "rig"}/${name}.glb`;
 
-/** Touch-only devices (phones, tablets): the hero's rising mascot is a turntable of frames there (hero/HeroTurn.tsx). */
-export const TOUCH = typeof window !== "undefined" && window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+/** Touch-first devices (phones, tablets): the hero's rising mascot is a turntable of frames there (hero/HeroTurn.tsx).
+ *  The primary pointer only: Samsung Internet (e.g. Galaxy Fold) reports hover and a fine pointer as available with just
+ *  the touchscreen, so "(hover: none) and (pointer: coarse)" missed it and it got the desktop path (live WebGL mascots,
+ *  which its Adreno GPU renders as silver chrome). Touch laptops keep a fine primary pointer, so they stay desktop. */
+export const TOUCH = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 
 /**
  * Graphics drawn in software (no usable GPU: a VM, a remote desktop, a missing driver), where live 3D and full-screen
