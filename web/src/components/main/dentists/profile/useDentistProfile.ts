@@ -11,7 +11,7 @@ import { dentistReviews } from "@/sample/reviews";
 import type { ProfileTab } from "./parts";
 
 /**
- * Everything /dentists/[id] shows, for both layouts: the dentist, their clinic and open times, their posts and
+ * Everything /dentists/[id] shows: the dentist, their clinic and open times, their posts and
  * reviews, and what you can do (follow, save, book, claim). "loading" until it's here, "missing" for an unknown id.
  */
 export function useDentistProfile() {

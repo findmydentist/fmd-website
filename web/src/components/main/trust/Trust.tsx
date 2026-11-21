@@ -186,7 +186,7 @@ export function ReviewsSection({ dentistId }: { dentistId: string }) {
   );
 }
 
-function ReportReview({ userId, id, onClose, onDone }: { userId: string | null; id: string; onClose: () => void; onDone: () => void }) {
+export function ReportReview({ userId, id, onClose, onDone }: { userId: string | null; id: string; onClose: () => void; onDone: () => void }) {
   const [reason, setReason] = useState<keyof typeof REVIEW_REPORTS | "">("");
   const [err, setErr] = useState<string | null>(null);
   return (

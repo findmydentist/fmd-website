@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, CalendarClock, Camera, Clock3, ExternalLink, GraduationCap, Info, Languages, LayoutGrid, MapPin, PhoneOff, Star } from "lucide-react";
+import { Building2, CalendarClock, Clock3, GraduationCap, Info, Languages, LayoutGrid, MapPin, Star } from "lucide-react";
 import Link from "next/link";
 import { useId, useState, type FormEvent } from "react";
 import { Button, ButtonLink, Tag } from "@/components/app/kit";
@@ -8,16 +8,13 @@ import { Field, fieldCls, Sheet } from "@/components/app/Sheet";
 import { Notice } from "@/components/Page";
 import { Verification } from "@/components/providers";
 import { SponsoredBadge } from "@/components/ui";
-import { dayLabel, feeRange, istDate, noonOf, timeLabel } from "@/lib/format";
+import { dayLabel, istDate, noonOf, timeLabel } from "@/lib/format";
 import type { Me } from "@/lib/fmd";
 import { submitClaim, type Availability, type Claim, type ProviderProfile } from "@/sample/providers";
 import { coverOf } from "../../explore/Explore";
-import { PostGrid } from "../../PostGrid";
-import { ReviewsSection } from "../../trust/Trust";
-import { Card } from "../common";
 import type { DentistView } from "./useDentistProfile";
 
-/** The pieces of /dentists/[id] that both layouts use. */
+/** The pieces of /dentists/[id] its layout uses. */
 
 export type ProfileTab = "posts" | "about" | "reviews" | "book" | "clinic";
 export const PROFILE_TABS: [ProfileTab, string, typeof LayoutGrid][] = [
@@ -31,7 +28,7 @@ export const PROFILE_TABS: [ProfileTab, string, typeof LayoutGrid][] = [
 /** "Root Canal Treatment" → "RC", for a treatment's round badge */
 export const short = (x: string) => x.split(/\s+/).map((w) => w[0]).slice(0, 2).join("");
 
-/** Facebook-style cards and buttons (layout 2) */
+/** cards and buttons */
 export const fbCard = "rounded-xl border border-line bg-[var(--surface)] p-4";
 export const fbGrey = "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-white/[0.1] px-3 text-[14.5px] font-semibold text-ink hover:bg-white/[0.15]";
 
@@ -69,12 +66,11 @@ export function Trust({ p }: { p: ProviderProfile }) {
   );
 }
 
-/** `insta` is layout 1's round outline icon */
-export function NoPosts({ name, insta }: { name: string; insta: boolean }) {
+export function NoPosts({ name }: { name: string }) {
   return (
     <div className="grid justify-items-center gap-3 py-14 text-center">
-      <span className={`grid size-16 place-items-center ${insta ? "rounded-full border-2 border-ink text-ink" : "rounded-3xl bg-sky-500/15 text-sky-300"}`}>
-        {insta ? <Camera className="size-7" strokeWidth={1.5} /> : <LayoutGrid className="size-7" strokeWidth={1.5} />}
+      <span className="grid size-16 place-items-center rounded-3xl bg-sky-500/15 text-sky-300">
+        <LayoutGrid className="size-7" strokeWidth={1.5} />
       </span>
       <p className="text-[20px] font-semibold text-ink">No posts yet</p>
       <p className="text-[14px] text-ink-3">When {name} shares dental tips on FMD, they&apos;ll show up here.</p>
@@ -82,91 +78,15 @@ export function NoPosts({ name, insta }: { name: string; insta: boolean }) {
   );
 }
 
-/* ---------------- what each tab shows ---------------- */
+/* ---------------- the side column: Intro ---------------- */
 
-/** the open tab's content; `insta` is layout 1's square, edge-to-edge post grid */
-export function TabBody({ v, insta }: { v: DentistView; insta: boolean }) {
-  const { p, avail, c, posts, tab } = v;
-  return (
-    <div key={tab} role="tabpanel" className="fmd-enter grid gap-5">
-      {tab === "posts" && (posts.length ? <PostGrid posts={posts} square={insta} /> : <NoPosts name={p.name} insta={insta} />)}
-      {tab === "about" && (
-        <Card title="About">
-          <p className="text-[14.5px] text-ink-2">{p.bio}</p>
-          <div>
-            <p className="text-[13.5px] text-ink-3">Qualifications</p>
-            <p className="text-[14.5px] text-ink">{p.qualifications.join(", ")}</p>
-          </div>
-          <p className="flex items-center gap-2 text-[14px] text-ink-2">
-            <Languages className="size-4 text-ink-3" strokeWidth={1.75} /> Consults in {p.languages.join(", ")}
-          </p>
-        </Card>
-      )}
-      {tab === "reviews" && <ReviewsSection dentistId={p.id} />}
-      {tab === "book" && (
-        <div className="grid items-start gap-5 lg:grid-cols-2">
-          <Card title={avail.mode === "live" ? "Next open times" : "Appointments"}>
-            <Times p={p} avail={avail} />
-          </Card>
-          <Card title="Treatments and fees">
-            <ul className="divide-y divide-[var(--border)] rounded-2xl border border-line text-[14px]">
-              <li className="flex flex-wrap justify-between gap-2 px-4 py-2.5">
-                <span className="text-ink">Consultation</span>
-                <span className="text-ink-2">{p.fee ? feeRange(p.fee) : "Confirmed by the clinic"}</span>
-              </li>
-              {p.serviceFees.map((f) => (
-                <li key={f.service} className="flex flex-wrap justify-between gap-2 px-4 py-2.5">
-                  <span className="text-ink">{f.service}</span>
-                  <span className="text-ink-2">{feeRange(f)}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="text-[12.5px] text-ink-3">Typical ranges (demo estimates), not quotes. Your dentist confirms the cost after examining you.</p>
-          </Card>
-        </div>
-      )}
-      {tab === "clinic" && (
-        <Card title="Clinic">
-          <div className="grid gap-2 text-[14px] text-ink-2">
-            <Link href={`/clinics/${c.id}`} className="flex items-center gap-2 font-medium text-ink hover:underline">
-              <Building2 className="size-4 text-ink-3" strokeWidth={1.75} /> {c.name}
-            </Link>
-            <p className="flex items-start gap-2">
-              <MapPin className="mt-0.5 size-4 shrink-0 text-ink-3" strokeWidth={1.75} /> {c.address}, {c.city}
-            </p>
-            <p className="flex items-center gap-2">
-              <Clock3 className="size-4 text-ink-3" strokeWidth={1.75} /> {c.hours}
-            </p>
-            <p className="flex items-center gap-2 text-ink-3">
-              <PhoneOff className="size-4" strokeWidth={1.75} /> Demo clinic: no phone number
-            </p>
-          </div>
-          {c.facilities.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {c.facilities.map((x) => (
-                <Tag key={x} tone="muted">
-                  {x}
-                </Tag>
-              ))}
-            </div>
-          )}
-          <a href={c.mapUrl} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-1.5 text-[14px] font-medium text-ink hover:underline">
-            Open in Google Maps <ExternalLink className="size-3.5" strokeWidth={1.75} />
-          </a>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-/* ---------------- layout 2's left column: Intro and Treatments ---------------- */
-
-export function Intro({ v }: { v: DentistView }) {
+/** `bio` off where the header already shows it */
+export function Intro({ v, bio = true }: { v: DentistView; bio?: boolean }) {
   const { p, c } = v;
   return (
     <section className={`grid gap-3 ${fbCard}`}>
       <h2 className="text-[20px] font-bold text-ink">Intro</h2>
-      <p className="text-center text-[15px] text-ink">{p.bio}</p>
+      {bio && <p className="text-center text-[15px] text-ink">{p.bio}</p>}
       <ul className="grid gap-3 text-[15px] text-ink-2">
         <li className="flex items-center gap-3">
           <Building2 className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} />

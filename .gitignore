@@ -3,3 +3,7 @@
 /*.jpg
 /*.jpeg
 /*.webp
+
+# screenshots and logs from the Playwright plugin
+.playwright-mcp/
+.claude/ 

@@ -5,30 +5,21 @@ import { Sheet } from "@/components/app/Sheet";
 import { initials } from "@/lib/fmd";
 import { Ring } from "../../explore/Explore";
 import { StoryViewer } from "../../explore/Stories";
-import { LayoutPicker, useProfileLayout } from "../../ProfileLayout";
-import { FbInstaLayout } from "./FbInstaLayout";
-import { InstaLayout } from "./InstaLayout";
+import { HybridLayout } from "./HybridLayout";
 import { useAccountProfile } from "./useAccountProfile";
 
 /**
- * /account: your profile. The data comes from useAccountProfile; how it looks is one of two layouts, picked from the
- * dropdown (layout 1 InstaLayout.tsx, layout 2 FbInstaLayout.tsx). Changes to your details live in /account/settings.
+ * /account: your profile. The data comes from useAccountProfile; how it looks is HybridLayout.tsx. Changes to your
+ * details live in /account/settings.
  */
 export function AccountProfile() {
   const v = useAccountProfile();
-  const [layout, pickLayout] = useProfileLayout();
   if (!v) return <div className="app-panel h-40 animate-pulse" aria-busy />;
 
   return (
     <div className="grid gap-3">
       <h1 className="sr-only">Your profile</h1>
-      {/* the link keeps the pick (?layout=), so each can be shared and compared */}
-      <div className="mx-auto flex w-full max-w-[1128px] justify-end">
-        <LayoutPicker value={layout} onChange={pickLayout} />
-      </div>
-      <div key={layout} className="fmd-enter">
-        {layout === "insta" ? <InstaLayout v={v} /> : <FbInstaLayout v={v} />}
-      </div>
+      <HybridLayout v={v} />
 
       {v.watching && <StoryViewer stories={v.watching.list} start={v.watching.start} onClose={v.closeStory} onSeen={v.markSeen} />}
       {v.showFollowing && (

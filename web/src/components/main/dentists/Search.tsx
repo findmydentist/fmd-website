@@ -63,13 +63,13 @@ const WHEN_TABS: [value: string, label: string, Icon: typeof Stethoscope][] = [
 ];
 
 /** Treatment circles: a photo where the demo has one, otherwise a soft gradient with an icon */
-const TREATMENT_ART: Partial<Record<string, string>> = {
+export const TREATMENT_ART: Partial<Record<string, string>> = {
   "Clear Aligners": "/img/tx-aligners.png",
   "Teeth Cleaning": "/img/tx-cleaning.png",
   "Dental Implants": "/img/tx-implants.png",
   "Teeth Whitening": "/img/tx-whitening.png",
 };
-const TREATMENT_ICON: Partial<Record<string, typeof Stethoscope>> = {
+export const TREATMENT_ICON: Partial<Record<string, typeof Stethoscope>> = {
   Consultation: Stethoscope,
   "Kids Dentistry": Baby,
   "Smile Design": Smile,
@@ -86,9 +86,9 @@ const QUICK: [key: string, value: string, label: string][] = [
   ["fee", "500", "Up to ₹500"],
 ];
 
-const chip = "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-[13.5px] shadow-sm";
-const chipOff = "border-line bg-[var(--surface-elevated)] text-ink-2 hover:text-ink";
-const chipOn = "border-sky-500/60 bg-sky-500/15 text-ink";
+export const chip = "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-[13.5px] shadow-sm";
+export const chipOff = "border-line bg-[var(--surface-elevated)] text-ink-2 hover:text-ink";
+export const chipOn = "border-sky-500/60 bg-sky-500/15 text-ink";
 
 /** /dentists */
 export function DentistSearch() {
