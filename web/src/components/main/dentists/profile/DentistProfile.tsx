@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileSkeleton } from "../../Skeletons";
 import { Back, NotFound } from "../common";
 import { HybridLayout } from "./HybridLayout";
 import { ClaimSheet } from "./parts";
@@ -10,7 +11,7 @@ import { useDentistProfile } from "./useDentistProfile";
  */
 export function ProviderPage() {
   const v = useDentistProfile();
-  if (v === "loading") return <div className="app-panel h-64 animate-pulse" aria-busy />;
+  if (v === "loading") return <ProfileSkeleton />;
   if (v === "missing") return <NotFound what="dentist" />;
 
   return (
