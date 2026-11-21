@@ -2,7 +2,8 @@
 
 import { AnimatePresence, motion, useAnimate, useInView, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
 import { ArrowRight, Check, Info, Mail, MapPin, MessageCircle, Phone, Sparkles } from "lucide-react";
-import MascotArt from "@/components/MascotArt";
+// import MascotArt from "@/components/MascotArt"; // the earlier butler, see below
+import { MascotLoop } from "@/components/MascotLoop";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -209,13 +210,18 @@ export default function Concierge() {
   // the concierge on the pedestal; `box` is his square box's width as a share of the stage's width
   const concierge = (box: string, sizes: string) => (
     // no entrance of his own: the panel's Reveal brings him in with everything else
-    <div className="absolute" style={{ left: PEDESTAL.x, top: PEDESTAL.y, width: box, aspectRatio: "1", translate: "-50% -93.5%" }}>
+    // his feet (and the bell's stand) are 89.7% down the picture
+    <div className="absolute" style={{ left: PEDESTAL.x, top: PEDESTAL.y, width: box, aspectRatio: "1", translate: "-50% -89.7%" }}>
       {/* grounding on the pedestal: a soft gold glow and a tight contact shadow at the feet */}
       <div aria-hidden className="absolute bottom-[1%] left-1/2 h-[14%] w-[62%] -translate-x-1/2 scale-y-50 rounded-full bg-[rgb(255_215_0/0.08)] blur-md" />
       <div aria-hidden className="absolute bottom-[5%] left-1/2 h-[4%] w-[32%] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(closest-side,rgb(0_0_0/0.7),transparent)] blur-[3px]" />
       <motion.div whileHover={tap} className="absolute inset-0">
         <motion.div data-attend="" className="absolute inset-0">
-          <MascotArt src="/img/mascots/mascot-edge-1024.webp" sizes={sizes} />
+          {/* the earlier butler (live 3D on desktop), off for now:
+          <MascotArt src="/img/mascots/mascot-edge-1024.webp" sizes={sizes} /> */}
+          {/* presenting the service bell: a welcoming bow, the hand towards the bell, its chime, a glint, a few sparkles
+              (model/blender/mascots/animate_concierge.py) */}
+          <MascotLoop still="/img/mascots/mascot-concierge-1024.webp" video="/img/mascots/mascot-concierge-action.webm?v=1" sizes={sizes} />
         </motion.div>
       </motion.div>
     </div>
@@ -271,7 +277,7 @@ export default function Concierge() {
                   }`}
                 />
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(8_7_10/0.35),transparent_25%,transparent_80%,rgb(8_7_10/0.55))]" />
-                {concierge("28%", "(min-width:1320px) 350px, 28vw")}
+                {concierge("30%", "(min-width:1320px) 380px, 30vw")}
               </div>
             </div>
 
@@ -295,7 +301,7 @@ export default function Concierge() {
                 <div aria-hidden className="relative -mx-6 mt-8 aspect-[4/3] overflow-hidden sm:-mx-10 lg:hidden">
                   <Image src={BG} alt="" fill sizes="100vw" className="object-cover" style={{ objectPosition: `${PEDESTAL.x} ${PEDESTAL.y}` }} />
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,var(--edge-black),transparent_22%,transparent_78%,var(--edge-black))]" />
-                  {concierge("56%", "60vw")}
+                  {concierge("46%", "50vw") /* narrow: the plinth is small, so he and the bell stand both fit on it */}
                 </div>
 
                 {/* the four steps: a short title and one short line each, with room between them so the list reads at a glance */}
