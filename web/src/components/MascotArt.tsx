@@ -24,9 +24,11 @@ const MODELS: Record<string, Art> = {
   "/img/mascots/mascot-read-1024.webp": { model: M("reading") },
   "/img/mascots/mascot-scholar-1024.webp": { model: M("scholar") },
   "/img/mascots/mascot-vault-1024.webp": { model: M("vault") },
-  "/img/mascots/mascot-edge-1024.webp": { model: M("butler") },
+  // FMD Edge shows its picture and animated loop for now (sections/Concierge.tsx), so this model isn't preloaded
+  // "/img/mascots/mascot-edge-1024.webp": { model: M("butler") },
   "/img/mascots/mascot-pin-1024.webp": { model: M("pin") },
-  "/img/mascots/mascot-shield-1024.webp": { model: M("heart") },
+  // the Trust section shows this still artwork for now (sections/Trust.tsx), so its model isn't preloaded
+  // "/img/mascots/mascot-shield-1024.webp": { model: M("heart") },
   "/img/walkthrough/care-core-v2.webp": { model: M("tooth") },
   // the guide presenting a glass shield (the artwork's shield, redrawn as SVG), beside his open hand
   "/img/mascots/mascot-trust-1024.webp": {

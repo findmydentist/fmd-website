@@ -18,7 +18,7 @@ import { initials } from "@/lib/fmd";
 import { cardsForJobs, type Job } from "@/sample/jobs";
 import { JobCard } from "../jobs/Jobs";
 import { coverOf, PostCard, Ring, Section } from "./Explore";
-import { PostGrid } from "../dentists/Profile";
+import { PostGrid } from "../PostGrid";
 
 const KINDS: [Kind, string][] = [
   ["article", "Article"],

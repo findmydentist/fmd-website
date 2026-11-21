@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Fresh } from "@/components/app/Fresh";
-import { AccountSettings } from "@/components/main/account/Account";
+import { AccountSettings } from "@/components/main/account/Settings";
 
 export const metadata: Metadata = { title: "Settings · FMD", robots: { index: false, follow: false } };
 

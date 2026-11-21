@@ -2,8 +2,9 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { BadgeCheck, BarChart3, Fingerprint, History, Orbit, Timer, UserCheck, type LucideIcon } from "lucide-react";
-import MascotArt from "@/components/MascotArt";
-import type { ReactNode } from "react";
+import { MascotLoop } from "@/components/MascotLoop";
+// import MascotArt from "@/components/MascotArt"; // the live 3D / video mascot, off for now (see below)
+import { useState, type ReactNode } from "react";
 import { Container, Reveal } from "../ui";
 import { Atmosphere } from "./LowerWorld";
 
@@ -178,6 +179,7 @@ function Card({ n, icon: Icon, side, className = "", children }: { n: number; ic
 
 /** The guide on a holographic pedestal: a slow breath, a radar sweep across the disc, light rising from it. */
 function Guardian({ reduced }: { reduced: boolean | null }) {
+  const [playing, setPlaying] = useState(false);
   return (
     <div aria-hidden className="relative mx-auto aspect-[5/6] w-full max-w-[440px] self-center max-lg:max-w-[340px] sm:max-lg:col-span-2 lg:col-start-2 lg:row-span-2 lg:row-start-1">
       {/* glow behind (and, below lg, standing in for the arc) */}
@@ -200,10 +202,13 @@ function Guardian({ reduced }: { reduced: boolean | null }) {
       {/* the guide, hand on heart; his feet (4% up in the art) on the disc's centre, breathing slowly */}
       <motion.div
         className="absolute bottom-[12%] left-1/2 aspect-square w-[86%] -translate-x-1/2 translate-y-[4%]"
-        animate={reduced ? undefined : { y: [0, -8, 0] }}
-        transition={{ duration: 5, ease: "easeInOut", repeat: Infinity }}
+        animate={reduced ? undefined : playing ? { y: 0 } : { y: [0, -8, 0] }} // the video breathes on its own: settle
+        transition={playing ? { duration: 0.8, ease: "easeOut" } : { duration: 5, ease: "easeInOut", repeat: Infinity }}
       >
-        <MascotArt src="/img/mascots/mascot-shield-1024.webp" sizes="(min-width:1024px) 380px, 300px" />
+        {/* the live 3D mascot (videos on phones), off for now: the still artwork everywhere instead
+        <MascotArt src="/img/mascots/mascot-shield-1024.webp" sizes="(min-width:1024px) 380px, 300px" /> */}
+        {/* his calm loop (breathing, a small head tilt, two pats on the heart, a slow blink): model/blender/mascots/animate_shield.py */}
+        <MascotLoop still="/img/mascots/mascot-shield-1024.webp" video="/img/mascots/mascot-shield-action.webm?v=1" sizes="(min-width:1024px) 380px, 300px" onPlaying={setPlaying} />
       </motion.div>
     </div>
   );

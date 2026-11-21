@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Fresh } from "@/components/app/Fresh";
-import { ProviderPage } from "@/components/main/dentists/Profile";
+import { ProviderPage } from "@/components/main/dentists/profile/DentistProfile";
 
 export const metadata: Metadata = { title: "Dentist · FMD", robots: { index: false, follow: false } };
 /** data loads in the browser (demo directory), so navigation into it isn't expected to be instant */

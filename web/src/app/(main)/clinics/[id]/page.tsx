@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ClinicView } from "@/components/main/dentists/Profile";
+import { ClinicView } from "@/components/main/dentists/Clinic";
 
 export const metadata: Metadata = { title: "Clinic · FMD", robots: { index: false, follow: false } };
 /** data loads in the browser (demo directory), so navigation into it isn't expected to be instant */
