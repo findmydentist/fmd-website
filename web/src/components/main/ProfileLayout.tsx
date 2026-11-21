@@ -1,25 +1,21 @@
 "use client";
 
-import { LayoutGrid } from "lucide-react";
+import { Grid3x3, LayoutGrid, Rows3 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 /**
- * Six looks for the profile pages (your own and a dentist's), to show people side by side and see which they like.
+ * Two looks for the profile pages (your own and a dentist's), to show people side by side and see which they like.
  * The pick is shared by both pages, kept in this browser, and written into the link (?layout=) so each can be sent.
  */
-export type Layout = "insta" | "cards" | "linkedin" | "facebook" | "insta2" | "explore";
+export type Layout = "insta" | "fbinsta";
 export const LAYOUTS: [Layout, string][] = [
   ["insta", "Layout 1 · Instagram style"],
-  ["cards", "Layout 2 · Cards"],
-  ["linkedin", "Layout 3 · LinkedIn style"],
-  ["facebook", "Layout 4 · Facebook style"],
-  ["insta2", "Layout 5 · Instagram style (variant)"],
-  ["explore", "Layout 6 · Explore style"],
+  ["fbinsta", "Layout 2 · Facebook + Instagram"],
 ];
 const KEY = "fmd-demo:profile-layout";
 
 export function useProfileLayout() {
-  const [layout, setLayout] = useState<Layout>("linkedin");
+  const [layout, setLayout] = useState<Layout>("insta");
   useEffect(() => {
     // a shared link's ?layout= wins, then this browser's last pick
     let asked = new URLSearchParams(location.search).get("layout");
@@ -63,5 +59,32 @@ export function LayoutPicker({ value, onChange }: { value: Layout; onChange: (l:
         ))}
       </select>
     </label>
+  );
+}
+
+/** Layout 2's posts: a grid of covers (Instagram) or full posts one under another (Facebook). */
+export type PostView = "grid" | "list";
+export function ViewToggle({ value, onChange }: { value: PostView; onChange: (v: PostView) => void }) {
+  return (
+    <div role="group" aria-label="Show posts as" className="flex rounded-lg bg-white/[0.06] p-0.5">
+      {(
+        [
+          ["grid", "Grid", Grid3x3],
+          ["list", "List", Rows3],
+        ] as const
+      ).map(([v, label, Icon]) => (
+        <button
+          key={v}
+          type="button"
+          aria-pressed={value === v}
+          aria-label={label}
+          title={label}
+          onClick={() => onChange(v)}
+          className={`grid size-8 place-items-center rounded-md transition-colors ${value === v ? "bg-white/[0.14] text-ink" : "text-ink-3 hover:text-ink"}`}
+        >
+          <Icon className="size-4" strokeWidth={1.9} />
+        </button>
+      ))}
+    </div>
   );
 }
