@@ -210,3 +210,103 @@ export function DentistSearchSkeleton() {
     </div>
   );
 }
+
+/* ---------------- profiles (dentist and your own) ---------------- */
+
+/** the posts grid on a profile: square tiles, 3 across */
+export function ProfilePostsSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div aria-busy aria-label="Loading posts" className="grid grid-cols-3 gap-1">
+      {range(count).map((i) => (
+        <span key={i} className={`${sk} aspect-square`} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * A whole profile, shaped like its layout: back link, cover, the photo over it, name, role pill, headline, the actions,
+ * counts, bio, highlights, the tab bar, then the side column and posts. `own`: your profile (4 tabs, 6 highlights, no
+ * back link); otherwise a dentist's (5 tabs, 3 treatments).
+ */
+export function ProfileSkeleton({ own = false }: { own?: boolean }) {
+  return (
+    <div aria-busy aria-label="Loading profile" className="mx-auto grid w-full max-w-[1128px] grid-cols-1 gap-4">
+      {!own && <span className={`${sk} h-5 w-28 rounded`} />}
+      <div className="-mx-4 overflow-hidden bg-[var(--surface)] sm:mx-0 sm:rounded-2xl sm:border sm:border-line">
+        <span className={`${sk} block h-[128px] sm:h-[220px]`} />
+        <div className="px-4 pb-5 sm:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
+            {/* the photo in its ring, over the cover */}
+            <span className="relative z-10 -mt-14 block w-fit rounded-full bg-[var(--surface)] p-[6px] sm:-mt-20">
+              <span className={`${sk} block size-[112px] rounded-full sm:size-[144px]`} />
+            </span>
+            <div className="grid min-w-0 flex-1 gap-2.5 sm:pb-1">
+              <span className="flex items-center gap-3">
+                <span className={`${sk} h-8 w-[min(70%,280px)] rounded-lg`} />
+                <span className={`${sk} h-6 w-14 rounded-full`} />
+              </span>
+              <span className="flex items-center gap-2">
+                <span className={`${sk} h-8 w-24 rounded-full`} />
+                <span className={`${sk} h-4 w-28 rounded`} />
+              </span>
+              <span className={`${sk} h-4 w-[min(85%,260px)] rounded`} />
+            </div>
+            <div className="flex gap-2 sm:pb-1">
+              <span className={`${sk} h-11 flex-1 rounded-xl sm:w-44 sm:flex-none`} />
+              {!own && <span className={`${sk} h-11 flex-1 rounded-xl sm:w-28 sm:flex-none`} />}
+              <span className={`${sk} size-11 shrink-0 rounded-xl`} />
+            </div>
+          </div>
+          <div className="mt-5 flex gap-6 overflow-hidden">
+            {(own ? [60, 84, 60, 112] : [64, 80, 72]).map((w, i) => (
+              <span key={i} className={`${sk} h-4 rounded`} style={{ width: w }} />
+            ))}
+          </div>
+          {/* a dentist's bio (your own profile has none up here) */}
+          {!own && (
+            <div className="mt-4 grid max-w-[68ch] gap-2">
+              <span className={`${sk} h-3.5 w-full rounded`} />
+              <span className={`${sk} h-3.5 w-[92%] rounded`} />
+              <span className={`${sk} h-3.5 w-[60%] rounded`} />
+            </div>
+          )}
+          <div className={`${own ? "mt-6" : "mt-5"} flex gap-4 overflow-hidden`}>
+            {range(own ? 6 : 3).map((i) => (
+              <span key={i} className="grid w-[76px] shrink-0 justify-items-center gap-1.5">
+                <span className={`${sk} size-[72px] rounded-full`} />
+                <span className={`${sk} h-3 w-14 rounded`} />
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* the tab bar: equal tabs, icon over label on phones; a row from tablets up */}
+      <div className="-mx-4 grid grid-flow-col auto-cols-fr border-b border-line px-1 sm:mx-0 sm:flex sm:h-12 sm:items-center sm:gap-6 sm:rounded-xl sm:border sm:bg-[var(--surface)] sm:px-6">
+        {range(own ? 4 : 5).map((i) => (
+          <span key={i} className="grid h-14 justify-items-center content-center gap-1.5 sm:flex sm:h-auto sm:items-center sm:gap-2">
+            <span className={`${sk} size-5 rounded sm:size-4`} />
+            <span className={`${sk} h-2.5 w-11 rounded sm:h-3.5 sm:w-14`} />
+          </span>
+        ))}
+      </div>
+
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        {/* the side column, on wide screens */}
+        <div className="hidden gap-3 rounded-2xl border border-line bg-[var(--surface)] p-5 lg:grid">
+          <span className={`${sk} h-5 w-36 rounded`} />
+          <span className={`${sk} h-3.5 w-24 rounded`} />
+          <div className="flex flex-wrap gap-2">
+            {range(6).map((i) => (
+              <span key={i} className={`${sk} h-10 w-[88px] rounded-lg`} />
+            ))}
+          </div>
+          <span className={`${sk} mt-2 h-3.5 w-[80%] rounded`} />
+          <span className={`${sk} h-3.5 w-[65%] rounded`} />
+        </div>
+        <ProfilePostsSkeleton />
+      </div>
+    </div>
+  );
+}

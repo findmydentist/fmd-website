@@ -8,6 +8,7 @@ import { initials } from "@/lib/fmd";
 import { PostFeed } from "../../explore/Explore";
 import { CoverEdit } from "../../CoverPhoto";
 import { PostGrid } from "../../PostGrid";
+import { ProfilePostsSkeleton } from "../../Skeletons";
 import { Highlights, hy, HybridHeader, HybridTabs, Stat, type Trust } from "../../ProfileHybrid";
 import { ViewToggle, type PostView } from "../../ProfileLayout";
 import { fbCard, FollowingCard, GetVerified, HIGHLIGHTS, Intro, OwnGrid, RoleTags, SavedPanel } from "./parts";
@@ -110,7 +111,7 @@ export function HybridLayout({ v }: { v: AccountView }) {
               </div>
             )}
             {!posts ? (
-              <div className="aspect-[3/1] animate-pulse rounded-2xl bg-[var(--surface-glass)]" aria-busy />
+              <ProfilePostsSkeleton />
             ) : !posts.length ? (
               <div className={fbCard}>{grid === "saved" ? <SavedPanel posts={savedPosts} /> : <OwnGrid me={me} posts={[]} reels={grid === "reels"} />}</div>
             ) : view === "grid" ? (

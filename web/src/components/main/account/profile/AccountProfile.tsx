@@ -5,6 +5,7 @@ import { Sheet } from "@/components/app/Sheet";
 import { initials } from "@/lib/fmd";
 import { Ring } from "../../explore/Explore";
 import { StoryViewer } from "../../explore/Stories";
+import { ProfileSkeleton } from "../../Skeletons";
 import { HybridLayout } from "./HybridLayout";
 import { useAccountProfile } from "./useAccountProfile";
 
@@ -14,7 +15,7 @@ import { useAccountProfile } from "./useAccountProfile";
  */
 export function AccountProfile() {
   const v = useAccountProfile();
-  if (!v) return <div className="app-panel h-40 animate-pulse" aria-busy />;
+  if (!v) return <ProfileSkeleton own />;
 
   return (
     <div className="grid gap-3">
