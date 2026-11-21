@@ -360,6 +360,8 @@ export type ProviderProfile = ProviderCard & {
   claimed: boolean;
   clinicDetails: Clinic & { facilities: string[]; mapUrl: string };
   serviceFees: { service: string; min: number; max: number }[];
+  /** the wide picture behind their photo (demo: abstract, web/scripts/make-covers.py) */
+  cover: string;
 };
 
 const bioOf = (r: Row) =>
@@ -383,6 +385,7 @@ export async function getProvider(id: string, now = Date.now()): Promise<Provide
     claimed: r.v !== "unverified",
     clinicDetails: { ...c, facilities: FACILITIES[c.id] ?? [], mapUrl: mapUrl(c) },
     serviceFees: r.s.filter((s) => SERVICE_FEES[s]).map((s) => ({ service: s, min: SERVICE_FEES[s][0], max: SERVICE_FEES[s][1] })),
+    cover: `/img/covers/${r.id}.webp`,
   };
 }
 

@@ -46,7 +46,8 @@ const TABS: [Tab, string][] = [
 ];
 
 /** Captions for a video, from text, as a data URL the <track> can load. */
-const captionsUrl = (vtt: string | undefined) => (vtt ? `data:text/vtt;charset=utf-8,${encodeURIComponent(vtt)}` : null);
+/** the captions: a file under /public ("/reels/x.vtt"), or the WebVTT text itself */
+const captionsUrl = (vtt: string | undefined) => (!vtt ? null : vtt.startsWith("/") ? vtt : `data:text/vtt;charset=utf-8,${encodeURIComponent(vtt)}`);
 
 /** A post's square cover: one of a few soft gradients, picked by topic so a topic always looks the same. */
 const COVERS = [
@@ -325,7 +326,7 @@ export function PostCard({ p, userId, onChange, full = false }: { p: FeedItem; u
       {/* the picture: video as is, everything else as a cover with its title; double-click marks it helpful */}
       <div className="relative overflow-hidden rounded-lg border border-line bg-[var(--surface-glass)]" onDoubleClick={p.kind === "video" ? undefined : doubleTap}>
         {p.media && p.kind === "video" ? (
-          <video controls preload="metadata" playsInline className="aspect-video w-full bg-black object-contain" aria-label={p.media.alt}>
+          <video controls preload="metadata" playsInline poster={p.media.poster} className={`w-full bg-black object-contain ${p.media.poster ? "aspect-[4/5] max-h-[640px]" : "aspect-video"}`} aria-label={p.media.alt}>
             <source src={p.media.src} type="video/mp4" />
             {captions && <track kind="captions" srcLang="en" label="English" src={captions} default />}
           </video>

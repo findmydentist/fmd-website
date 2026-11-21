@@ -6,12 +6,13 @@ import { getAccountType, type AccountType } from "@/sample/onboarding";
 import { getDocument } from "@/sample/dentist";
 import { feed, following, getPost, type Author, type FeedItem } from "@/sample/content";
 import { getSaved } from "@/sample/saved";
+import { getCover, removeCover, saveCover } from "@/sample/covers";
 import { useSeen, type Story } from "../../explore/Stories";
 import { HIGHLIGHTS } from "./parts";
 
 /**
- * Everything /account shows, for both layouts: who you are, your posts and saves, who you follow, and the two overlays
- * every layout opens (a highlight in the story viewer, the Following list). Null until the session is known.
+ * Everything /account shows: who you are, your posts and saves, who you follow, and the two overlays
+ * the page opens (a highlight in the story viewer, the Following list). Null until the session is known.
  */
 export function useAccountProfile() {
   const me = useRequireMe();
@@ -26,6 +27,7 @@ export function useAccountProfile() {
   const [showFollowing, setShowFollowing] = useState(false);
   const [watching, setWatching] = useState<{ list: Story[]; start: number } | null>(null);
   const [seen, markSeen] = useSeen();
+  const [cover, setCover] = useState<string | null>(null);
 
   const userId = me?.id;
   // again after a like or save on one of them
@@ -43,6 +45,7 @@ export function useAccountProfile() {
     getAccountType(userId).then(setAccountType);
     getDocument(userId).then((d) => setCertificate(!!d));
     following(userId).then(setFollows);
+    getCover(userId).then(setCover);
   }, [userId, loadPosts]);
 
   if (!me) return null;
@@ -64,6 +67,10 @@ export function useAccountProfile() {
     canPost: me.dentist_profile?.verification_status === "verified",
     openHighlight: (i: number) => setWatching({ list: HIGHLIGHTS.map((x) => ({ ...x, name: `${me.full_name} · ${x.name}` })), start: i }),
     openFollowing: () => setShowFollowing(true),
+    /** your cover picture (null: the default), and changing it */
+    cover,
+    pickCover: async (f: File) => setCover(await saveCover(me.id, f)),
+    dropCover: () => (removeCover(me.id), setCover(null)),
     // the overlays, drawn by AccountProfile
     watching,
     closeStory: () => setWatching(null),

@@ -61,6 +61,10 @@ const MEENAKSHI = DR("ananya-gupta", "Dr. Ananya Gupta", "General Dentist"); // 
 const FARAH = DR("farah-khan", "Dr. Farah Khan", "Pediatric Dentist");
 const SNEHA = DR("sneha-iyer", "Dr. Sneha Iyer", "Implantologist");
 const PRIYANKA = DR("priyanka-shah", "Dr. Priyanka Shah", "Implantologist");
+const KAVYA = DR("kavya-reddy", "Dr. Kavya Reddy", "Prosthodontist");
+const NIKHIL = DR("nikhil-joshi", "Dr. Nikhil Joshi", "General Dentist");
+const DEEPA = DR("deepa-krishnan", "Dr. Deepa Krishnan", "Pediatric Dentist");
+const SANJANA = DR("sanjana-kulkarni", "Dr. Sanjana Kulkarni", "Orthodontist");
 const FMD: Author = { id: "fmd", name: "FMD Team", specialty: "FindMyDentist", verified: true, kind: "fmd" };
 
 const CAPTIONS = "WEBVTT\n\n00:00.000 --> 00:04.000\n[Music]\n\n00:04.000 --> 00:10.000\n[Music] FindMyDentist: find a dentist, keep your records, ask FMD AI.\n";
@@ -69,6 +73,9 @@ const CAPTIONS = "WEBVTT\n\n00:00.000 --> 00:04.000\n[Music]\n\n00:04.000 --> 00
 function posts(now: number): Post[] {
   const at = (d: number) => iso(now - d * day);
   const p = (x: Omit<Post, "demo" | "likes"> & { likes?: number }): Post => ({ likes: 0, ...x, demo: true });
+  /** a dentist's reel: one of the demo tip clips in /public/reels, with its poster frame and captions */
+  const reel = (author: Author, clip: string, topic: string, title: string, body: string, days: number, likes: number): Post =>
+    p({ id: `r-${author.id}-${clip}`, kind: "video", topic, title, body, author, published_at: at(days), likes, media: { src: `/reels/${clip}.mp4`, poster: `/reels/${clip}.jpg`, captions: `/reels/${clip}.vtt`, alt: `${title}: a short tip video` } });
   return [
     p({ id: "p-floss", kind: "article", topic: "Prevention", title: "Why flossing matters more than you think", body: "Brushing cleans about two thirds of each tooth's surface. The rest sits between teeth, where plaque builds up and gum problems often begin. Floss or use interdental brushes once a day, gently, and ask your dentist to show you the right size for your gaps.", author: ADITI, published_at: at(1), likes: 42 }),
     p({ id: "p-aligners", kind: "image", topic: "Orthodontics", title: "Braces or clear aligners: how dentists decide", body: "Both move teeth with steady, gentle pressure. Aligners are removable and discreet but only work if worn 20–22 hours a day. Braces suit more complex movements. The right choice depends on your bite, your habits and what an assessment shows.", author: ROHAN, published_at: at(2), likes: 87, media: { src: "/img/tx-aligners.png", alt: "Illustration of a clear aligner tray beside a tooth" } }),
@@ -78,6 +85,31 @@ function posts(now: number): Post[] {
     p({ id: "p-kids", kind: "article", topic: "Kids", title: "Your child's first dental visit", body: "A first visit around the first tooth or first birthday helps children get comfortable early. It's mostly a gentle look, advice on brushing and diet, and a chance for parents to ask questions.", author: FARAH, published_at: at(5), likes: 31 }),
     p({ id: "p-cleaning", kind: "image", topic: "Prevention", title: "What happens at a professional cleaning", body: "Scaling removes the hardened plaque (tartar) that brushing can't. Polishing smooths the surface so plaque sticks less. It usually takes 30–45 minutes and shouldn't hurt; tell the hygienist if anything feels sharp.", author: ADITI, published_at: at(6), likes: 19, media: { src: "/img/tx-cleaning.png", alt: "Illustration of teeth being cleaned" } }),
     p({ id: "p-implant-steps", kind: "article", topic: "Implants", title: "What happens during implant treatment", body: "Implant treatment is staged: assessment and imaging, placing the implant, a healing period while bone bonds to it, then the crown. Timelines vary from a few months upwards depending on bone and gum health.", author: SNEHA, published_at: at(8), likes: 26 }),
+    // every verified demo dentist has posts and reels (only verified dentists can post on FMD). The reels are short tip
+    // clips made by web/scripts/make-reels.py: the video, its poster frame and its captions under /public/reels
+    ...[
+      reel(ADITI, "brush-2min", "Prevention", "Two minutes, twice a day", "Most of us brush for well under a minute. Set a timer once and see how long two minutes feels: that's how long it takes to reach every surface.", 1.5, 112),
+      reel(ADITI, "root-canal-myths", "Root canal", "Root canals aren't what you've heard", "Modern root canal treatment feels much like having a filling. It removes the infection that causes the pain and keeps your own tooth.", 7, 76),
+      reel(ROHAN, "aligner-wear", "Orthodontics", "Getting the most from aligners", "Aligners only move teeth while they're in. The 20–22 hours a day matter more than anything else.", 3, 94),
+      p({ id: "p-braces-time", kind: "article", topic: "Orthodontics", title: "How long do braces take?", body: "Most treatment takes 12 to 24 months. Simple spacing can be quicker; bite problems take longer. Your orthodontist can give you an estimate after looking at X-rays and impressions, and regular appointments keep it on track.", author: ROHAN, published_at: at(9), likes: 38 }),
+      reel(SNEHA, "implant-care", "Implants", "Looking after your implant", "An implant can't get decay, but the gum around it can get inflamed. Clean it every day like your other teeth.", 2.5, 58),
+      p({ id: "p-bone-graft", kind: "image", topic: "Implants", title: "Bone grafts, simply explained", body: "If a tooth has been missing for a while, the bone underneath can shrink. A bone graft rebuilds it so an implant has something solid to hold on to. It adds a few months of healing but makes the implant last.", author: SNEHA, published_at: at(12), likes: 22, media: { src: "/img/tx-implants.png", alt: "Illustration of a dental implant in the jaw" } }),
+      reel(FARAH, "kids-first-visit", "Kids", "Making the first visit fun", "Children pick up on our nerves. Talk about the dentist as someone who counts teeth and keeps them strong.", 1, 67),
+      p({ id: "p-kids-sugar", kind: "article", topic: "Kids", title: "Sugar and baby teeth", body: "It's how often, not how much. Sweet snacks spread through the day keep teeth under attack; the same treat with a meal does far less harm. Water between meals and milk teeth brushed twice a day go a long way.", author: FARAH, published_at: at(11), likes: 44 }),
+      reel(KAVYA, "denture-care", "Dentures", "Caring for your dentures", "Dentures last longer and feel better with a simple daily routine. Never soak them in hot water: it can warp them.", 2, 33),
+      p({ id: "p-crown-bridge", kind: "article", topic: "Restorative", title: "Crown or bridge: what's the difference?", body: "A crown covers a single damaged tooth. A bridge replaces a missing tooth by holding a false one between two crowns on the teeth either side. Implants are another option for missing teeth; your dentist can talk through each.", author: KAVYA, published_at: at(6), likes: 29 }),
+      reel(NIKHIL, "after-extraction", "Oral surgery", "The first 48 hours after an extraction", "A clot forms in the socket and protects it while it heals. Most of the advice is about not disturbing it.", 4, 51),
+      p({ id: "p-sensitive", kind: "article", topic: "Prevention", title: "Sensitive teeth: common causes", body: "Worn enamel, gums that have pulled back, a cracked filling or brushing too hard can all leave teeth sensitive to cold. A sensitivity toothpaste used for a few weeks often helps; if it doesn't, it's worth a check.", author: NIKHIL, published_at: at(9), likes: 47 }),
+      reel(PRIYANKA, "implant-care", "Implants", "Your implant, year after year", "Implants are designed to last decades. Daily cleaning and a yearly check are what make that happen.", 5, 41),
+      p({ id: "p-implant-right", kind: "article", topic: "Implants", title: "Are implants right for me?", body: "Good candidates have healthy gums and enough bone, or can have bone rebuilt. Smoking and uncontrolled diabetes make healing harder. An assessment with X-rays or a scan is how you find out.", author: PRIYANKA, published_at: at(14), likes: 25 }),
+      reel(DEEPA, "brush-2min", "Kids", "Brushing tips for the whole family", "Children need help brushing until about age 7. Brush together: they copy what they see.", 3.5, 58),
+      p({ id: "p-fluoride-kids", kind: "article", topic: "Kids", title: "Fluoride toothpaste for children: how much?", body: "Under 3: a smear the size of a grain of rice. From 3 to 6: a pea-sized amount. Encourage spitting out rather than rinsing, so the fluoride stays on the teeth a little longer.", author: DEEPA, published_at: at(7), likes: 36 }),
+      reel(MEENAKSHI, "bleeding-gums", "Gum health", "Gums that bleed when you brush", "It's tempting to brush less where it bleeds. Gently doing the opposite usually helps it settle.", 2, 49),
+      reel(MEENAKSHI, "whitening-safe", "Cosmetic", "Whitening: what to expect", "Whitening works on natural enamel only. If you have front crowns or fillings, plan the colour with your dentist first.", 6, 63),
+      reel(MEENAKSHI, "floss-daily", "Prevention", "A daily floss habit", "Pick a time you won't skip, like after brushing at night. It takes about two minutes.", 13, 27),
+      reel(SANJANA, "braces-food", "Orthodontics", "Food and braces", "A broken bracket can add weeks to treatment. A few food swaps protect it.", 1.5, 72),
+      p({ id: "p-teen-aligners", kind: "article", topic: "Orthodontics", title: "Clear aligners for teenagers?", body: "Aligners can work well for teens who will wear them consistently; some include wear indicators so parents can check. Braces may suit more complex movements or anyone likely to forget. Your orthodontist will advise after an assessment.", author: SANJANA, published_at: at(10), likes: 31 }),
+    ],
     p({ id: "p-case-gap", kind: "image", topic: "Cosmetic", title: "Case: closing a small front gap with bonding", body: "A patient asked about a small gap between the front teeth. We closed it in one visit with tooth-coloured bonding, without drilling. Shared with the patient's written consent; identifying details removed.", author: ADITI, published_at: at(10), likes: 54, media: { src: "/img/tx-whitening.png", alt: "Illustration of a smile after cosmetic bonding" }, is_case: true }),
   ];
 }

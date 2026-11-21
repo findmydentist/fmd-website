@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Bookmark, Briefcase, Building2, Camera, Check, ChevronRight, Clapperboard, GraduationCap, HeartPulse, LayoutGrid, Mail, MapPin, Smartphone, SquarePlay, Stethoscope, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bookmark, Briefcase, Building2, Check, ChevronRight, GraduationCap, HeartPulse, LayoutGrid, Mail, MapPin, Smartphone, SquarePlay, Stethoscope, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Tag } from "@/components/app/kit";
 import { fmtPhone, initials, type Me } from "@/lib/fmd";
@@ -11,9 +11,9 @@ import { PostGrid } from "../../PostGrid";
 import { STATUS, VerifyStatus } from "../Dentist";
 import type { AccountView } from "./useAccountProfile";
 
-/** The pieces of /account that both layouts use. */
+/** The pieces of /account its layout uses. */
 
-/** Facebook-style cards and buttons (layout 2's Intro and Following cards, its buttons) */
+/** cards and buttons (the Intro and Following cards) */
 export const fbCard = "rounded-xl border border-line bg-[var(--surface)] p-4";
 export const fbGrey = "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-white/[0.1] px-3 text-[14.5px] font-semibold text-ink hover:bg-white/[0.15]";
 export const fbBlue = "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#1877f2] px-3 text-[14.5px] font-semibold text-white hover:bg-[#166fe5]";
@@ -97,13 +97,13 @@ export function VerifyBadges({ v }: { v: AccountView }) {
 
 /* ---------------- what you saved ---------------- */
 
-/** your saved posts, or how to save some; `insta` is layout 1's square grid */
-export function SavedPanel({ posts, insta }: { posts: FeedItem[] | null; insta: boolean }) {
+/** your saved posts, or how to save some */
+export function SavedPanel({ posts }: { posts: FeedItem[] | null }) {
   if (!posts) return <div className="aspect-[3/1] animate-pulse rounded-lg bg-[var(--surface-glass)]" aria-busy />;
-  if (posts.length) return <PostGrid posts={posts} square={insta} />;
+  if (posts.length) return <PostGrid posts={posts} />;
   return (
     <div className="grid justify-items-center gap-3 py-12 text-center">
-      <span className={`grid size-16 place-items-center ${insta ? "rounded-full border-2 border-ink text-ink" : "rounded-3xl bg-sky-500/15 text-sky-300"}`}>
+      <span className="grid size-16 place-items-center rounded-3xl bg-sky-500/15 text-sky-300">
         <Bookmark className="size-7" strokeWidth={1.5} />
       </span>
       <p className="text-[20px] font-semibold text-ink">Save posts</p>
@@ -115,7 +115,7 @@ export function SavedPanel({ posts, insta }: { posts: FeedItem[] | null; insta: 
   );
 }
 
-/* ---------------- layout 2's left column: Intro and Following ---------------- */
+/* ---------------- the side column: Intro and Following ---------------- */
 
 export function Intro({ v }: { v: AccountView }) {
   const { me, clinic, accountType } = v;
@@ -220,13 +220,13 @@ export function RoleTags({ me, accountType }: { me: Me; accountType: AccountType
 }
 
 /** Your own posts or videos; what to do when there are none yet */
-export function OwnGrid({ me, posts, reels, insta = false }: { me: Me; posts: FeedItem[] | null; reels: boolean; insta?: boolean }) {
+export function OwnGrid({ me, posts, reels }: { me: Me; posts: FeedItem[] | null; reels: boolean }) {
   if (!posts) return <div className="aspect-[3/1] animate-pulse bg-[var(--surface-glass)]" aria-busy />;
   const shown = reels ? posts.filter((p) => p.kind === "video") : posts;
   if (shown.length)
     return (
       <div className="grid gap-4">
-        <PostGrid posts={shown} square={insta} />
+        <PostGrid posts={shown} />
         {me.dentist_profile && (
           <Link href="/explore/mine" className="w-fit text-[14px] font-medium text-sky-400 hover:underline">
             Drafts and posts in review
@@ -235,18 +235,18 @@ export function OwnGrid({ me, posts, reels, insta = false }: { me: Me; posts: Fe
       </div>
     );
   const verified = me.dentist_profile?.verification_status === "verified";
-  const Icon = insta ? (reels ? Clapperboard : Camera) : reels ? SquarePlay : LayoutGrid;
-  const vid = insta ? "reels" : "videos";
+  const Icon = reels ? SquarePlay : LayoutGrid;
+  const vid = "videos";
   return (
     <div className="grid justify-items-center gap-3 py-14 text-center">
-      <span className={`grid size-16 place-items-center ${insta ? "rounded-full border-2 border-ink text-ink" : "rounded-3xl bg-sky-500/15 text-sky-300"}`}>
+      <span className="grid size-16 place-items-center rounded-3xl bg-sky-500/15 text-sky-300">
         <Icon className="size-7" strokeWidth={1.5} />
       </span>
       <p className="text-[20px] font-semibold text-ink">{reels ? `No ${vid} yet` : "No posts yet"}</p>
       <p className="max-w-[40ch] text-[14px] text-ink-3">
         {verified
           ? reels
-            ? `Share a short video of dental tips. It shows here and in Explore's ${insta ? "Reels" : "Videos"}.`
+            ? `Share a short video of dental tips. It shows here and in Explore's Videos.`
             : "Share dental tips with patients. Your posts show here and in Explore."
           : me.dentist_profile || me.workspaces.length
             ? `Once FMD verifies your registration, you can share posts and ${vid}.`
@@ -254,7 +254,7 @@ export function OwnGrid({ me, posts, reels, insta = false }: { me: Me; posts: Fe
       </p>
       {verified ? (
         <Link href="/explore/new" className="text-[14px] font-semibold text-sky-400 hover:underline">
-          {reels ? (insta ? "Create a reel" : "Share a video") : "Create your first post"}
+          {reels ? "Share a video" : "Create your first post"}
         </Link>
       ) : me.dentist_profile ? (
         <Link href="/account/dentist" className="text-[14px] font-semibold text-sky-400 hover:underline">
