@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/api/v1/:path*", destination: `${process.env.FMD_API_URL ?? "http://localhost:8000"}/api/v1/:path*` }];
   },
+  // chats moved to /messages (one inbox for Explore and Jobs); old links land there
+  async redirects() {
+    return [{ source: "/explore/messages", destination: "/messages", permanent: true }];
+  },
   async headers() {
     const forever = [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }];
     return [
