@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { MyJobsPage } from "@/components/main/jobs/Jobs";
+import { MyJobsPage } from "@/components/main/jobs/Employer";
 
 export const metadata: Metadata = { title: "Your postings · FMD", robots: { index: false, follow: false } };
 

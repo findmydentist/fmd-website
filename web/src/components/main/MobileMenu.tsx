@@ -31,7 +31,7 @@ const GO: Entry[] = [
   ["/assistant", "Ask FMD AI", Sparkles],
   ["/dentists", "Find a dentist", Search],
   ["/explore", "Explore", Compass],
-  ["/explore/messages", "Messages", MessagesSquare],
+  ["/messages", "Chats", MessagesSquare],
   ["/jobs", "Jobs", Briefcase],
 ];
 const YOU: Entry[] = [

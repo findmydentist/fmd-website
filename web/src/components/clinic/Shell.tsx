@@ -2,7 +2,7 @@
 
 import {
   BarChart3, Boxes, CalendarDays, Check, ChevronDown, CreditCard, House, ListChecks, LogOut, MapPin, Menu,
-  Settings, Sparkles, Users, UsersRound, X, type LucideIcon,
+  Settings, Sparkles, Users, UsersRound, X, Briefcase, Compass, MessageCircle, type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -63,6 +63,13 @@ const NAV: [slug: string, label: string, Icon: LucideIcon, count?: NavKey][] = [
   ["team", "Team", Users],
   ["settings", "Settings", Settings],
 ];
+/** Links out to FMD Main from the clinic sidebar. */
+const MAIN_LINKS: [href: string, label: string, Icon: LucideIcon][] = [
+  ["/jobs", "Jobs", Briefcase],
+  ["/explore", "Explore", Compass],
+  ["/messages", "Chats", MessageCircle],
+];
+
 export const SECTION_TITLES = Object.fromEntries(NAV.map(([slug, label]) => [slug, label]));
 
 function SideNav({ ctx, section, counts, onPick }: { ctx: ClinicCtx; section: string; counts: Partial<Record<NavKey, number>>; onPick?: () => void }) {
@@ -106,6 +113,14 @@ function SideNav({ ctx, section, counts, onPick }: { ctx: ClinicCtx; section: st
             </Link>
           );
         })}
+        {/* FMD Main is the same account: Explore to share and learn, Jobs to hire or be hired, Chats for both */}
+        <p className="mt-4 px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-3">FMD Main</p>
+        {MAIN_LINKS.map(([href, label, Icon]) => (
+          <Link key={href} href={href} onClick={onPick} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] text-ink-2 transition-colors hover:bg-[var(--surface-glass)] hover:text-ink">
+            <Icon className="size-[18px] shrink-0" strokeWidth={1.5} />
+            {label}
+          </Link>
+        ))}
       </nav>
       <div className="mt-auto flex items-center gap-3 border-t border-line px-2 pt-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] text-[13px] font-semibold text-ink ring-[1.5px] ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]">

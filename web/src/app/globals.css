@@ -326,6 +326,19 @@ html.theme-anim *::after {
 
 /* Component classes live in a layer so Tailwind utilities (absolute, fixed…) can override them */
 @layer components {
+/* ---------- Redesign basics: a card separated by shadow, not a border; one big display headline ---------- */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.type-display {
+  font-size: clamp(34px, 4.6vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--text-primary);
+}
 /* ---------- Smoked glass ---------- */
 .glass {
   position: relative;
@@ -553,6 +566,12 @@ html.theme-anim *::after {
    Categories, in order: legacy section colours · page backgrounds · surfaces & geometry · environment · sapphire
    accent & states · text · FMD Edge (warm) · layout & measure · motion. Utilities that read them follow below. */
 :root {
+  /* redesign shared shape tokens (dark values; light themes override the shadows) */
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 24px 48px -28px rgb(0 0 0 / 0.8);
+  --shadow-lift: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 30px 60px -28px rgb(0 0 0 / 0.9);
+  --radius-card: 24px;
+  --radius-media: 20px;
+  --space-section: clamp(40px, 6vw, 88px);
   --fmd-near-black: #03060c;
   --fmd-midnight: #060d1b;
   --fmd-deep: #0a1b35;
@@ -1504,6 +1523,11 @@ html[data-live] [data-staging] {
   display: none !important;
 }
 
+/* "Try FMD as any role": each card framed in the navbar's colour so it stands off the page */
+.role-card {
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent) !important;
+}
+
 /* Samsung Internet only skips its forced dark mode on sites it sees handling dark themselves (the meta tag in
    layout.tsx, and a prefers-color-scheme query like this one); the themes themselves are set by data-theme */
 @media (prefers-color-scheme: dark) {
@@ -1530,4 +1554,23 @@ html[data-samsung] .edge-shimmer {
 html[data-samsung] .btn-primary {
   --button-primary: #2563eb;
   --button-primary-fg: #ffffff;
+}
+
+/* Explore: an Appreciate (double tap) pops a smile over the photo; the button bounces; Clips drift slowly.
+   All off under reduced motion. */
+@keyframes fmd-appreciate-pop {
+  0% { transform: scale(0.35); opacity: 0; }
+  22% { transform: scale(1.12); opacity: 1; }
+  40% { transform: scale(0.96); }
+  72% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.06); opacity: 0; }
+}
+.fmd-appreciate-pop > * { animation: fmd-appreciate-pop 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+@keyframes fmd-bounce { 30% { transform: scale(1.25); } 60% { transform: scale(0.92); } }
+.fmd-bounce { animation: fmd-bounce 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes fmd-slow-pan { from { transform: scale(1.04) translateY(1.5%); } to { transform: scale(1.12) translateY(-1.5%); } }
+.fmd-slow-pan > img { animation: fmd-slow-pan 9s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .fmd-appreciate-pop > *, .fmd-bounce, .fmd-slow-pan > img { animation: none; }
+  .fmd-appreciate-pop { display: none; }
 }

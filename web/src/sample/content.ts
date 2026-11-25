@@ -13,29 +13,42 @@
  */
 import { CONCERN_TOPICS, getInterests } from "./personalisation.ts";
 import { getConsents } from "./privacy.ts";
+import { CREATORS, creatorById, type Creator } from "./creators.ts";
+import { MEDIA, media, type Media } from "./media.ts";
 import { read, write } from "./store.ts";
 
-export type Kind = "article" | "image" | "video" | "poll";
-export type Author = { id: string; name: string; specialty: string; verified: boolean; kind: "dentist" | "fmd" };
+export type Kind = "photo" | "carousel" | "video" | "slides" | "poll";
+/** A post's author: the creator (sample/creators.ts), with the same id, so follows, chats and Book line up. */
+export type Author = Pick<Creator, "id" | "handle" | "name" | "kind" | "specialty" | "city" | "verified" | "bookable" | "clinicId">;
+/** One text slide of a "slides" post (the carousel-of-notes format dentists use): over the cover photo or a colour. */
+export type Slide = { kicker?: string; text: string; tone: "accent" | "ink" | "paper" };
 export type Post = {
   id: string;
   kind: Kind;
   topic: string;
+  /** a short first line: search, chats and notifications show it */
   title: string;
-  body: string;
+  caption: string;
+  tags: string[];
   author: Author;
   published_at: string;
-  media?: { src: string; alt: string; poster?: string; captions?: string };
+  /** photos (local, full resolution) or the one video; slides posts carry a cover photo */
+  media: Media[];
+  slides?: Slide[];
   source?: { platform: string; url: string; credit: string };
   poll?: string[];
   sponsored_by?: string;
   is_case?: boolean;
+  treatment?: { name: string; duration?: string };
   likes: number;
+  /** comments other people already left (sample) */
+  talk: number;
   demo: true;
 };
 export type FeedItem = Post & { reason: string; liked: boolean; saved: boolean; following: boolean; votes: number[] | null; myVote: number | null; comments: number };
-export type Comment = { id: string; post_id: string; author: string; mine: boolean; body: string; at: string };
-export type Tab = "for_you" | "following" | "learn" | "reels";
+export type Comment = { id: string; post_id: string; author: string; mine: boolean; body: string; at: string; parent_id?: string | null; likes?: number; liked?: boolean };
+export type CommentThread = Comment & { replies: Comment[] };
+export type Tab = "for_you" | "following" | "reels";
 
 export const REPORT_REASONS = {
   misinformation: "Health misinformation",
@@ -50,67 +63,157 @@ export const REPORT_REASONS = {
 export type ReportReason = keyof typeof REPORT_REASONS;
 
 const day = 86_400_000;
+const hour = 3_600_000;
 const iso = (t: number) => new Date(t).toISOString();
 const newId = (p: string) => `${p}-${Math.random().toString(36).slice(2, 10)}`;
 const key = (what: string, userId: string) => `fmd-demo:${what}:${userId}`;
 
-const DR = (id: string, name: string, specialty: string, verified = true): Author => ({ id, name, specialty, verified, kind: "dentist" });
-const ADITI = DR("aditi-sharma", "Dr. Aditi Sharma", "General Dentist");
-const ROHAN = DR("rohan-mehta", "Dr. Rohan Mehta", "Orthodontist");
-const MEENAKSHI = DR("ananya-gupta", "Dr. Ananya Gupta", "General Dentist"); // her gum-health posts
-const FARAH = DR("farah-khan", "Dr. Farah Khan", "Pediatric Dentist");
-const SNEHA = DR("sneha-iyer", "Dr. Sneha Iyer", "Implantologist");
-const PRIYANKA = DR("priyanka-shah", "Dr. Priyanka Shah", "Implantologist");
-const KAVYA = DR("kavya-reddy", "Dr. Kavya Reddy", "Prosthodontist");
-const NIKHIL = DR("nikhil-joshi", "Dr. Nikhil Joshi", "General Dentist");
-const DEEPA = DR("deepa-krishnan", "Dr. Deepa Krishnan", "Pediatric Dentist");
-const SANJANA = DR("sanjana-kulkarni", "Dr. Sanjana Kulkarni", "Orthodontist");
-const FMD: Author = { id: "fmd", name: "FMD Team", specialty: "FindMyDentist", verified: true, kind: "fmd" };
+const author = (id: string): Author => {
+  const x = creatorById(id);
+  if (!x) throw new Error(`Unknown creator ${id}`);
+  const { handle, name, kind, specialty, city, verified, bookable, clinicId } = x;
+  return { id, handle, name, kind, specialty, city, verified, bookable, clinicId };
+};
 
 const CAPTIONS = "WEBVTT\n\n00:00.000 --> 00:04.000\n[Music]\n\n00:04.000 --> 00:10.000\n[Music] FindMyDentist: find a dentist, keep your records, ask FMD AI.\n";
+/** FMD's brand film: the one real video in the sample feed. */
+export const FMD_FILM: Media = { key: "fmd-film", kind: "video", src: "/frames/fmd.mp4", w: 1280, h: 720, alt: "FMD brand animation", poster: "/media/feed/smile-1.webp", credit: "FindMyDentist" };
+export const FMD_FILM_CAPTIONS = CAPTIONS;
 
-/** The demo posts, by fictitious demo dentists, already reviewed. */
+const CONSENT = "Shared with the patient's written consent; details changed to protect their privacy.";
+
+/** The sample posts, by fictitious creators, already reviewed. */
 function posts(now: number): Post[] {
   const at = (d: number) => iso(now - d * day);
-  const p = (x: Omit<Post, "demo" | "likes"> & { likes?: number }): Post => ({ likes: 0, ...x, demo: true });
+  const p = (x: Omit<Post, "demo" | "likes" | "talk" | "tags"> & { likes?: number; talk?: number; tags?: string[] }): Post => ({ likes: 0, talk: 0, tags: [], ...x, demo: true });
+  const m = (...keys: string[]) => keys.map(media);
   /** a dentist's reel: one of the demo tip clips in /public/reels, with its poster frame and captions */
-  const reel = (author: Author, clip: string, topic: string, title: string, body: string, days: number, likes: number): Post =>
-    p({ id: `r-${author.id}-${clip}`, kind: "video", topic, title, body, author, published_at: at(days), likes, media: { src: `/reels/${clip}.mp4`, poster: `/reels/${clip}.jpg`, captions: `/reels/${clip}.vtt`, alt: `${title}: a short tip video` } });
+  const reel = (by: string, clip: string, topic: string, title: string, caption: string, days: number, likes: number): Post =>
+    p({ id: `r-${by}-${clip}`, kind: "video", topic, title, caption, author: author(by), published_at: at(days), likes, tags: [topic.toLowerCase()],
+      media: [{ key: `reel-${clip}`, kind: "video", src: `/reels/${clip}.mp4`, poster: `/reels/${clip}.jpg`, captions: `/reels/${clip}.vtt`, w: 720, h: 1280, alt: `${title}: a short tip video`, credit: "FindMyDentist demo clip" }] });
+  /** a dentist's written tip, as a one-slide notes post over a cover photo */
+  const tip = (by: string, id: string, topic: string, title: string, caption: string, days: number, likes: number, cover: string): Post =>
+    p({ id, kind: "slides", topic, title, caption, author: author(by), published_at: at(days), likes, tags: [topic.toLowerCase()], media: m(cover), slides: [{ kicker: topic, text: title, tone: "accent" }, { kicker: "In short", text: caption.split(". ")[0]!.replace(/\.$/, "") + ".", tone: "paper" }] });
   return [
-    p({ id: "p-floss", kind: "article", topic: "Prevention", title: "Why flossing matters more than you think", body: "Brushing cleans about two thirds of each tooth's surface. The rest sits between teeth, where plaque builds up and gum problems often begin. Floss or use interdental brushes once a day, gently, and ask your dentist to show you the right size for your gaps.", author: ADITI, published_at: at(1), likes: 42 }),
-    p({ id: "p-aligners", kind: "image", topic: "Orthodontics", title: "Braces or clear aligners: how dentists decide", body: "Both move teeth with steady, gentle pressure. Aligners are removable and discreet but only work if worn 20–22 hours a day. Braces suit more complex movements. The right choice depends on your bite, your habits and what an assessment shows.", author: ROHAN, published_at: at(2), likes: 87, media: { src: "/img/tx-aligners.png", alt: "Illustration of a clear aligner tray beside a tooth" } }),
-    p({ id: "p-reel", kind: "video", topic: "Using FMD", title: "Meet FMD in 10 seconds", body: "Find dentists you can check, keep your dental records in one private place, and ask FMD AI in plain words.", author: FMD, published_at: at(2), likes: 15, media: { src: "/frames/fmd.mp4", alt: "FMD brand animation", captions: CAPTIONS } }),
-    p({ id: "p-gums-poll", kind: "poll", topic: "Gum health", title: "Quick poll: do your gums bleed when you brush?", body: "Bleeding gums are common and often get better with gentler, more thorough cleaning, but they're worth mentioning at your next check-up. Answer to see how others responded.", author: MEENAKSHI, published_at: at(3), likes: 23, poll: ["Never", "Sometimes", "Often", "Not sure"] }),
-    p({ id: "p-sponsored", kind: "image", topic: "Implants", title: "Implant check-ups: what to expect each year", body: "An implant needs the same care as a natural tooth: cleaning around it every day and a yearly check of the gum and bone around it.", author: PRIYANKA, published_at: at(4), likes: 9, media: { src: "/img/tx-implants.png", alt: "Illustration of a dental implant" }, sponsored_by: "Demo Implant Systems" }),
-    p({ id: "p-kids", kind: "article", topic: "Kids", title: "Your child's first dental visit", body: "A first visit around the first tooth or first birthday helps children get comfortable early. It's mostly a gentle look, advice on brushing and diet, and a chance for parents to ask questions.", author: FARAH, published_at: at(5), likes: 31 }),
-    p({ id: "p-cleaning", kind: "image", topic: "Prevention", title: "What happens at a professional cleaning", body: "Scaling removes the hardened plaque (tartar) that brushing can't. Polishing smooths the surface so plaque sticks less. It usually takes 30–45 minutes and shouldn't hurt; tell the hygienist if anything feels sharp.", author: ADITI, published_at: at(6), likes: 19, media: { src: "/img/tx-cleaning.png", alt: "Illustration of teeth being cleaned" } }),
-    p({ id: "p-implant-steps", kind: "article", topic: "Implants", title: "What happens during implant treatment", body: "Implant treatment is staged: assessment and imaging, placing the implant, a healing period while bone bonds to it, then the crown. Timelines vary from a few months upwards depending on bone and gum health.", author: SNEHA, published_at: at(8), likes: 26 }),
-    // every verified demo dentist has posts and reels (only verified dentists can post on FMD). The reels are short tip
-    // clips made by web/scripts/make-reels.py: the video, its poster frame and its captions under /public/reels
-    ...[
-      reel(ADITI, "brush-2min", "Prevention", "Two minutes, twice a day", "Most of us brush for well under a minute. Set a timer once and see how long two minutes feels: that's how long it takes to reach every surface.", 1.5, 112),
-      reel(ADITI, "root-canal-myths", "Root canal", "Root canals aren't what you've heard", "Modern root canal treatment feels much like having a filling. It removes the infection that causes the pain and keeps your own tooth.", 7, 76),
-      reel(ROHAN, "aligner-wear", "Orthodontics", "Getting the most from aligners", "Aligners only move teeth while they're in. The 20–22 hours a day matter more than anything else.", 3, 94),
-      p({ id: "p-braces-time", kind: "article", topic: "Orthodontics", title: "How long do braces take?", body: "Most treatment takes 12 to 24 months. Simple spacing can be quicker; bite problems take longer. Your orthodontist can give you an estimate after looking at X-rays and impressions, and regular appointments keep it on track.", author: ROHAN, published_at: at(9), likes: 38 }),
-      reel(SNEHA, "implant-care", "Implants", "Looking after your implant", "An implant can't get decay, but the gum around it can get inflamed. Clean it every day like your other teeth.", 2.5, 58),
-      p({ id: "p-bone-graft", kind: "image", topic: "Implants", title: "Bone grafts, simply explained", body: "If a tooth has been missing for a while, the bone underneath can shrink. A bone graft rebuilds it so an implant has something solid to hold on to. It adds a few months of healing but makes the implant last.", author: SNEHA, published_at: at(12), likes: 22, media: { src: "/img/tx-implants.png", alt: "Illustration of a dental implant in the jaw" } }),
-      reel(FARAH, "kids-first-visit", "Kids", "Making the first visit fun", "Children pick up on our nerves. Talk about the dentist as someone who counts teeth and keeps them strong.", 1, 67),
-      p({ id: "p-kids-sugar", kind: "article", topic: "Kids", title: "Sugar and baby teeth", body: "It's how often, not how much. Sweet snacks spread through the day keep teeth under attack; the same treat with a meal does far less harm. Water between meals and milk teeth brushed twice a day go a long way.", author: FARAH, published_at: at(11), likes: 44 }),
-      reel(KAVYA, "denture-care", "Dentures", "Caring for your dentures", "Dentures last longer and feel better with a simple daily routine. Never soak them in hot water: it can warp them.", 2, 33),
-      p({ id: "p-crown-bridge", kind: "article", topic: "Restorative", title: "Crown or bridge: what's the difference?", body: "A crown covers a single damaged tooth. A bridge replaces a missing tooth by holding a false one between two crowns on the teeth either side. Implants are another option for missing teeth; your dentist can talk through each.", author: KAVYA, published_at: at(6), likes: 29 }),
-      reel(NIKHIL, "after-extraction", "Oral surgery", "The first 48 hours after an extraction", "A clot forms in the socket and protects it while it heals. Most of the advice is about not disturbing it.", 4, 51),
-      p({ id: "p-sensitive", kind: "article", topic: "Prevention", title: "Sensitive teeth: common causes", body: "Worn enamel, gums that have pulled back, a cracked filling or brushing too hard can all leave teeth sensitive to cold. A sensitivity toothpaste used for a few weeks often helps; if it doesn't, it's worth a check.", author: NIKHIL, published_at: at(9), likes: 47 }),
-      reel(PRIYANKA, "implant-care", "Implants", "Your implant, year after year", "Implants are designed to last decades. Daily cleaning and a yearly check are what make that happen.", 5, 41),
-      p({ id: "p-implant-right", kind: "article", topic: "Implants", title: "Are implants right for me?", body: "Good candidates have healthy gums and enough bone, or can have bone rebuilt. Smoking and uncontrolled diabetes make healing harder. An assessment with X-rays or a scan is how you find out.", author: PRIYANKA, published_at: at(14), likes: 25 }),
-      reel(DEEPA, "brush-2min", "Kids", "Brushing tips for the whole family", "Children need help brushing until about age 7. Brush together: they copy what they see.", 3.5, 58),
-      p({ id: "p-fluoride-kids", kind: "article", topic: "Kids", title: "Fluoride toothpaste for children: how much?", body: "Under 3: a smear the size of a grain of rice. From 3 to 6: a pea-sized amount. Encourage spitting out rather than rinsing, so the fluoride stays on the teeth a little longer.", author: DEEPA, published_at: at(7), likes: 36 }),
-      reel(MEENAKSHI, "bleeding-gums", "Gum health", "Gums that bleed when you brush", "It's tempting to brush less where it bleeds. Gently doing the opposite usually helps it settle.", 2, 49),
-      reel(MEENAKSHI, "whitening-safe", "Cosmetic", "Whitening: what to expect", "Whitening works on natural enamel only. If you have front crowns or fillings, plan the colour with your dentist first.", 6, 63),
-      reel(MEENAKSHI, "floss-daily", "Prevention", "A daily floss habit", "Pick a time you won't skip, like after brushing at night. It takes about two minutes.", 13, 27),
-      reel(SANJANA, "braces-food", "Orthodontics", "Food and braces", "A broken bracket can add weeks to treatment. A few food swaps protect it.", 1.5, 72),
-      p({ id: "p-teen-aligners", kind: "article", topic: "Orthodontics", title: "Clear aligners for teenagers?", body: "Aligners can work well for teens who will wear them consistently; some include wear indicators so parents can check. Braces may suit more complex movements or anyone likely to forget. Your orthodontist will advise after an assessment.", author: SANJANA, published_at: at(10), likes: 31 }),
-    ],
-    p({ id: "p-case-gap", kind: "image", topic: "Cosmetic", title: "Case: closing a small front gap with bonding", body: "A patient asked about a small gap between the front teeth. We closed it in one visit with tooth-coloured bonding, without drilling. Shared with the patient's written consent; identifying details removed.", author: ADITI, published_at: at(10), likes: 54, media: { src: "/img/tx-whitening.png", alt: "Illustration of a smile after cosmetic bonding" }, is_case: true }),
+    p({ id: "p-aligners", kind: "carousel", topic: "Orthodontics", author: author("rohan-mehta"), published_at: iso(now - 2 * hour),
+      title: "Nine months of clear aligners",
+      caption: `Crowded lower teeth, no extractions, no brackets. Nine months of aligners and a lot of discipline from my patient. Swipe for the smile, the detail and the retainer check. ${CONSENT}`,
+      media: m("smile-1", "teeth-closeup", "smile-3"), is_case: true, treatment: { name: "Clear aligners", duration: "9 months" }, tags: ["aligners", "orthodontics", "mumbai"], likes: 1284, talk: 96 }),
+    p({ id: "p-floss", kind: "slides", topic: "Prevention", author: author("aditi-sharma"), published_at: at(1),
+      title: "Why flossing matters more than you think",
+      caption: "Saving this for everyone who asks me whether flossing is really necessary. Swipe through, then tell me your excuse.",
+      media: m("toothbrush"), tags: ["prevention", "flossing"], likes: 642, talk: 41,
+      slides: [
+        { kicker: "Dr. Aditi's notes", text: "Why flossing matters more than you think", tone: "accent" },
+        { kicker: "01", text: "Brushing cleans about two thirds of each tooth.", tone: "ink" },
+        { kicker: "02", text: "The rest sits between teeth, where gum problems begin.", tone: "paper" },
+        { kicker: "03", text: "Once a day, gently. Ask us which size fits your gaps.", tone: "accent" },
+      ] }),
+    p({ id: "p-reel", kind: "video", topic: "Using FMD", author: author("fmd"), published_at: at(2),
+      title: "Meet FMD in 10 seconds",
+      caption: "Find dentists you can check, keep your dental records in one private place, and ask FMD AI in plain words.",
+      media: [{ ...FMD_FILM }], tags: ["fmd"], likes: 15, talk: 3 }),
+    p({ id: "p-gums-poll", kind: "poll", topic: "Gum health", author: author("meenakshi-pillai"), published_at: at(3),
+      title: "Quick poll: do your gums bleed when you brush?",
+      caption: "Bleeding gums are common and often get better with gentler, more thorough cleaning, but they're worth mentioning at your next check-up. Answer to see how others responded.",
+      media: [], poll: ["Never", "Sometimes", "Often", "Not sure"], tags: ["gums"], likes: 23, talk: 12 }),
+    p({ id: "p-sponsored", kind: "photo", topic: "Implants", author: author("priyanka-shah"), published_at: at(4),
+      title: "Implant check-ups: what to expect each year",
+      caption: "An implant needs the same care as a natural tooth: cleaning around it every day and a yearly check of the gum and bone around it. The X-ray is how we see the bone.",
+      media: m("xray-implant"), sponsored_by: "Demo Implant Systems", tags: ["implants"], likes: 9, talk: 2 }),
+    p({ id: "p-kids", kind: "photo", topic: "Kids", author: author("farah-khan"), published_at: at(1),
+      title: "Your child's first dental visit",
+      caption: "A first visit around the first tooth or first birthday helps children get comfortable early. It's mostly a gentle look, advice on brushing and diet, and a chance for parents to ask questions.",
+      media: m("kid-checkup"), tags: ["kids", "firstvisit"], likes: 310, talk: 28 }),
+    p({ id: "p-cleaning", kind: "carousel", topic: "Prevention", author: author("aditi-sharma"), published_at: at(6),
+      title: "What happens at a professional cleaning",
+      caption: "Scaling removes the hardened plaque (tartar) that brushing can't. Polishing smooths the surface so plaque sticks less. It usually takes 30–45 minutes and shouldn't hurt; tell us if anything feels sharp.",
+      media: m("instruments", "lab-desk"), tags: ["cleaning", "prevention"], likes: 190, talk: 14 }),
+    p({ id: "p-implant-steps", kind: "slides", topic: "Implants", author: author("sneha-iyer"), published_at: at(8),
+      title: "What happens during implant treatment",
+      caption: "Implant treatment is staged. Here are the four steps I walk every patient through before we begin.",
+      media: m("implant-surgery"), tags: ["implants"], likes: 260, talk: 22,
+      slides: [
+        { kicker: "Implants, step by step", text: "What happens during implant treatment", tone: "ink" },
+        { kicker: "01", text: "Assessment and a 3D scan of the bone.", tone: "paper" },
+        { kicker: "02", text: "Placing the implant, under local anaesthetic.", tone: "paper" },
+        { kicker: "03", text: "A few months of healing while bone bonds to it.", tone: "paper" },
+        { kicker: "04", text: "The crown: the part you actually see.", tone: "accent" },
+      ] }),
+    p({ id: "p-case-gap", kind: "photo", topic: "Cosmetic", author: author("kavya-reddy"), published_at: at(10),
+      title: "Closing a small front gap with bonding",
+      caption: `A patient asked about a small gap between the front teeth. We closed it in one visit with tooth-coloured bonding, without drilling. ${CONSENT}`,
+      media: m("smile-2"), is_case: true, treatment: { name: "Composite bonding", duration: "1 visit" }, tags: ["cosmetic", "bonding"], likes: 540, talk: 37 }),
+    p({ id: "p-clinic-tour", kind: "carousel", topic: "Clinic life", author: author("smile-studio"), published_at: iso(now - 5 * hour),
+      title: "Inside our sterilisation room",
+      caption: "Every instrument is cleaned, sealed and sterilised here, and you can watch it happen through the glass. Swipe for the room and a treatment chair.",
+      media: m("instruments", "lab-desk", "implant-surgery"), tags: ["cliniclife", "bengaluru"], likes: 420, talk: 19 }),
+    p({ id: "p-students", kind: "photo", topic: "Students", author: author("rhea-kapoor"), published_at: iso(now - 8 * hour),
+      title: "Final year, together",
+      caption: "Last day of clinical postings before exams. Proud of this lot. Juniors: it gets better, I promise.",
+      media: m("students-group"), tags: ["bds", "dentalstudents", "dr.aditi"], likes: 2310, talk: 188 }),
+    p({ id: "p-rct-notes", kind: "slides", topic: "Students", author: author("rhea-kapoor"), published_at: at(3),
+      title: "5 things I wish I knew before my first root canal",
+      caption: "For every junior who asked. Swipe through, then tell me what you'd add.",
+      media: m("lab-desk"), tags: ["bds", "endodontics"], likes: 1870, talk: 142,
+      slides: [
+        { kicker: "Rhea's notes", text: "5 things I wish I knew before my first root canal", tone: "accent" },
+        { kicker: "01", text: "Your access cavity decides everything.", tone: "ink" },
+        { kicker: "02", text: "Measure twice. Then take another X-ray.", tone: "paper" },
+        { kicker: "03", text: "Irrigate more than you think you need to.", tone: "paper" },
+        { kicker: "04", text: "Ask the senior. Every time.", tone: "ink" },
+      ] }),
+    p({ id: "p-family", kind: "photo", topic: "Clinic life", author: author("skt"), published_at: at(5),
+      title: "Three generations, one clinic",
+      caption: "Grandfather's new dentures fitted on the same day his grandson had his first check-up. Days like this are why we do it.",
+      media: m("family-smile"), tags: ["family", "delhi", "dr.aditi"], likes: 780, talk: 44 }),
+    p({ id: "p-whitening", kind: "photo", topic: "Cosmetic", author: author("kavya-reddy"), published_at: at(2),
+      title: "Whitening: what's realistic",
+      caption: "Professional whitening lifts stains; it doesn't change the colour of crowns or fillings. A few shades lighter is a good result. Anyone promising 'ten shades' is selling, not treating.",
+      media: m("teeth-closeup"), tags: ["whitening", "cosmetic"], likes: 990, talk: 61 }),
+    p({ id: "c-kids", kind: "video", topic: "Kids", author: author("farah-khan"), published_at: iso(now - 3 * hour),
+      title: "How we make the first visit fun",
+      caption: "Counting teeth, a ride in the chair and a sticker at the end. That's it. That's the first visit.",
+      media: m("clip-kid-checkup"), tags: ["kids"], likes: 1880, talk: 77 }),
+    p({ id: "c-implant", kind: "video", topic: "Implants", author: author("sneha-iyer"), published_at: at(1),
+      title: "Implant day, behind the scenes",
+      caption: "Planning in 3D, a calm room and a team that's done this a thousand times.",
+      media: m("clip-implant-surgery"), tags: ["implants"], likes: 1340, talk: 58 }),
+    p({ id: "c-brush", kind: "video", topic: "Prevention", author: author("aditi-sharma"), published_at: at(2),
+      title: "The two-minute brush, in thirty seconds",
+      caption: "Soft brush, small circles, gum line first. Two minutes, twice a day.",
+      media: m("clip-toothbrush"), tags: ["prevention", "brushing"], likes: 2650, talk: 103 }),
+    p({ id: "c-students", kind: "video", topic: "Students", author: author("arjun-nair"), published_at: at(4),
+      title: "A day in MDS orthodontics",
+      caption: "Wires, typodonts and far too much coffee.",
+      media: m("clip-students-group"), tags: ["mds", "orthodontics", "dr.rohan"], likes: 870, talk: 49 }),
+    p({ id: "c-smile", kind: "video", topic: "Cosmetic", author: author("bjh"), published_at: at(6),
+      title: "The smile you leave with",
+      caption: "Small changes, natural results. Whitening and bonding at Pearl Dental.",
+      media: m("clip-smile-4"), tags: ["cosmetic", "hyderabad"], likes: 610, talk: 21 }),
+    // production's demo reels and tips (one set per verified demo dentist, so each profile has posts and reels). The reels
+    // are short tip clips made by web/scripts/make-reels.py: video, poster frame and captions under /public/reels
+    reel("aditi-sharma", "brush-2min", "Prevention", "Two minutes, twice a day", "Most of us brush for well under a minute. Set a timer once and see how long two minutes feels: that's how long it takes to reach every surface.", 1.5, 112),
+    reel("aditi-sharma", "root-canal-myths", "Root canal", "Root canals aren't what you've heard", "Modern root canal treatment feels much like having a filling. It removes the infection that causes the pain and keeps your own tooth.", 7, 76),
+    reel("rohan-mehta", "aligner-wear", "Orthodontics", "Getting the most from aligners", "Aligners only move teeth while they're in. The 20–22 hours a day matter more than anything else.", 3, 94),
+    tip("rohan-mehta", "p-braces-time", "Orthodontics", "How long do braces take?", "Most treatment takes 12 to 24 months. Simple spacing can be quicker; bite problems take longer. Your orthodontist can give you an estimate after looking at X-rays and impressions, and regular appointments keep it on track.", 9, 38, "smile-3"),
+    reel("sneha-iyer", "implant-care", "Implants", "Looking after your implant", "An implant can't get decay, but the gum around it can get inflamed. Clean it every day like your other teeth.", 2.5, 58),
+    tip("sneha-iyer", "p-bone-graft", "Implants", "Bone grafts, simply explained", "If a tooth has been missing for a while, the bone underneath can shrink. A bone graft rebuilds it so an implant has something solid to hold on to. It adds a few months of healing but makes the implant last.", 12, 22, "xray-implant"),
+    reel("farah-khan", "kids-first-visit", "Kids", "Making the first visit fun", "Children pick up on our nerves. Talk about the dentist as someone who counts teeth and keeps them strong.", 1, 67),
+    tip("farah-khan", "p-kids-sugar", "Kids", "Sugar and baby teeth", "It's how often, not how much. Sweet snacks spread through the day keep teeth under attack; the same treat with a meal does far less harm. Water between meals and milk teeth brushed twice a day go a long way.", 11, 44, "kid-checkup"),
+    reel("kavya-reddy", "denture-care", "Dentures", "Caring for your dentures", "Dentures last longer and feel better with a simple daily routine. Never soak them in hot water: it can warp them.", 2, 33),
+    tip("kavya-reddy", "p-crown-bridge", "Restorative", "Crown or bridge: what's the difference?", "A crown covers a single damaged tooth. A bridge replaces a missing tooth by holding a false one between two crowns on the teeth either side. Implants are another option for missing teeth; your dentist can talk through each.", 6, 29, "lab-desk"),
+    reel("nikhil-joshi", "after-extraction", "Oral surgery", "The first 48 hours after an extraction", "A clot forms in the socket and protects it while it heals. Most of the advice is about not disturbing it.", 4, 51),
+    tip("nikhil-joshi", "p-sensitive", "Prevention", "Sensitive teeth: common causes", "Worn enamel, gums that have pulled back, a cracked filling or brushing too hard can all leave teeth sensitive to cold. A sensitivity toothpaste used for a few weeks often helps; if it doesn't, it's worth a check.", 9, 47, "teeth-closeup"),
+    reel("priyanka-shah", "implant-care", "Implants", "Your implant, year after year", "Implants are designed to last decades. Daily cleaning and a yearly check are what make that happen.", 5, 41),
+    tip("priyanka-shah", "p-implant-right", "Implants", "Are implants right for me?", "Good candidates have healthy gums and enough bone, or can have bone rebuilt. Smoking and uncontrolled diabetes make healing harder. An assessment with X-rays or a scan is how you find out.", 14, 25, "implant-surgery"),
+    reel("deepa-krishnan", "brush-2min", "Kids", "Brushing tips for the whole family", "Children need help brushing until about age 7. Brush together: they copy what they see.", 3.5, 58),
+    tip("deepa-krishnan", "p-fluoride-kids", "Kids", "Fluoride toothpaste for children: how much?", "Under 3: a smear the size of a grain of rice. From 3 to 6: a pea-sized amount. Encourage spitting out rather than rinsing, so the fluoride stays on the teeth a little longer.", 7, 36, "toothbrush"),
+    reel("ananya-gupta", "bleeding-gums", "Gum health", "Gums that bleed when you brush", "It's tempting to brush less where it bleeds. Gently doing the opposite usually helps it settle.", 2, 49),
+    reel("ananya-gupta", "whitening-safe", "Cosmetic", "Whitening: what to expect", "Whitening works on natural enamel only. If you have front crowns or fillings, plan the colour with your dentist first.", 6, 63),
+    reel("ananya-gupta", "floss-daily", "Prevention", "A daily floss habit", "Pick a time you won't skip, like after brushing at night. It takes about two minutes.", 13, 27),
+    reel("sanjana-kulkarni", "braces-food", "Orthodontics", "Food and braces", "A broken bracket can add weeks to treatment. A few food swaps protect it.", 1.5, 72),
+    tip("sanjana-kulkarni", "p-teen-aligners", "Orthodontics", "Clear aligners for teenagers?", "Aligners can work well for teens who will wear them consistently; some include wear indicators so parents can check. Braces may suit more complex movements or anyone likely to forget. Your orthodontist will advise after an assessment.", 10, 31, "smile-1"),
   ];
 }
 
@@ -123,9 +226,15 @@ type Mine = {
   comments: Comment[];
   reports: { target: string; reason: ReportReason; note: string; at: string }[];
   drafts: Draft[];
+  commentLikes: string[];
 };
-const EMPTY: Mine = { liked: [], following: [], votes: {}, comments: [], reports: [], drafts: [] };
-const load = (userId: string | null): Mine => (userId ? { ...EMPTY, ...read<Mine>(key("content", userId)) } : EMPTY);
+const EMPTY: Mine = { liked: [], following: [], votes: {}, comments: [], reports: [], drafts: [], commentLikes: [] };
+/** Drafts saved by an older version of the demo (media as an object) are skipped, never a crash. */
+const load = (userId: string | null): Mine => {
+  if (!userId) return EMPTY;
+  const m = { ...EMPTY, ...read<Mine>(key("content", userId)) };
+  return { ...m, drafts: (m.drafts ?? []).filter((d) => Array.isArray(d.media) && d.media.every((k) => typeof k === "string" && k in MEDIA)) };
+};
 const save = (userId: string, m: Mine) => write(key("content", userId), m);
 
 /** Saved posts live with the other saves (sample/saved.ts) so the Saved page lists them together. */
@@ -169,7 +278,7 @@ function decorate(p: Post, userId: string | null, m: Mine, reason: string): Feed
     following: m.following.includes(p.author.id),
     votes,
     myVote: mine ?? null,
-    comments: m.comments.filter((c) => c.post_id === p.id).length + (p.id === "p-floss" ? 2 : 0),
+    comments: m.comments.filter((c) => c.post_id === p.id).length + p.talk,
   };
 }
 
@@ -196,7 +305,6 @@ export async function feed(userId: string | null, tab: Tab, now = Date.now()): P
 
   let list: Post[];
   if (tab === "following") list = organic.filter((p) => m.following.includes(p.author.id));
-  else if (tab === "learn") list = organic.filter((p) => p.kind === "article" || p.kind === "image");
   else if (tab === "reels") list = organic.filter((p) => p.kind === "video");
   else {
     // matches for the last search first, then everything else newest first: never only the past searches
@@ -206,6 +314,46 @@ export async function feed(userId: string | null, tab: Tab, now = Date.now()): P
     if (ad && list.length >= 2) list.splice(2, 0, ad);
   }
   return list.map((p) => decorate(p, userId, m, p.sponsored_by ? `Sponsored by ${p.sponsored_by}: a paid placement, not a clinical endorsement.` : why(p)));
+}
+
+export type ExploreResults = { creators: Creator[]; posts: FeedItem[]; tags: { tag: string; count: number }[] };
+
+/** Discover search: people (name, handle, specialty, city), posts (title, caption, tags) and tags. "#tag" searches tags only. */
+export async function searchExplore(q: string, userId: string | null = null): Promise<ExploreResults> {
+  const raw = q.trim().toLowerCase();
+  if (!raw) return { creators: [], posts: [], tags: [] };
+  const tagOnly = raw.startsWith("#");
+  const term = raw.replace(/^#/, "");
+  const all = (await feed(userId, "for_you")).filter((p) => !p.sponsored_by);
+  const posts = all.filter((p) => (tagOnly ? p.tags.includes(term) : [p.title, p.caption, ...p.tags].some((t) => t.toLowerCase().includes(term))));
+  const creators = tagOnly ? [] : CREATORS.filter((c) => [c.name, c.handle, c.specialty, c.city].some((t) => t.toLowerCase().includes(term)));
+  const counts = new Map<string, number>();
+  for (const p of all) for (const t of p.tags) if (tagOnly ? t === term : t.includes(term)) counts.set(t, (counts.get(t) ?? 0) + 1);
+  const tags = [...counts].map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+  return { creators, posts, tags };
+}
+
+/** Discover's grid: photos and slides, with a clip every fifth tile (while clips last). Optionally one topic. */
+export async function discoverGrid(userId: string | null, topic?: string): Promise<FeedItem[]> {
+  const all = (await feed(userId, "for_you")).filter((p) => p.kind !== "poll" && !p.sponsored_by && (!topic || p.topic === topic));
+  const clips = all.filter((p) => p.kind === "video");
+  const rest = all.filter((p) => p.kind !== "video");
+  const out: FeedItem[] = [];
+  while (clips.length || rest.length) {
+    const slot = out.length % 5 === 4;
+    out.push((slot ? clips.shift() : rest.shift()) ?? (clips.shift() ?? rest.shift())!);
+  }
+  return out;
+}
+
+/** A creator's profile grid: their posts (no clips), their clips, or other people's posts that tag them. */
+export async function creatorPosts(userId: string | null, creatorId: string, tab: "posts" | "reels" | "tagged"): Promise<FeedItem[]> {
+  const all = (await feed(userId, "for_you")).filter((p) => !p.sponsored_by || p.author.id === creatorId);
+  if (tab === "tagged") {
+    const handle = creatorById(creatorId)?.handle;
+    return handle ? all.filter((p) => p.author.id !== creatorId && p.tags.includes(handle)) : [];
+  }
+  return all.filter((p) => p.author.id === creatorId && (tab === "reels" ? p.kind === "video" : p.kind !== "video"));
 }
 
 export async function getPost(userId: string | null, id: string, now = Date.now()): Promise<FeedItem | null> {
@@ -238,7 +386,7 @@ export async function toggleFollow(userId: string | null, dentistId: string) {
 export async function following(userId: string) {
   const m = load(userId);
   const authors = new Map(posts(Date.now()).map((p) => [p.author.id, p.author]));
-  return m.following.map((id) => authors.get(id) ?? { id, name: id, specialty: "", verified: false, kind: "dentist" as const });
+  return m.following.map((id) => authors.get(id) ?? creatorById(id)).filter((a): a is Author => !!a);
 }
 
 export async function vote(userId: string | null, postId: string, option: number) {
@@ -250,21 +398,40 @@ export async function vote(userId: string | null, postId: string, option: number
 
 /** A couple of earlier comments on the demo, so the thread isn't empty. */
 const DEMO_COMMENTS: Comment[] = [
-  { id: "c-1", post_id: "p-floss", author: "Ravi", mine: false, body: "Interdental brushes were much easier for me than floss.", at: "2026-11-08T09:00:00.000Z" },
-  { id: "c-2", post_id: "p-floss", author: "Dr. Aditi Sharma", mine: false, body: "Good choice. Whatever you'll use every day is the right one.", at: "2026-11-08T11:00:00.000Z" },
+  { id: "c-1", post_id: "p-floss", author: "Ravi", mine: false, body: "Interdental brushes were much easier for me than floss.", at: "2026-11-08T09:00:00.000Z", likes: 14 },
+  { id: "c-2", post_id: "p-floss", author: "Dr. Aditi Sharma", mine: false, body: "Good choice. Whatever you'll use every day is the right one.", at: "2026-11-08T11:00:00.000Z", parent_id: "c-1", likes: 22 },
 ];
 
-export async function comments(userId: string | null, postId: string) {
-  return [...DEMO_COMMENTS.filter((c) => c.post_id === postId), ...load(userId).comments.filter((c) => c.post_id === postId)];
+/** A post's comments: top-level ones oldest first, each with its replies (one level, like most chat threads). */
+export async function comments(userId: string | null, postId: string): Promise<CommentThread[]> {
+  const m = load(userId);
+  const all = [...DEMO_COMMENTS, ...m.comments]
+    .filter((c) => c.post_id === postId)
+    .map((c) => ({ ...c, likes: (c.likes ?? 0) + (m.commentLikes.includes(c.id) ? 1 : 0), liked: m.commentLikes.includes(c.id) }));
+  return all
+    .filter((c) => !c.parent_id)
+    .map((c) => ({ ...c, replies: all.filter((r) => r.parent_id === c.id) }));
 }
 
-export async function addComment(userId: string | null, name: string, postId: string, body: string) {
+/** Appreciate a comment (or take it back). Returns whether it's now appreciated. */
+export async function toggleCommentLike(userId: string | null, commentId: string) {
+  const u = needUser(userId);
+  const m = load(u);
+  const on = !m.commentLikes.includes(commentId);
+  save(u, { ...m, commentLikes: on ? [...m.commentLikes, commentId] : m.commentLikes.filter((x) => x !== commentId) });
+  return on;
+}
+
+export async function addComment(userId: string | null, name: string, postId: string, body: string, parentId?: string) {
   const u = needUser(userId);
   const text = body.trim();
   if (!text) throw new Error("Write something first.");
   if (text.length > 500) throw new Error("Keep comments under 500 characters.");
   const m = load(u);
-  save(u, { ...m, comments: [...m.comments, { id: newId("c"), post_id: postId, author: name, mine: true, body: text, at: iso(Date.now()) }] });
+  // a reply to a reply joins the top-level thread it belongs to
+  const parent = parentId ? [...DEMO_COMMENTS, ...m.comments].find((c) => c.id === parentId) : undefined;
+  const parent_id = parent ? (parent.parent_id ?? parent.id) : null;
+  save(u, { ...m, comments: [...m.comments, { id: newId("c"), post_id: postId, author: name, mine: true, body: text, at: iso(Date.now()), parent_id }] });
 }
 
 export async function deleteComment(userId: string | null, id: string) {
@@ -292,7 +459,9 @@ export type Draft = {
   body: string;
   topic: string;
   tags: string[];
-  media: { name: string; type: string; alt: string; captions: string | null } | null;
+  /** media library keys (sample/media.ts): photos for posts, a clip-* key for a clip */
+  media: string[];
+  treatment?: { name: string; duration?: string };
   source: { platform: string; url: string; credit: string } | null;
   poll: string[];
   is_case: boolean;
@@ -331,8 +500,9 @@ export function importPreview(url: string): { platform: string; url: string } | 
 export function checkDraft(d: Draft): string | null {
   if (!d.title.trim()) return "Give the post a title.";
   if (!d.body.trim()) return "Write the text of the post.";
-  if ((d.kind === "image" || d.kind === "video") && !d.media && !d.source) return "Add the image or video, or link to it.";
-  if (d.media && d.kind === "image" && !d.media.alt.trim()) return "Describe the image for people who can't see it (alt text).";
+  if (d.kind === "photo" && !d.media.length && !d.source) return "Pick a photo, or link to a post.";
+  if (d.kind === "carousel" && (d.media.length < 2 || d.media.length > 10)) return "A swipeable post needs at least 2 photos (up to 10).";
+  if (d.kind === "video" && !d.source && !d.media[0]?.startsWith("clip-")) return "Pick a clip, or link to a video.";
   if (d.kind === "poll" && (d.poll.filter((o) => o.trim()).length < 2 || d.poll.length > 4)) return "A poll needs 2 to 4 answers.";
   if (d.source && !d.source.credit.trim()) return "Credit the creator of the linked post.";
   if (d.is_case && !d.consent) return "Patient case posts need the patient's documented consent.";
@@ -343,12 +513,12 @@ export function checkDraft(d: Draft): string | null {
 
 export const newDraft = (): Draft => ({
   id: newId("draft"),
-  kind: "article",
+  kind: "slides",
   title: "",
   body: "",
   topic: "Prevention",
   tags: [],
-  media: null,
+  media: [],
   source: null,
   poll: ["", ""],
   is_case: false,
@@ -382,13 +552,17 @@ function published(userId: string | null, m: Mine, now: number): Post[] {
       kind: d.kind,
       topic: d.topic,
       title: d.title,
-      body: d.body,
-      author: { id: `me-${userId}`, name: "You", specialty: "", verified: true, kind: "dentist" as const },
+      caption: d.body,
+      tags: d.tags,
+      author: { id: `me-${userId}`, handle: "you", name: "You", specialty: "", city: "", verified: true, kind: "dentist" as const, bookable: false, clinicId: null },
       published_at: d.publish_at!,
+      media: d.media.map(media),
+      ...(d.treatment ? { treatment: d.treatment } : {}),
       ...(d.kind === "poll" ? { poll: d.poll.filter((o) => o.trim()) } : {}),
       ...(d.source ? { source: d.source } : {}),
       is_case: d.is_case,
       likes: 0,
+      talk: 0,
       demo: true as const,
     }));
 }
@@ -397,11 +571,11 @@ function published(userId: string | null, m: Mine, now: number): Post[] {
 const REJECTED: Draft = {
   ...newDraft(),
   id: "draft-rejected",
-  kind: "image",
+  kind: "photo",
   title: "Whitening before and after",
   body: "Two shades whiter after one session!",
   topic: "Cosmetic",
-  media: { name: "before-after.jpg", type: "image/jpeg", alt: "Before and after whitening", captions: null },
+  media: ["teeth-closeup"],
   is_case: false,
   owns: true,
   status: "rejected",

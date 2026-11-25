@@ -81,7 +81,10 @@ function ApptCard({ appt, isNow, onOpen }: { appt: Appointment; isNow: boolean; 
           {appt.viaFmd ? " · via FMD" : ""}
         </span>
       </span>
-      <Tag tone={tone}>{label}</Tag>
+      <span className="grid justify-items-end gap-1">
+        {appt.consultant && <Tag tone="accent">Hired consultant</Tag>}
+        <Tag tone={tone}>{label}</Tag>
+      </span>
     </button>
   );
 }
