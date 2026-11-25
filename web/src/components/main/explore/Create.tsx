@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowLeft, BadgeCheck, Bookmark, Briefcase, Lock, Plus, Stethoscope, UserRound, X, type LucideIcon } from "lucide-react";
-import Image from "next/image";
+import { ArrowLeft, Plus, X } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { Button, ButtonLink, Chips, IconButton, Panel, Tag, type Tone } from "@/components/app/kit";
 import { Field, fieldCls } from "@/components/app/Sheet";
 import { Notice } from "@/components/Page";
@@ -13,19 +13,55 @@ import { when } from "@/lib/format";
 import { useRequireMe } from "@/lib/me";
 import { following as listFollowing, myPosts, saveDraft, DEID_CHECKS, deleteDraft, importPreview, newDraft, toggleFollow, feed, type Author, type Draft, type DraftStatus, type FeedItem, type Kind } from "@/sample/content";
 import { getSaved } from "@/sample/saved";
-import { cardsFor, photoOf, type ProviderCard } from "@/sample/providers";
-import { initials } from "@/lib/fmd";
+import { cardsFor, type ProviderCard } from "@/sample/providers";
 import { cardsForJobs, type Job } from "@/sample/jobs";
-import { JobCard } from "../jobs/Jobs";
-import { coverOf, PostCard, Ring, Section } from "./Explore";
-import { PostGrid } from "../PostGrid";
+import { JobCard } from "../jobs/JobCard";
+import { DentistCard } from "../dentists/Search";
+import { PostCard, Section } from "./Explore";
+import { canCreate, fromMe, type Viewer } from "@/lib/viewer";
+import { useViewer } from "@/lib/useViewer";
+import { MEDIA } from "@/sample/media";
+import { addStory } from "@/sample/stories";
 
-const KINDS: [Kind, string][] = [
-  ["article", "Article"],
-  ["image", "Image"],
-  ["video", "Video"],
-  ["poll", "Poll"],
+const PHOTO_KEYS = Object.keys(MEDIA).filter((k) => MEDIA[k]!.src.startsWith("/media/feed/") || MEDIA[k]!.src.startsWith("/media/clinics/"));
+const CLIP_KEYS = Object.keys(MEDIA).filter((k) => k.startsWith("clip-"));
+const MOMENT_KEYS = Object.keys(MEDIA).filter((k) => k.startsWith("moment-"));
+
+const KINDS: [Kind | "moment", string, string][] = [
+  ["photo", "Photo", "One photo and a caption"],
+  ["carousel", "Swipe", "2 to 10 photos people swipe through"],
+  ["slides", "Slides", "Short notes on swipeable cards"],
+  ["video", "Clip", "A short vertical clip"],
+  ["poll", "Poll", "Ask a question, see the answers"],
+  ["moment", "Moment", "On your profile for 24 hours"],
 ];
+/** The creator profile a viewer posts moments as (only the demo clinic owner has one so far). */
+const momentCreator = (v: Viewer) => (v.kind === "clinic_owner" && v.clinicId ? v.clinicId : null);
+
+/** Pick from FMD's sample media library (stands in for uploading). */
+function MediaPicker({ keys, picked, max, onChange }: { keys: string[]; picked: string[]; max: number; onChange: (keys: string[]) => void }) {
+  return (
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+      {keys.map((k) => {
+        const m = MEDIA[k]!;
+        const n = picked.indexOf(k);
+        return (
+          <button
+            key={k}
+            type="button"
+            aria-pressed={n >= 0}
+            aria-label={m.alt}
+            onClick={() => onChange(n >= 0 ? picked.filter((x) => x !== k) : max === 1 ? [k] : picked.length < max ? [...picked, k] : picked)}
+            className={`relative overflow-hidden rounded-[14px] ${m.h > m.w ? "aspect-[9/16]" : "aspect-square"} ${n >= 0 ? "ring-[3px] ring-[var(--accent)]" : ""}`}
+          >
+            <Image src={m.src} alt="" fill sizes="160px" className="object-cover" />
+            {n >= 0 && <span className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-[var(--accent)] text-[12px] font-bold text-white">{max === 1 ? "\u2713" : n + 1}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 export const POST_STATUS: Record<DraftStatus, { label: string; tone: Tone }> = {
   draft: { label: "Draft", tone: "muted" },
   in_review: { label: "In review", tone: "accent" },
@@ -45,31 +81,47 @@ function Back() {
 /* ---------------- /explore/new ---------------- */
 
 export function NewPostPage() {
-  const me = useRequireMe();
+  const viewer = useViewer();
   const router = useRouter();
+  const params = useSearchParams();
   const [d, setD] = useState<Draft>(newDraft);
+  const [moment, setMoment] = useState(params.get("type") === "moment");
+  const [momentKey, setMomentKey] = useState<string[]>([]);
   const [link, setLink] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
   const [busy, setBusy] = useState(false);
-  if (!me) return <div className="app-panel h-64 animate-pulse" aria-busy />;
-  if (me.dentist_profile?.verification_status !== "verified")
+  if (viewer === undefined) return <div className="app-panel h-64 animate-pulse" aria-busy />;
+  if (!canCreate(viewer))
     return (
       <div className="mx-auto grid w-full max-w-[720px] gap-5">
         <Back />
         <Panel className="grid justify-items-start gap-3 p-6">
-          <h1 className="text-[19px] font-medium text-ink">Posting is for verified dentists</h1>
-          <p className="text-[14.5px] text-ink-2">Once FMD has checked your registration, you can share posts in Explore. Company posts open once FMD verifies the company.</p>
-          <ButtonLink href="/account/dentist">Your dentist profile</ButtonLink>
+          <h1 className="text-[19px] font-medium text-ink">{viewer ? "Posting is for dentists, clinics and students" : "Log in to post"}</h1>
+          <p className="text-[14.5px] text-ink-2">
+            {viewer
+              ? "Explore is where verified dentists, clinics and dental students share what they know. You can still appreciate, keep and talk about any post."
+              : "Dentists, clinics and dental students can share posts, clips and moments."}
+          </p>
+          {viewer ? <ButtonLink href="/explore">Back to Explore</ButtonLink> : <ButtonLink href="/login?next=/explore/new">Log in</ButtonLink>}
         </Panel>
       </div>
     );
+  const me = viewer!;
+  const asCreator = momentCreator(me);
+  const shareMoment = async () => {
+    setErr(null);
+    if (!asCreator) return setErr("Moments open once your Explore profile is set up.");
+    if (!momentKey[0]) return setErr("Pick a photo for your moment.");
+    await addStory(me.id, asCreator, momentKey[0], d.body);
+    router.push("/explore");
+  };
 
   const edit = (patch: Partial<Draft>) => (setErr(null), setD((x) => ({ ...x, ...patch })));
   const doImport = () => {
     const r = importPreview(link);
     if ("error" in r) return setErr(r.error);
-    edit({ source: { platform: r.platform, url: r.url, credit: "" }, media: null });
+    edit({ source: { platform: r.platform, url: r.url, credit: "" }, media: [] });
   };
   const go = async (submit: boolean) => {
     setBusy(true);
@@ -88,8 +140,13 @@ export function NewPostPage() {
     kind: d.kind,
     topic: d.topic,
     title: d.title || "Your title",
-    body: d.body || "Your text",
-    author: { id: me.id, name: "You (preview)", specialty: me.dentist_profile.specialisation ?? "", verified: true, kind: "dentist" },
+    caption: d.body || "Your text",
+    tags: d.tags,
+    media: d.media.map((k) => MEDIA[k]!).filter(Boolean),
+    ...(d.treatment?.name ? { treatment: d.treatment } : {}),
+    ...(d.kind === "slides" ? { slides: [{ kicker: "Your notes", text: d.title || "Your title", tone: "accent" as const }, { text: d.body || "Your text", tone: "paper" as const }] } : {}),
+    talk: 0,
+    author: { id: me.id, handle: "you", name: `${me.name} (preview)`, specialty: "", city: "", verified: true, kind: me.kind === "student" ? "student" : me.kind === "clinic_owner" ? "clinic" : "dentist", bookable: false, clinicId: null },
     published_at: new Date(0).toISOString(),
     ...(d.kind === "poll" ? { poll: d.poll.filter((o) => o.trim()) } : {}),
     ...(d.source ? { source: d.source } : {}),
@@ -115,46 +172,58 @@ export function NewPostPage() {
 
       <Section title="1. What kind of post?">
         <div role="radiogroup" aria-label="Post type" className="flex flex-wrap gap-2">
-          {KINDS.map(([k, label]) => (
-            <label
-              key={k}
-              className={`cursor-pointer rounded-full border px-4 py-2 text-[14px] has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-[var(--accent)] ${d.kind === k ? "border-[var(--accent)] bg-[var(--accent-soft)] text-ink" : "border-line text-ink-2"}`}
-            >
-              <input type="radio" name="kind" className="sr-only" checked={d.kind === k} onChange={() => edit({ kind: k })} />
-              {label}
-            </label>
-          ))}
+          {KINDS.map(([k, label, hint]) => {
+            const on = k === "moment" ? moment : !moment && d.kind === k;
+            return (
+              <label
+                key={k}
+                className={`grid cursor-pointer gap-0.5 rounded-[16px] border px-4 py-3 text-[14px] has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-[var(--accent)] ${on ? "border-[var(--accent)] bg-[var(--accent-soft)] text-ink" : "border-line text-ink-2"}`}
+              >
+                <input
+                  type="radio"
+                  name="kind"
+                  className="sr-only"
+                  checked={on}
+                  onChange={() => {
+                    if (k === "moment") return setMoment(true);
+                    setMoment(false);
+                    edit({ kind: k, media: [] });
+                  }}
+                />
+                <span className="font-bold">{label}</span>
+                <span className="text-[12.5px] text-ink-3">{hint}</span>
+              </label>
+            );
+          })}
         </div>
       </Section>
 
-      {(d.kind === "image" || d.kind === "video") && (
-        <Section title="2. The image or video">
-          <label className="w-fit cursor-pointer rounded-full border border-line px-4 py-2 text-[13.5px] font-semibold text-ink hover:border-line-strong has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-[var(--accent)]">
-            {d.media ? `Replace ${d.media.name}` : `Upload ${d.kind === "image" ? "an image" : "a video"}`}
-            <input
-              type="file"
-              accept={d.kind === "image" ? "image/jpeg,image/png,image/webp" : "video/mp4,video/webm"}
-              className="sr-only"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) edit({ media: { name: f.name, type: f.type, alt: "", captions: null }, source: null });
-              }}
-            />
-          </label>
-          {d.media && d.kind === "image" && (
-            <Field label="Describe the image (alt text)" hint="For people who use screen readers. Required.">
-              <input className={fieldCls} value={d.media.alt} onChange={(e) => edit({ media: { ...d.media!, alt: e.target.value } })} maxLength={200} />
-            </Field>
+      {moment && (
+        <Section title="2. Your moment">
+          {asCreator ? (
+            <>
+              <MediaPicker keys={MOMENT_KEYS} picked={momentKey} max={1} onChange={setMomentKey} />
+              <Field label="A line on it (optional)">
+                <input className={fieldCls} value={d.body} onChange={(e) => edit({ body: e.target.value })} maxLength={120} />
+              </Field>
+              {err && <Notice kind="error">{err}</Notice>}
+              <div>
+                <Button onClick={shareMoment}>Share moment</Button>
+              </div>
+            </>
+          ) : (
+            <p className="text-[14.5px] text-ink-2">Moments open once your Explore profile is set up. Posts, clips and polls work now.</p>
           )}
-          {d.media && d.kind === "video" && (
-            <label className="w-fit cursor-pointer rounded-full border border-line px-4 py-2 text-[13.5px] text-ink-2 hover:border-line-strong">
-              {d.media.captions ? `Captions: ${d.media.captions}` : "Add captions (.vtt or .srt), recommended"}
-              <input type="file" accept=".vtt,.srt" className="sr-only" onChange={(e) => e.target.files?.[0] && edit({ media: { ...d.media!, captions: e.target.files[0].name } })} />
-            </label>
-          )}
+        </Section>
+      )}
+
+      {!moment && (d.kind === "photo" || d.kind === "carousel" || d.kind === "video") && (
+        <Section title={`2. ${d.kind === "video" ? "Your clip" : d.kind === "carousel" ? "Your photos (in order)" : "Your photo"}`}>
+          <p className="text-[13.5px] text-ink-3">In this preview you pick from FMD&apos;s sample photos instead of uploading.</p>
+          <MediaPicker keys={d.kind === "video" ? CLIP_KEYS : PHOTO_KEYS} picked={d.media} max={d.kind === "carousel" ? 10 : 1} onChange={(media) => edit({ media, source: null })} />
           <p className="text-[13.5px] text-ink-3">Or link to your post on YouTube, Instagram or LinkedIn. FMD links to it and credits the creator; it doesn&apos;t copy it.</p>
           <div className="flex flex-wrap gap-2">
-            <input className={`${fieldCls} min-w-0 flex-1`} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://youtu.be/…" aria-label="Link to the original post" />
+            <input className={`${fieldCls} min-w-0 flex-1`} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://youtu.be/..." aria-label="Link to the original post" />
             <Button variant="secondary" onClick={doImport}>
               Link it
             </Button>
@@ -169,10 +238,16 @@ export function NewPostPage() {
               </Field>
             </div>
           )}
+          <Field label="Treatment shown (optional)" hint="Shows as a chip on the photo, e.g. Clear aligners, 9 months.">
+            <div className="flex flex-wrap gap-2">
+              <input className={`${fieldCls} min-w-0 flex-1`} placeholder="Treatment" value={d.treatment?.name ?? ""} onChange={(e) => edit({ treatment: e.target.value ? { name: e.target.value, duration: d.treatment?.duration } : undefined })} maxLength={40} />
+              <input className={`${fieldCls} w-40`} placeholder="How long" value={d.treatment?.duration ?? ""} onChange={(e) => edit({ treatment: d.treatment ? { ...d.treatment, duration: e.target.value || undefined } : undefined })} maxLength={20} aria-label="How long the treatment took" />
+            </div>
+          </Field>
         </Section>
       )}
 
-      <Section title={`${d.kind === "image" || d.kind === "video" ? 3 : 2}. Words and tags`}>
+      <Section title={`${d.kind === "poll" || d.kind === "slides" ? 2 : 3}. Words and tags`}>
         <Field label="Title">
           <input className={fieldCls} value={d.title} onChange={(e) => edit({ title: e.target.value })} maxLength={120} />
         </Field>
@@ -260,7 +335,7 @@ export function NewPostPage() {
         </Field>
       </Section>
 
-      {preview && <PostCard p={previewItem} userId={null} onChange={() => undefined} full />}
+      {preview && <PostCard p={previewItem} viewer={null} onChange={() => undefined} full />}
       {err && <Notice kind="error">{err}</Notice>}
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => go(true)} disabled={busy}>
@@ -333,22 +408,11 @@ export function MyPostsPage() {
   );
 }
 
-/* ---------------- /saved: Instagram's Saved, collections first ---------------- */
-
-type SavedTab = "posts" | "dentists" | "jobs" | "following";
-
-/** one square of a collection's 2×2 cover */
-function Thumb({ photo, cover, children }: { photo?: string | null; cover?: string; children?: ReactNode }) {
-  return (
-    <span className={`relative grid place-items-center overflow-hidden bg-gradient-to-br ${cover ?? "from-white/[0.06] via-white/[0.03]"} to-[var(--surface-elevated)] text-ink-3`}>
-      {photo ? <Image src={photo} alt="" fill sizes="120px" className="object-cover object-[center_20%]" /> : children}
-    </span>
-  );
-}
+/* ---------------- /saved ---------------- */
 
 export function SavedPage() {
   const me = useRequireMe();
-  const [tab, setTab] = useState<SavedTab>("posts");
+  const [tab, setTab] = useState<"posts" | "dentists" | "jobs" | "following">("posts");
   const [posts, setPosts] = useState<FeedItem[]>([]);
   const [dentists, setDentists] = useState<ProviderCard[]>([]);
   const [follows, setFollows] = useState<Author[]>([]);
@@ -365,179 +429,91 @@ export function SavedPage() {
   }, [userId]);
   useEffect(load, [load]);
   if (!me) return <div className="app-panel h-48 animate-pulse" aria-busy />;
-
-  // each collection: its name, count and four squares for its cover
-  const empty = (n: number) => Array.from({ length: Math.max(0, 4 - n) }, (_, i) => <Thumb key={`e${i}`} />);
-  const collections: [SavedTab, string, number, ReactNode[]][] = [
-    [
-      "posts",
-      "Posts",
-      posts.length,
-      [
-        ...posts.slice(0, 4).map((p) => (
-          <Thumb key={p.id} cover={coverOf(p.topic)}>
-            <span className="line-clamp-3 px-1.5 text-center text-[9.5px] font-semibold leading-tight text-ink">{p.title}</span>
-          </Thumb>
-        )),
-        ...empty(posts.length),
-      ],
-    ],
-    ["dentists", "Dentists", dentists.length, [...dentists.slice(0, 4).map((d) => <Thumb key={d.id} photo={d.photo || null} />), ...empty(dentists.length)]],
-    [
-      "jobs",
-      "Jobs",
-      jobs.length,
-      [
-        ...jobs.slice(0, 4).map((j) => (
-          <Thumb key={j.id} cover={coverOf(j.title)}>
-            <Briefcase className="size-5 text-ink-2" strokeWidth={1.5} />
-          </Thumb>
-        )),
-        ...empty(jobs.length),
-      ],
-    ],
-    ["following", "Following", follows.length, [...follows.slice(0, 4).map((a) => <Thumb key={a.id} photo={photoOf(a.id)} />), ...empty(follows.length)]],
+  const tabs: [typeof tab, string][] = [
+    ["posts", `Posts (${posts.length})`],
+    ["dentists", `Dentists (${dentists.length})`],
+    ["jobs", `Jobs (${jobs.length})`],
+    ["following", `Following (${follows.length})`],
   ];
-
   return (
-    <div className="mx-auto grid w-full max-w-[935px] gap-6">
-      <div className="flex items-center gap-2">
-        <Link href="/account" aria-label="Back to your profile" title="Your profile" className="-ml-2 grid size-10 place-items-center rounded-full text-ink hover:bg-[var(--surface-glass)]">
-          <ArrowLeft className="size-5" strokeWidth={1.75} />
-        </Link>
-        <h1 className="flex items-center gap-3 text-[22px] font-semibold text-ink">
-          Saved <Tag tone="muted">Demo</Tag>
-        </h1>
-      </div>
-      <p className="-mt-3 flex items-center gap-1.5 text-[13.5px] text-ink-3">
-        <Lock className="size-3.5" strokeWidth={1.75} /> Only you can see what you&apos;ve saved.
-      </p>
-
-      {/* collections, each a 2×2 cover */}
-      <div role="tablist" aria-label="Saved" className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-        {collections.map(([t, label, n, squares]) => (
-          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className="group grid gap-2 text-left">
-            <span
-              className={`grid aspect-square grid-cols-2 grid-rows-2 gap-px overflow-hidden rounded-xl bg-[var(--border)] transition-[box-shadow,transform] duration-300 group-hover:-translate-y-0.5 ${
-                tab === t ? "ring-2 ring-sky-400 ring-offset-2 ring-offset-[var(--background)]" : ""
-              }`}
-            >
-              {squares}
-            </span>
-            <span className="flex items-baseline justify-between gap-2 px-0.5">
-              <span className={`text-[15px] font-semibold ${tab === t ? "text-ink" : "text-ink-2"}`}>{label}</span>
-              <span className="text-[13px] text-ink-3">{n}</span>
-            </span>
+    <div className="grid gap-5">
+      <h1 className="flex flex-wrap items-center gap-3 text-[24px] font-medium text-ink">
+        Saved <Tag tone="muted">Demo</Tag>
+      </h1>
+      <div role="tablist" aria-label="Saved" className="flex w-fit flex-wrap gap-1 rounded-full border border-line bg-[var(--surface-glass)] p-1">
+        {tabs.map(([t, label]) => (
+          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`h-9 rounded-full px-4 text-[13.5px] font-medium ${tab === t ? "bg-[var(--accent-soft)] text-ink" : "text-ink-3 hover:text-ink"}`}>
+            {label}
           </button>
         ))}
       </div>
-
-      <div key={tab} role="tabpanel" className="fmd-enter grid gap-4 border-t border-line pt-5">
-        {tab === "posts" &&
-          (posts.length ? (
-            <PostGrid posts={posts} />
-          ) : (
-            <Empty icon={Bookmark} title="Save posts" text="Posts you save in Explore appear here." href="/explore" cta="Go to Explore" />
-          ))}
-
-        {tab === "dentists" &&
-          (dentists.length ? (
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {dentists.map((d) => (
-                <li key={d.id}>
-                  <Link href={`/dentists/${d.id}`} className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-[var(--surface-elevated)]">
-                    {d.photo ? (
-                      <Image src={d.photo} alt={`${d.name} (demo profile)`} fill sizes="(min-width: 640px) 300px, 50vw" className="object-cover object-[center_20%] transition-transform duration-500 group-hover:scale-105" />
-                    ) : (
-                      <span className="grid size-full place-items-center text-[32px] font-light text-ink-3">{d.name.replace(/^Dr\.?\s*/, "").split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
-                    )}
-                    <span className="absolute inset-x-0 bottom-0 grid gap-0.5 bg-gradient-to-t from-black/85 via-black/50 to-transparent p-3 pt-10 text-white">
-                      <span className="flex items-center gap-1 truncate text-[14.5px] font-semibold">
-                        {d.name}
-                        {d.verification.status === "verified" && <BadgeCheck className="size-4 shrink-0 text-sky-400" strokeWidth={2} aria-label="Verified" />}
-                      </span>
-                      <span className="truncate text-[12.5px] text-white/80">
-                        {d.specialty} · {d.clinic.area}
-                      </span>
-                    </span>
+      {tab === "posts" &&
+        (posts.length ? (
+          <ul className="mx-auto grid w-full max-w-[720px] gap-5">
+            {posts.map((p) => (
+              <li key={p.id}>
+                <PostCard p={p} viewer={fromMe(me)} onChange={load} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Empty text="Posts you save in Explore appear here." href="/explore" cta="Go to Explore" />
+        ))}
+      {tab === "dentists" &&
+        (dentists.length ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {dentists.map((d) => (
+              <DentistCard key={d.id} p={d} />
+            ))}
+          </div>
+        ) : (
+          <Empty text="Dentists you save from their profiles appear here." href="/dentists" cta="Find a dentist" />
+        ))}
+      {tab === "jobs" &&
+        (jobs.length ? (
+          <ul className="grid gap-3 lg:grid-cols-2">
+            {jobs.map((j) => (
+              <li key={j.id}>
+                <JobCard j={j} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Empty text="Jobs you save appear here." href="/jobs" cta="Dental jobs" />
+        ))}
+      {tab === "following" &&
+        (follows.length ? (
+          <Panel className="overflow-hidden">
+            <ul className="divide-y divide-[var(--border)]">
+              {follows.map((a) => (
+                <li key={a.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
+                  <Link href={`/dentists/${a.id}`} className="min-w-0 flex-1">
+                    <span className="block text-[14.5px] font-medium text-ink">{a.name}</span>
+                    <span className="block text-[13px] text-ink-3">{a.specialty}</span>
                   </Link>
+                  <Button variant="secondary" size="sm" onClick={() => toggleFollow(me.id, a.id).then(load)} aria-label={`Unfollow ${a.name}`}>
+                    Unfollow
+                  </Button>
                 </li>
               ))}
             </ul>
-          ) : (
-            <Empty icon={Stethoscope} title="Save dentists" text="Dentists you save from their profiles appear here." href="/dentists" cta="Find a dentist" />
-          ))}
-
-        {tab === "jobs" &&
-          (jobs.length ? (
-            <ul className="grid gap-3 lg:grid-cols-2">
-              {jobs.map((j) => (
-                <li key={j.id}>
-                  <JobCard j={j} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Empty icon={Briefcase} title="Save jobs" text="Jobs you save appear here." href="/jobs" cta="Dental jobs" />
-          ))}
-
-        {tab === "following" &&
-          (follows.length ? (
-            <ul className="mx-auto grid w-full max-w-[560px] gap-1">
-              {follows.map((a) => {
-                const photo = photoOf(a.id);
-                return (
-                  <li key={a.id} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-[var(--surface-glass)]">
-                    <Link href={`/dentists/${a.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-                      <Ring>
-                        {photo ? (
-                          <span className="relative block size-11 overflow-hidden rounded-full">
-                            <Image src={photo} alt="" fill sizes="44px" className="object-cover object-[center_20%]" />
-                          </span>
-                        ) : (
-                          <span className="grid size-11 place-items-center rounded-full bg-[var(--surface-elevated)] text-[13px] font-semibold text-ink">{initials(a.name)}</span>
-                        )}
-                      </Ring>
-                      <span className="min-w-0 leading-tight">
-                        <span className="block truncate text-[14.5px] font-semibold text-ink">{a.name}</span>
-                        <span className="block truncate text-[13px] text-ink-3">{a.specialty}</span>
-                      </span>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => toggleFollow(me.id, a.id).then(load)}
-                      aria-label={`Unfollow ${a.name}`}
-                      className="group/btn h-9 rounded-lg bg-white/[0.08] px-4 text-[13.5px] font-semibold text-ink hover:bg-white/[0.12]"
-                    >
-                      <span className="group-hover/btn:hidden">Following</span>
-                      <span className="hidden group-hover/btn:inline">Unfollow</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <Empty icon={UserRound} title="Follow dentists" text="Follow dentists from their posts in Explore." href="/explore" cta="Go to Explore" />
-          ))}
-      </div>
+          </Panel>
+        ) : (
+          <Empty text="Follow dentists from their posts in Explore." href="/explore" cta="Go to Explore" />
+        ))}
     </div>
   );
 }
 
-/** an empty collection, Instagram style: a big outlined icon, a heading, a line, a link */
-function Empty({ icon: Icon, title, text, href, cta }: { icon: LucideIcon; title: string; text: string; href?: string; cta?: string }) {
+function Empty({ text, href, cta }: { text: string; href?: string; cta?: string }) {
   return (
-    <div className="grid justify-items-center gap-3 py-12 text-center">
-      <span className="grid size-16 place-items-center rounded-3xl bg-sky-500/15 text-sky-300">
-        <Icon className="size-7" strokeWidth={1.5} />
-      </span>
-      <p className="text-[20px] font-semibold text-ink">{title}</p>
-      <p className="max-w-[36ch] text-[14px] text-ink-3">{text}</p>
+    <Panel className="grid justify-items-start gap-3 p-6">
+      <p className="text-[15px] text-ink-2">{text}</p>
       {href && cta && (
-        <Link href={href} className="text-[14px] font-semibold text-sky-400 hover:text-sky-300">
+        <ButtonLink href={href} variant="secondary">
           {cta}
-        </Link>
+        </ButtonLink>
       )}
-    </div>
+    </Panel>
   );
 }

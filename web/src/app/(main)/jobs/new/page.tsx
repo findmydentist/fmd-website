@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { NewJobPage } from "@/components/main/jobs/Jobs";
+import { NewJobPage } from "@/components/main/jobs/Employer";
 
 export const metadata: Metadata = { title: "Post a job · FMD", robots: { index: false, follow: false } };
 

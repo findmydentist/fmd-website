@@ -12,6 +12,8 @@ import { SHOW_ACCOUNT } from "@/toggle";
 import { AccountMenu } from "./AccountMenu";
 import { MobileMenu } from "./MobileMenu";
 import { NotificationsBell } from "./help/Support";
+import { Chats } from "./explore/icons";
+import { useUnreadChats } from "./messages/Messages";
 
 /**
  * The FMD Main app frame for every page except the homepage: a top bar on laptops, a tab bar on phones. A link whose
@@ -109,7 +111,7 @@ export function TabBar({ signedInOnly = false }: { signedInOnly?: boolean }) {
       className="app-panel app-solid fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 rounded-b-none border-x-0 border-b-0 px-1 pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       {TABS.map(({ href, label, Icon, ready }) => {
-        // the most specific tab wins: on /explore/messages that's Messages, not Explore; Home is on only at /
+        // the most specific tab wins: on /explore/new that's Explore; Home is on only at /
         const on = href === "/" ? path === "/" : TABS.filter((x) => isOn(path, x.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href === href;
         const inner = (
           <>
@@ -171,6 +173,7 @@ export function MainShell({ children }: { children: ReactNode }) {
           {/* desktop: profile, notifications and the account menu; phones and tablets: one ☰ that opens a sidebar */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
             {SHOW_ACCOUNT && <ProfileButton />}
+            {SHOW_ACCOUNT && <ChatsLink />}
             {SHOW_ACCOUNT && <NotificationsBell />}
             {SHOW_ACCOUNT && <AccountMenu />}
           </div>
@@ -190,5 +193,22 @@ export function MainShell({ children }: { children: ReactNode }) {
 
       {SHOW_ACCOUNT && <TabBar />}
     </div>
+  );
+}
+
+/** Chats, with a badge for how many have something new. */
+function ChatsLink() {
+  const n = useUnreadChats();
+  const on = usePathname().startsWith("/messages");
+  return (
+    <Link
+      href="/messages"
+      aria-label={n ? `Chats, ${n} with new messages` : "Chats"}
+      aria-current={on ? "page" : undefined}
+      className="relative grid size-10 shrink-0 place-items-center rounded-full border border-line bg-[var(--surface-glass)] text-ink-2 transition-colors hover:text-ink"
+    >
+      <Chats size={19} />
+      {n > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-w-[18px] place-items-center rounded-full bg-[var(--accent)] px-1 text-[10.5px] font-bold leading-[18px] text-white">{n}</span>}
+    </Link>
   );
 }

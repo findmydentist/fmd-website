@@ -15,9 +15,9 @@ export function PostGrid({ posts, square = false }: { posts: FeedItem[]; square?
         {posts.map((x) => (
           <li key={x.id}>
             <Link href={`/explore/${x.id}`} className={`group relative grid aspect-square content-center justify-items-center gap-2 overflow-hidden bg-gradient-to-br ${coverOf(x.topic)} to-transparent p-2 text-center sm:p-4`}>
-              {x.media && x.kind === "image" && (
+              {x.media[0] && x.media[0].kind === "photo" && (
                 <span className="relative block h-10 w-14 overflow-hidden rounded-md sm:h-16 sm:w-20">
-                  <Image src={x.media.src} alt="" fill sizes="80px" className="object-cover" />
+                  <Image src={x.media[0].src} alt="" fill sizes="80px" className="object-cover" />
                 </span>
               )}
               <span className="line-clamp-3 text-[11.5px] font-semibold leading-tight text-ink sm:text-[15px]">{x.title}</span>
@@ -41,9 +41,9 @@ export function PostGrid({ posts, square = false }: { posts: FeedItem[]; square?
       {posts.map((x) => (
         <li key={x.id}>
           <Link href={`/explore/${x.id}`} className={`group relative grid aspect-[4/5] content-end gap-2 overflow-hidden rounded-2xl border border-line bg-gradient-to-tr ${coverOf(x.topic)} to-transparent p-3 sm:p-4`}>
-            {x.media && x.kind === "image" && (
+            {x.media[0] && x.media[0].kind === "photo" && (
               <span className="relative block h-12 w-16 overflow-hidden rounded-lg sm:h-16 sm:w-20">
-                <Image src={x.media.src} alt="" fill sizes="80px" className="object-cover" />
+                <Image src={x.media[0].src} alt="" fill sizes="80px" className="object-cover" />
               </span>
             )}
             <span className="line-clamp-3 text-[13px] font-semibold leading-tight text-ink sm:text-[15px]">{x.title}</span>
@@ -71,7 +71,7 @@ export function ReelGrid({ posts }: { posts: FeedItem[] }) {
       {posts.map((x) => (
         <li key={x.id}>
           <Link href={`/explore/${x.id}`} className={`group relative grid aspect-[9/16] content-end overflow-hidden bg-gradient-to-b ${coverOf(x.topic)} to-black/60 p-2.5 sm:p-3.5`}>
-            {x.media?.poster && <Image src={x.media.poster} alt="" fill sizes="(min-width: 640px) 240px, 33vw" className="object-cover" />}
+            {x.media[0]?.poster && <Image src={x.media[0].poster} alt="" fill sizes="(min-width: 640px) 240px, 33vw" className="object-cover" />}
             <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
             <SquarePlay aria-hidden className="absolute right-2.5 top-2.5 size-5 text-white drop-shadow" strokeWidth={1.75} />
             <span className="relative line-clamp-3 text-[12px] font-semibold leading-tight text-white sm:text-[14.5px]">{x.title}</span>

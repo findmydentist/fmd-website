@@ -119,6 +119,15 @@ Assets: `public/img/hero/earth-4320.webp` and `mascot.webp` were cut from `Refre
 | Support | `/help`, `/admin/support` | Searchable help, tickets with attachments, staff triage, reopen window |
 | Staff | `/admin/verification`, `/admin/moderation`, `/admin/clinics` | Claim verification records *what was checked*; clinic activation needs evidence |
 
+#### Explore, Chats and Jobs (sample data)
+
+- **Explore** (`/explore`): Moments (portrait updates for 24 hours), a feed of photos, swipeable posts, note slides, clips and polls, with Appreciate, Talk (comments with replies), Pass on, Keep and Ask FMD AI. Also Clips (`/explore/reels`), Discover search and topic grid (`/explore/search`), profiles (`/explore/u/<handle>`, your own at `/explore/u/me`) and Create (`/explore/new`). Dentists, clinics and students post; patients watch and take part.
+- **Chats** (`/messages`): one inbox for Explore and Jobs. Patient-to-dentist chats carry a "not medical advice" note.
+- **Jobs** (`/jobs`): two separate spaces, Dentist roles (`/jobs/dentists`, verified dentists only) and Clinic team (`/jobs/team`). Apply inside FMD with one career profile (`/account/career`) and track it (`/jobs/applications`). Employers post (`/jobs/new`), see their listings (`/jobs/mine`) and shortlist applicants (`/jobs/mine/<id>`).
+- **Sample data only:** posts, moments, chats, jobs and applications live in the browser (`web/src/sample/*`), shaped like the future API. Photos are free-licence (CC0 or public domain) from Wikimedia Commons, saved in `web/public/media` by `node scripts/fetch-media.mjs`; add more there.
+
+**Themes:** Dark (default) and Light ("calm and bright": off-white, white cards, one royal blue) for the apps, switched from the top bar. The landing page is designed for the dark look and always shows it.
+
 ### FMD Clinic OS and Clinic AI manager (Milestone 3)
 Routes under `/clinic/[clinicId]/…`: dashboard, calendar, patients (+ record), billing, inventory, tasks & handover, AI manager, reports, team, settings.
 

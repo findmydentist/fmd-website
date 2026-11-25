@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canPostJobs, checkJob, cleanApply, closeJob, getJob, jobState, myJobs, postJob, renewJob, reportJob, ROLES, roleGroup, searchJobs, type JobInput, type Role } from "./jobs.ts";
+import { write } from "./store.ts";
+import { checkJob, clinicJobs, closeJob, DENTIST_ROLES, getJob, jobState, myJobs, postJob, renewJob, reportJob, searchJobs, spaceCounts, TEAM_ROLES, type JobInput } from "./jobs.ts";
 
 const NOW = Date.parse("2026-11-10T11:00:00+05:30");
-const input: JobInput = { title: "Associate dentist", role: "associate", type: "full_time", employer: "Smile Studio", city: "Bengaluru", area: "Indiranagar", description: "General practice, 5 days a week, with mentoring.", requirements: "BDS\nRegistered", min_years: 1, salary: { min: 40000, max: 60000 }, apply: { method: "phone", value: "98765 43210" } };
+const input: JobInput = { title: "Associate dentist", role: "associate", type: "full_time", employer: "Smile Studio", city: "Bengaluru", area: "Indiranagar", description: "General practice, 5 days a week, with mentoring.", requirements: "BDS\nRegistered", min_years: 1, salary: { min: 40000, max: 60000 }, qualification: "BDS" };
 
 test("search: filters, newest first, expired listings never shown", async () => {
   const all = await searchJobs(null, {}, NOW);
@@ -15,14 +16,36 @@ test("search: filters, newest first, expired listings never shown", async () => 
   assert.equal(jobState((await getJob(null, "job-expired", NOW))!, NOW), "expired");
 });
 
-test("posting rules: who, what, and how to apply", () => {
-  assert.equal(canPostJobs({ dentist_profile: null, workspaces: [] }, "patient"), false);
-  assert.equal(canPostJobs({ dentist_profile: { verification_status: "verified" }, workspaces: [] }, null), true);
-  assert.equal(canPostJobs({ dentist_profile: null, workspaces: [{ role: "owner" }] }, null), true);
+test("posting rules", () => {
   assert.equal(checkJob(input), null);
   assert.match(checkJob({ ...input, salary: { min: 9, max: 1 } })!, /lowest first/);
-  assert.match(cleanApply({ method: "url", value: "http://x.example/jobs" }) as string, /https/);
-  assert.deepEqual(cleanApply({ method: "phone", value: "098765 43210" }), { method: "phone", value: "+919876543210" });
+  assert.match(checkJob({ ...input, title: "x" })!, /title/);
+});
+
+test("spaces never mix", async () => {
+  const dentist = (await searchJobs(null, { space: "dentist" }, NOW)).items;
+  const team = (await searchJobs(null, { space: "team" }, NOW)).items;
+  assert.ok(dentist.length >= 6 && team.length >= 6);
+  assert.ok(dentist.every((j) => j.role in DENTIST_ROLES && j.space === "dentist"));
+  assert.ok(team.every((j) => j.role in TEAM_ROLES && j.space === "team"));
+  assert.deepEqual(await spaceCounts(NOW), { dentist: dentist.length, team: team.length });
+});
+
+test("companies can post in either space", async () => {
+  const a = await postJob("demo-company", { ...input, role: "educator", employer: "Demo Aligner Brand" }, null, NOW, { kind: "company", clinicId: null });
+  assert.equal(a.space, "dentist");
+  const b = await postJob("demo-company", { ...input, role: "other", title: "Sales coordinator", employer: "Demo Aligner Brand" }, null, NOW, { kind: "company", clinicId: null });
+  assert.equal(b.space, "team");
+  assert.equal(b.posted_by, "demo-company");
+  assert.equal(b.employer.kind, "company");
+});
+
+test("employer details", async () => {
+  for (const j of (await searchJobs(null, {}, NOW)).items.filter((x) => !x.posted_by)) {
+    assert.ok(j.employer.logo, `${j.id} has no logo`);
+    if (j.employer.kind !== "dentist") assert.ok(j.employer.photos.length >= 3, `${j.id} needs 3 photos`);
+    assert.ok(j.day_to_day.length >= 2, `${j.id} day to day`);
+  }
 });
 
 test("a new posting is never shown as FMD-checked; edit, close, renew", async () => {
@@ -44,10 +67,14 @@ test("reporting a job", async () => {
   await assert.rejects(reportJob("j2", "job-intern-ady", "fake", ""), /already/);
 });
 
-test("every role falls in one of the two tabs, and both tabs have demo jobs", async () => {
-  assert.equal(roleGroup("associate"), "dentist");
-  assert.equal(roleGroup("front_desk"), "staff");
-  const { items } = await searchJobs(null, {});
-  for (const g of ["dentist", "staff"]) assert.ok(items.filter((j) => roleGroup(j.role) === g).length >= 8, g);
-  assert.ok((Object.keys(ROLES) as Role[]).every((r) => ["dentist", "staff"].includes(roleGroup(r))));
+test("a clinic's listings include ones its owner posted and ones that expired", async () => {
+  const j = await postJob("demo-owner", { ...input, title: "Weekend associate" }, null, NOW, { kind: "clinic", clinicId: "smile-studio" });
+  const ids = (await clinicJobs("smile-studio", NOW)).map((x) => x.id);
+  assert.ok(ids.includes(j.id) && ids.includes("job-assoc-smile"));
+  assert.ok((await clinicJobs("kor", NOW)).some((x) => x.id === "job-expired"));
+});
+
+test("listings saved by an older version are ignored, not a crash", async () => {
+  write("fmd-demo:jobs:old-user", [{ id: "job-old", title: "Old", employer: { name: "X" }, status: "active" }]);
+  assert.deepEqual(await myJobs("old-user"), []);
 });

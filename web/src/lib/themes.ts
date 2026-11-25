@@ -23,7 +23,7 @@ export const THEMES: Theme[] = [
   { id: "obsidian-gold", name: "Obsidian Gold", mood: "Luxury healthcare", dark: true, swatch: ["#060605", "#dcc28d"] },
   { id: "pearl-light", name: "Pearl Light", mood: "Clean clinical", dark: false, swatch: ["#f3f1ed", "#2b2e33"] },
   { id: "silver-light", name: "Silver Light", mood: "Minimal professional", dark: false, swatch: ["#e6e9ed", "#4a5562"] },
-  { id: "white-royal", name: "White + Royal Blue", mood: "Modern medical technology", dark: false, swatch: ["#ffffff", "#1e4fd6"] },
+  { id: "white-royal", name: "White + Royal Blue", mood: "Calm and bright", dark: false, swatch: ["#f5f5f7", "#0a3fd1"] },
 ];
 
 export const DEFAULT_THEME: ThemeId = "obsidian-royal";
