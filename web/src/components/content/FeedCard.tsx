@@ -34,7 +34,7 @@ export function FeedCard({ item, me, onChange }: { item: FeedItem; me: Me | null
   const [cat, setCat] = useState("");
   const [msg, setMsg] = useState<{ kind: "error" | "success"; text: string } | null>(null);
   const signedIn = !!me;
-  const need = () => setMsg({ kind: "error", text: "Sign in to do that." });
+  const need = () => setMsg({ kind: "error", text: "Log in to do that." });
 
   const react = async (what: "like" | "save") => {
     if (!signedIn) return need();

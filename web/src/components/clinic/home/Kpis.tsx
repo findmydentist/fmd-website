@@ -1,21 +1,29 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { sectionHref } from "../sections";
 import type { ClinicHome } from "@/sample/clinic";
 
 export const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-function Kpi({ href, label, value, sub, children }: { href: string; label: string; value: string | number; sub: string; children?: React.ReactNode }) {
-  return (
-    <Link href={href} className="app-panel group block p-4 transition-colors sm:p-5">
+function Kpi({ href, label, value, sub, children }: { href: string | null; label: string; value: string | number; sub: string; children?: React.ReactNode }) {
+  const body = (
+    <>
       <span className="flex items-center justify-between text-[13.5px] text-ink-3">
         {label}
-        <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />
+        {href && <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" strokeWidth={1.5} />}
       </span>
       <span className="mt-1 block text-[28px] font-light tracking-[-0.03em] text-ink sm:text-[32px]">{value}</span>
       <span className="mt-0.5 block text-[13.5px] text-ink-2">{sub}</span>
       {children}
+    </>
+  );
+  return href ? (
+    <Link href={href} className="app-panel group block p-4 transition-colors sm:p-5">
+      {body}
     </Link>
+  ) : (
+    <div className="app-panel block p-4 sm:p-5">{body}</div>
   );
 }
 
@@ -46,9 +54,9 @@ export function Kpis({ home, base }: { home: ClinicHome; base: string }) {
         value={c.unconfirmed + c.unconfirmedNextDay}
         sub={`${c.unconfirmed} ${day} · ${c.unconfirmedNextDay} ${home.isToday ? "tomorrow" : "the next day"}`}
       />
-      <Kpi href={`${base}/billing`} label={`Collected ${day}`} value={inr(m.collectedInr)} sub={`${inr(m.outstandingInr)} outstanding · ${plural(m.outstandingPatients, "patient")}`} />
+      <Kpi href={sectionHref(base, "billing")} label={`Collected ${day}`} value={inr(m.collectedInr)} sub={`${inr(m.outstandingInr)} outstanding · ${plural(m.outstandingPatients, "patient")}`} />
       <Kpi
-        href={`${base}/inventory`}
+        href={sectionHref(base, "inventory")}
         label="Needs attention"
         value={a.stockAlerts + a.unsignedNotes}
         sub={`${plural(a.stockAlerts, "stock alert")} · ${plural(a.unsignedNotes, "unsigned note")}`}

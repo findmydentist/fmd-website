@@ -3,7 +3,6 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowRight, CalendarClock, ChevronLeft, ChevronRight, Clock3, MapPin, SlidersHorizontal, X } from "lucide-react";
 import MascotArt from "@/components/MascotArt";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { LANGUAGES, SERVICES } from "@/lib/catalog";
 import { useDiscovery } from "../discovery";

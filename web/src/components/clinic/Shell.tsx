@@ -4,6 +4,7 @@ import {
   BarChart3, Boxes, CalendarDays, Check, ChevronDown, CreditCard, House, ListChecks, LogOut, MapPin, Menu,
   Settings, Sparkles, Users, UsersRound, X, Briefcase, Compass, MessageCircle, type LucideIcon,
 } from "lucide-react";
+import { sectionHref } from "./sections";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -93,10 +94,19 @@ function SideNav({ ctx, section, counts, onPick }: { ctx: ClinicCtx; section: st
         {NAV.map(([slug, label, Icon, key]) => {
           const on = section === slug;
           const n = key ? counts[key] : undefined;
+          const href = sectionHref(base, slug);
+          if (!href)
+            return (
+              <span key={slug} aria-disabled className="flex cursor-default items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] text-ink-4">
+                <Icon className="size-[18px] shrink-0" strokeWidth={1.5} />
+                {label}
+                <span className="ml-auto rounded-full border border-line px-2 text-[11px] text-ink-3">Soon</span>
+              </span>
+            );
           return (
             <Link
               key={slug}
-              href={slug ? `${base}/${slug}` : base}
+              href={href}
               onClick={onPick}
               aria-current={on ? "page" : undefined}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] transition-colors ${
@@ -131,7 +141,7 @@ function SideNav({ ctx, section, counts, onPick }: { ctx: ClinicCtx; section: st
           <span className="block text-[13px] text-ink-3">{user.title}</span>
         </span>
         <IconButton
-          label="Sign out"
+          label="Log out"
           className="size-9"
           onClick={() => {
             signOut();

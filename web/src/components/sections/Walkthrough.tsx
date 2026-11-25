@@ -566,10 +566,3 @@ function ActionButton({ onClick, children }: { onClick: () => void; children: Re
   );
 }
 
-function ActionLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <a href={href} className={CTA}>
-      {children} <ArrowRight className="arrow-nudge size-4" strokeWidth={1.75} />
-    </a>
-  );
-}

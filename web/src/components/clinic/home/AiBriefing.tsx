@@ -2,8 +2,9 @@
 
 import { ArrowRight, Mic } from "lucide-react";
 import { useCallback, useRef, useState, type FormEvent } from "react";
-import { Button, Panel, Tag } from "@/components/app/kit";
+import { Button, ButtonLink, Panel, Tag } from "@/components/app/kit";
 import { Sheet } from "@/components/app/Sheet";
+import { sectionHref } from "../sections";
 import type { DemoUser } from "@/lib/demo";
 import { briefingText, decideAiTask, type AiTask, type ClinicHome } from "@/sample/clinic";
 
@@ -116,10 +117,10 @@ function TaskCard({ task, clinicId, onChange }: { task: AiTask; clinicId: string
           </>
         )}
         {task.status === "approved" && <p className="text-[13.5px] text-ink-2">{DONE_NOTE[task.id] ?? "Approved (demo)"}</p>}
-        {task.status === "done" && (
-          <Button size="sm" variant="secondary">
+        {task.status === "done" && task.opens && sectionHref(`/clinic/${clinicId}`, task.opens) && (
+          <ButtonLink size="sm" variant="secondary" href={sectionHref(`/clinic/${clinicId}`, task.opens)!}>
             {task.actionLabel}
-          </Button>
+          </ButtonLink>
         )}
         {skipped && (
           <Button size="sm" variant="secondary" onClick={() => decide("undo")}>

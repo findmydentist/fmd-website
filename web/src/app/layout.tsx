@@ -90,6 +90,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       data-theme="obsidian-royal"
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${brandSans.variable} ${geistMono.variable} antialiased`}
     >

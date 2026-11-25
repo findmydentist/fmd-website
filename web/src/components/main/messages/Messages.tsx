@@ -157,7 +157,9 @@ function Chat({ me, threadId, onSent }: { me: Viewer; threadId: string; onSent: 
   useEffect(() => {
     markRead(me.id, threadId).then(load).then(onSent);
   }, [me.id, threadId, load, onSent]);
-  useEffect(() => end.current?.scrollIntoView({ block: "end" }), [t?.messages.length]);
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "end" }); // braces: newer browsers return a Promise from scroll methods
+  }, [t?.messages.length]);
 
   const send = async (e: FormEvent) => {
     e.preventDefault();

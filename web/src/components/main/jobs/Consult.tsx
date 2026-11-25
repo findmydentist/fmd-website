@@ -232,7 +232,7 @@ function CaseCard({ c, viewer, onOffer }: { c: ConsultCase; viewer: Viewer | nul
             </button>
           )
         ) : (
-          <p className="text-[13px] text-ink-3">{viewer ? "Only dentists verified by FMD can take cases." : "Sign in as a verified dentist to take cases."}</p>
+          <p className="text-[13px] text-ink-3">{viewer ? "Only dentists verified by FMD can take cases." : "Log in as a verified dentist to take cases."}</p>
         )}
       </div>
     </li>
@@ -372,7 +372,7 @@ export function ConsultMine() {
   const load = () => viewer && myConsults(viewer).then(setData);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when the viewer changes
   useEffect(() => void load(), [viewer?.id]);
-  if (viewer === null) return <Header title="My consultations" line="Sign in to see your consultations." />;
+  if (viewer === null) return <Header title="My consultations" line="Log in to see your consultations." />;
   const reply = (id: string, yes: boolean) => answer(viewer!, id, yes).then(load, (x: Error) => setErr(x.message));
   return (
     <div className="grid gap-8 pb-10">

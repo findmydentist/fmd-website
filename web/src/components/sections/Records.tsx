@@ -3,10 +3,9 @@
 
 import { CircleCheck, Clock3, FileText, History, Image as ImageIcon, KeyRound, Lock, Pill, ScanLine, Share2, ClipboardList } from "lucide-react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/react";
-import { useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import MascotArt from "@/components/MascotArt";
 import Image from "next/image";
-import Link from "next/link";
 import { Container, Reveal } from "../ui";
 import { Atmosphere } from "./LowerWorld";
 
@@ -332,7 +331,7 @@ export default function Records() {
                 <span className="text-ink-3">in one private vault.</span>
               </h2>
               <p className="mt-6 max-w-md text-[15px] leading-relaxed text-ink-3">
-                Maintain your organized records, including X-Rays, reports, photographs and treatment plans for easy access during future visits.
+                Maintain your organised records, including X-rays, reports, photographs and treatment plans for easy access during future visits.
               </p>
             </Reveal>
             <ul className="mt-9 space-y-4">

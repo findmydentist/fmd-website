@@ -74,9 +74,9 @@ export function BookingPanel({ profile }: { profile: ProviderProfile }) {
     return (
       <>
         <Heading reschedule={!!reschedule} />
-        <p className="mt-3 text-[13.5px] text-ink-3">Sign in to request an appointment. You review every detail before anything is sent.</p>
+        <p className="mt-3 text-[13.5px] text-ink-3">Log in to request an appointment. You review every detail before anything is sent.</p>
         <Link href={`/signin?next=/dentists/${profile.id}%23book`} className="btn-primary mt-5 h-11 px-5 text-[13.5px]">
-          Sign in to continue
+          Log in to continue
         </Link>
       </>
     );
