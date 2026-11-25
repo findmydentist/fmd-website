@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { initials } from "@/lib/fmd";
 import { PostFeed } from "../../explore/Explore";
+import { ConsultAppointments } from "../../jobs/Consult";
 import { CoverEdit } from "../../CoverPhoto";
 import { PostGrid } from "../../PostGrid";
 import { ProfilePostsSkeleton } from "../../Skeletons";
@@ -91,6 +92,7 @@ export function HybridLayout({ v }: { v: AccountView }) {
       />
 
       <GetVerified me={me} accountType={accountType} certificate={certificate} />
+      <ConsultAppointments userId={me.id} />
 
       {tab === "about" ? (
         <div key="about" className="fmd-enter mx-auto grid w-full max-w-[680px] gap-4">

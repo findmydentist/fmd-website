@@ -4,6 +4,8 @@
  * never looks stale; approvals and ticks live in memory and reset on reload.
  */
 
+import { SPECIALTIES, visitsAtClinic } from "./consults.ts";
+
 export type ApptStatus = "booked" | "unconfirmed" | "confirmed" | "checked_in" | "completed" | "no_show" | "cancelled";
 
 export type Appointment = {
@@ -18,6 +20,8 @@ export type Appointment = {
   chair: string;
   status: ApptStatus;
   viaFmd: boolean;
+  /** a visiting consultant hired through Jobs › Consultation (sample/consults.ts): shown tagged "Hired consultant" */
+  consultant?: true;
 };
 
 export type AiTask = {
@@ -281,7 +285,12 @@ export function dayAppointments(branchId: string, date: string, now: Date): Appo
     else status = flags.unconfirmed ? "unconfirmed" : flags.viaFmd ? "booked" : "confirmed";
     return { id: `${branchId}-${date}-${time}`, branchId, patientName, start, minutes, type, dentist, chair, status, viaFmd: Boolean(flags.viaFmd) };
   });
-  return [...planned, ...(added.get(date) ?? []).filter((a) => a.branchId === branchId)]
+  // ponytail: consultant visits go to the main branch; pick a branch when agreeing once clinics have several in use
+  const consults = branchId !== "main" ? [] : visitsAtClinic(CLINIC.id, date).map((r): Appointment => ({
+    id: `${branchId}-${date}-${r.start}-c${r.id}`, branchId, patientName: r.consultant.name, start: `${date}T${r.start}:00+05:30`, minutes: r.minutes,
+    type: r.procedure, dentist: SPECIALTIES[r.consultant.specialty], chair: "Visiting", status: date < today ? "completed" : "confirmed", viaFmd: false, consultant: true,
+  }));
+  return [...planned, ...consults, ...(added.get(date) ?? []).filter((a) => a.branchId === branchId)]
     .map((a) => ({ ...a, status: statusOverride.get(a.id) ?? a.status }))
     .sort((a, b) => a.start.localeCompare(b.start));
 }

@@ -14,7 +14,7 @@ import { read, write } from "./store.ts";
 export type Space = "dentist" | "team";
 export const DENTIST_ROLES = {
   associate: "Associate dentist",
-  specialist: "Consultant / specialist (MDS)",
+  specialist: "Specialist (MDS)", // visiting consultants for a case are in Consultation (consults.ts)
   locum: "Locum dentist",
   educator: "Clinical educator",
 } as const;
@@ -234,6 +234,7 @@ export async function cardsForJobs(userId: string, ids: string[], now = Date.now
 }
 
 /** The sample employers, for "featured employers" on the Jobs landing page. */
+export const employerById = (id: string): Employer | undefined => E[id];
 export const FEATURED_EMPLOYERS: Employer[] = [E["smile-studio"]!, E.skt!, E.bjh!, E.bnd!, E.kor!, E.aligner!];
 
 /* ---------------- posting ---------------- */

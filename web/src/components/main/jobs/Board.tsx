@@ -9,6 +9,7 @@ import { useViewer } from "@/lib/useViewer";
 import { canManageApplicants, canPostJobs } from "@/lib/viewer";
 import { MEDIA } from "@/sample/media";
 import { DENTIST_ROLES, EXPERIENCE, FEATURED_EMPLOYERS, searchJobs, spaceCounts, SPACES, TEAM_ROLES, TYPES, type Job, type Space } from "@/sample/jobs";
+import { openCaseCount } from "@/sample/consults";
 import { EmployerLogo, JobCard } from "./JobCard";
 
 function JobsTopLinks() {
@@ -42,8 +43,10 @@ function JobsTopLinks() {
 /** /jobs: two doors, one for dentists, one for the clinic team. */
 export function JobsLanding() {
   const [counts, setCounts] = useState<Record<Space, number> | null>(null);
+  const [consults, setConsults] = useState<number | null>(null);
   useEffect(() => {
     spaceCounts().then(setCounts);
+    openCaseCount().then(setConsults);
   }, []);
   const hero = (k: string) => MEDIA[k]!.src;
   return (
@@ -55,7 +58,7 @@ export function JobsLanding() {
         <JobsTopLinks />
       </header>
 
-      <section className="grid gap-5 lg:grid-cols-2" aria-label="Choose a space">
+      <section className="grid gap-5 lg:grid-cols-3" aria-label="Choose a space">
         <Link href="/jobs/dentists" className="group relative isolate grid min-h-[420px] content-end overflow-hidden rounded-[32px] p-8 text-white sm:p-10">
           <Image src={hero("implant-surgery")} alt="" fill sizes="(min-width: 1024px) 620px, 100vw" className="-z-10 object-cover transition-transform duration-700 group-hover:scale-[1.04]" priority />
           <span aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgb(8_10_18/0.15),rgb(8_10_18/0.88))]" />
@@ -75,6 +78,17 @@ export function JobsLanding() {
             <span className="text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.05] tracking-[-0.03em] text-ink">{SPACES.team.title}</span>
             <span className="text-[15.5px] leading-relaxed text-ink-2">{SPACES.team.line}</span>
             <span className="mt-3 text-[14.5px] font-bold text-[var(--accent)]">{counts ? `${counts.team} open roles →` : "Open roles →"}</span>
+          </span>
+        </Link>
+        <Link href="/jobs/consult" className="card group grid min-h-[420px] grid-rows-[1fr_auto] overflow-hidden">
+          <span className="relative">
+            <Image src={hero("instruments")} alt="" fill sizes="(min-width: 1024px) 420px, 100vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+          </span>
+          <span className="grid gap-2 p-8 sm:p-10">
+            <span className="text-[12.5px] font-bold uppercase tracking-[0.22em] text-[var(--accent)]">A specialist for a case</span>
+            <span className="text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.05] tracking-[-0.03em] text-ink">Consultation</span>
+            <span className="text-[15.5px] leading-relaxed text-ink-2">Clinics bring in visiting consultants for special cases; specialists list the visits they take.</span>
+            <span className="mt-3 text-[14.5px] font-bold text-[var(--accent)]">{consults === null ? "Open cases →" : `${consults} open cases →`}</span>
           </span>
         </Link>
       </section>
