@@ -69,7 +69,7 @@ export function Trust({ p }: { p: ProviderProfile }) {
 export function NoPosts({ name }: { name: string }) {
   return (
     <div className="grid justify-items-center gap-3 py-14 text-center">
-      <span className="grid size-16 place-items-center rounded-3xl bg-sky-500/15 text-sky-300">
+      <span className="grid size-16 place-items-center rounded-3xl bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent)]">
         <LayoutGrid className="size-7" strokeWidth={1.5} />
       </span>
       <p className="text-[20px] font-semibold text-ink">No posts yet</p>

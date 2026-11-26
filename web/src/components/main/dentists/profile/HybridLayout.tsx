@@ -72,7 +72,7 @@ export function HybridLayout({ v }: { v: DentistView }) {
               <span className="inline-flex items-center gap-1.5">
                 <Languages aria-hidden className="size-4" strokeWidth={1.75} /> {p.languages.join(", ")}
               </span>
-              <Link href={`/clinics/${c.id}`} className={`inline-flex items-center gap-1.5 rounded font-medium text-sky-400 hover:underline ${hy.focus}`}>
+              <Link href={`/clinics/${c.id}`} className={`inline-flex items-center gap-1.5 rounded font-medium text-[var(--accent)] hover:underline ${hy.focus}`}>
                 <Building2 aria-hidden className="size-4" strokeWidth={1.75} /> {c.name}
               </Link>
             </p>
@@ -124,7 +124,7 @@ export function HybridLayout({ v }: { v: DentistView }) {
                   role="tab"
                   aria-selected={kind === k}
                   onClick={() => setKind(k)}
-                  className={`-mt-px flex min-h-12 items-center justify-center gap-2 border-t-2 text-[14px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400 ${
+                  className={`-mt-px flex min-h-12 items-center justify-center gap-2 border-t-2 text-[14px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent)] ${
                     kind === k ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink"
                   }`}
                 >

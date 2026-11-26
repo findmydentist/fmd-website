@@ -11,9 +11,9 @@ import { Cover } from "./CoverPhoto";
  * The site's blue for the actions, 44 px targets, visible focus.
  */
 
-const focus = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400";
+const focus = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]";
 export const hy = {
-  primary: `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 text-[15px] font-semibold text-white transition-colors hover:bg-sky-500 ${focus}`,
+  primary: `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[color-mix(in_srgb,var(--accent)_78%,black)] px-4 text-[15px] font-semibold text-white transition-colors hover:bg-[color-mix(in_srgb,var(--accent)_90%,black)] ${focus}`,
   secondary: `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white/[0.08] px-4 text-[15px] font-semibold text-ink transition-colors hover:bg-white/[0.13] ${focus}`,
   icon: `grid size-11 shrink-0 place-items-center rounded-xl bg-white/[0.08] text-ink transition-colors hover:bg-white/[0.13] ${focus}`,
   card: "rounded-2xl border border-line bg-[var(--surface)] p-5",
@@ -24,7 +24,7 @@ export type Trust = "verified" | "pending" | null;
 
 /** The photo's ring: blue and a "Verified" tag once FMD has checked the registration, amber dashed while it's in review. */
 function TrustRing({ trust, children }: { trust: Trust; children: ReactNode }) {
-  const ring = trust === "verified" ? "bg-sky-500" : trust === "pending" ? "bg-[repeating-conic-gradient(#fbbf24_0_12deg,transparent_12deg_20deg)]" : "bg-white/15";
+  const ring = trust === "verified" ? "bg-[var(--accent)]" : trust === "pending" ? "bg-[repeating-conic-gradient(#fbbf24_0_12deg,transparent_12deg_20deg)]" : "bg-white/15";
   return (
     <span className="relative block w-fit">
       <span className={`block rounded-full p-[3px] ${ring}`}>
@@ -137,7 +137,7 @@ export function Highlights({ label, items }: { label: string; items: { key: stri
       {items.map((h) => (
         <li key={h.key} className="shrink-0">
           <button type="button" onClick={h.onClick} className={`grid w-[76px] justify-items-center gap-1.5 rounded-xl text-center ${focus}`} aria-label={h.name}>
-            <span className={`block rounded-full p-[2px] ${h.seen ? "bg-white/15" : "bg-sky-500/80"}`}>
+            <span className={`block rounded-full p-[2px] ${h.seen ? "bg-transparent" : "bg-[var(--accent)]"}`}>
               <span className="block rounded-full bg-[var(--surface)] p-[2px]">
                 <span className="relative grid size-16 place-items-center overflow-hidden rounded-full bg-[var(--surface-elevated)] text-[15px] font-semibold text-ink">{h.face}</span>
               </span>
@@ -194,11 +194,11 @@ export function HybridTabs<T extends string>({ tabs, value, onChange, right }: {
                 role="tab"
                 aria-selected={on}
                 onClick={() => onChange(t)}
-                className={`relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-0.5 text-[11.5px] font-semibold leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-400/70 sm:min-h-12 sm:flex-row sm:gap-2 sm:px-3.5 sm:text-[14.5px] ${
-                  on ? "text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-[3px] after:rounded-t-full after:bg-sky-500 sm:after:inset-x-3" : "text-ink-3 hover:text-ink"
+                className={`relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-0.5 text-[11.5px] font-semibold leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--accent-rgb)/0.7)] sm:min-h-12 sm:flex-row sm:gap-2 sm:px-3.5 sm:text-[14.5px] ${
+                  on ? "text-ink after:absolute after:inset-x-2 after:bottom-0 after:h-[3px] after:rounded-t-full after:bg-[var(--accent)] sm:after:inset-x-3" : "text-ink-3 hover:text-ink"
                 }`}
               >
-                <Icon aria-hidden className={`size-5 shrink-0 sm:size-4 ${on ? "text-sky-400" : ""}`} strokeWidth={1.9} />
+                <Icon aria-hidden className={`size-5 shrink-0 sm:size-4 ${on ? "text-[var(--accent)]" : ""}`} strokeWidth={1.9} />
                 <span className="max-w-full truncate whitespace-nowrap">{label}</span>
               </button>
             );
@@ -211,7 +211,7 @@ export function HybridTabs<T extends string>({ tabs, value, onChange, right }: {
 }
 
 /** A role, plainly visible: an icon and the role in a tinted pill, and an optional detail after it (a specialty). */
-export function RolePill({ icon: Icon, label, detail, tone = "border-sky-400/40 bg-sky-500/15 text-sky-200" }: { icon: LucideIcon; label: string; detail?: string; tone?: string }) {
+export function RolePill({ icon: Icon, label, detail, tone = "border-[rgb(var(--accent-rgb)/0.4)] bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--headline-accent)]" }: { icon: LucideIcon; label: string; detail?: string; tone?: string }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
       <span className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13.5px] font-semibold ${tone}`}>

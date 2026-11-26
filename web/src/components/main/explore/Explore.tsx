@@ -35,7 +35,7 @@ export const coverOf = (topic: string) => COVERS[[...topic].reduce((a, c) => a +
 /** The story-style ring, in the site's blue, around any avatar; it squares off whatever it holds. */
 export function Ring({ children, className = "", round = false }: { children: ReactNode; className?: string; round?: boolean }) {
   return (
-    <span className={`block w-fit bg-[linear-gradient(135deg,#93c5fd,#3b82f6,#67e8f9)] p-[2px] ${round ? "rounded-full" : "rounded-[34%]"} ${className}`}>
+    <span className={`block w-fit bg-[var(--accent)] p-[2px] ${round ? "rounded-full" : "rounded-[34%]"} ${className}`}>
       <span className={`block bg-[var(--surface)] p-[2px] ${round ? "rounded-full [&>*]:!rounded-full" : "rounded-[32%] [&>*]:!rounded-[30%]"}`}>{children}</span>
     </span>
   );

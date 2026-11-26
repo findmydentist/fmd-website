@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist_Mono, Inter, Plus_Jakarta_Sans } from "next/font/google";
 import CursorFx from "@/components/CursorFx";
 import { PageTransition } from "@/components/PageTransition";
 import { SITE } from "@/lib/site";
@@ -10,6 +10,8 @@ import "./globals.css";
 // brand face: Plus Jakarta Sans, variable (200–800), self-hosted by next/font
 const brandSans = Plus_Jakarta_Sans({ variable: "--font-brand", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// reading face for dense, everyday text (notifications, chats): Inter with optical sizing, the closest open match to SF Pro
+const readSans = Inter({ variable: "--font-read", subsets: ["latin"], axes: ["opsz"] });
 
 // what search engines and social networks show for the site; the share image is app/opengraph-image.png, the icons
 // app/icon.png, app/apple-icon.png and app/favicon.ico (all picked up by file name)
@@ -92,7 +94,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       data-theme="obsidian-royal"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${brandSans.variable} ${geistMono.variable} antialiased`}
+      className={`${brandSans.variable} ${geistMono.variable} ${readSans.variable} antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />

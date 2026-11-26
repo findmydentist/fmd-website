@@ -45,7 +45,7 @@ export function Monogram({ name, size = 44, ring }: { name: string; size?: numbe
         height: size + pad * 2,
         borderRadius: radius + pad,
         padding: pad - 1.5,
-        background: ring === "new" ? "linear-gradient(140deg, var(--accent), #6f93ff 55%, var(--accent))" : "var(--border-strong)",
+        background: ring === "new" ? "var(--accent)" : "transparent", // FMD blue while unseen; gone once seen (same as the Moments rail)
       }}
     >
       <span className="grid place-items-center" style={{ borderRadius: radius + 1.5, padding: 1.5, background: "var(--surface)" }}>

@@ -33,8 +33,8 @@ function hoursAgo(iso: string) {
 
 /* ---------------- the rail ---------------- */
 
-/** Today's Moments as soft squares (owner's pick, 16 Nov 2026): the moment's own photo, a small blue spark in the
- *  corner while there's something new, faded once watched. */
+/** Today's Moments as circles of the moment's own photo. A full ring in FMD blue means there's something you haven't
+ *  seen; it goes once you've watched them all (owner's call, 26 Nov 2026, replacing the corner spark). */
 export function MomentsRail({ viewer }: { viewer: Viewer | null }) {
   const [rings, setRings] = useState<StoryRing[] | null>(null);
   const [open, setOpen] = useState<number | null>(null);
@@ -53,8 +53,8 @@ export function MomentsRail({ viewer }: { viewer: Viewer | null }) {
       <ul className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
         {canCreate(viewer) && (
           <li className="shrink-0">
-            <Link href="/explore/new?type=moment" className="group flex w-[68px] flex-col items-center gap-2 text-center">
-              <span className="grid size-[66px] place-items-center rounded-[22px] border-2 border-dashed border-line-strong text-ink-3 transition-colors group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]">
+            <Link href="/explore/new?type=moment" className="group flex w-[72px] flex-col items-center gap-2 text-center">
+              <span className="grid size-[70px] place-items-center rounded-full border-2 border-dashed border-line-strong text-ink-3 transition-colors group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]">
                 <Create size={26} />
               </span>
               <span className="w-full truncate text-[12px] text-ink-2">Your moment</span>
@@ -69,21 +69,16 @@ export function MomentsRail({ viewer }: { viewer: Viewer | null }) {
                 type="button"
                 onClick={() => setOpen(i)}
                 aria-label={`${r.creator.name}: ${r.items.length} moment${r.items.length > 1 ? "s" : ""}${r.seen ? ", seen" : ", new"}`}
-                className="group flex w-[68px] flex-col items-center gap-2 text-center"
+                className="group flex w-[72px] flex-col items-center gap-2 text-center"
               >
-                <span className="relative block size-[66px] transition-transform duration-200 group-hover:-translate-y-0.5">
-                  <span className={`relative block size-full overflow-hidden rounded-[22px] bg-[var(--background-secondary)] ${r.seen ? "opacity-55" : ""}`}>
+                <span
+                  className={`block size-[70px] rounded-full p-[3px] transition-[translate,background-color] duration-200 group-hover:-translate-y-0.5 ${r.seen ? "" : "bg-[var(--accent)]"}`}
+                >
+                  <span className="relative block size-full overflow-hidden rounded-full bg-[var(--background-secondary)] ring-[2.5px] ring-[var(--surface)]">
                     <Image src={cover.media.src} alt="" fill sizes="70px" className="object-cover" />
                   </span>
-                  {!r.seen && (
-                    <span className="absolute -right-1.5 -top-1.5 grid size-[22px] place-items-center rounded-full bg-[var(--surface)]" aria-hidden>
-                      <svg width="14" height="14" viewBox="0 0 24 24">
-                        <path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z" fill="var(--accent)" />
-                      </svg>
-                    </span>
-                  )}
                 </span>
-                <span className={`w-full truncate text-[12px] ${r.seen ? "text-ink-3" : "text-ink"}`}>{r.creator.handle}</span>
+                <span className={`w-full truncate text-[12px] ${r.seen ? "text-ink-3" : "font-medium text-ink"}`}>{r.creator.handle}</span>
               </button>
             </li>
           );
