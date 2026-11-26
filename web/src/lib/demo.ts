@@ -3,7 +3,7 @@
  * Kept free of React so it can be tested with node --test; the hook lives in useDemoUser.ts.
  */
 
-export type DemoRole = "patient" | "dentist" | "clinic_owner" | "clinic_front_desk";
+export type DemoRole = "patient" | "dentist" | "clinic_owner" | "clinic_front_desk" | "student";
 
 export type DemoUser = {
   id: string;
@@ -20,6 +20,7 @@ export const DEMO_USERS: DemoUser[] = [
   { id: "demo-dentist", name: "Dr. Karthik Iyer", initials: "KI", role: "dentist", title: "Dentist", clinicId: null },
   { id: "demo-owner", name: "Dr. Ananya Rao", initials: "AR", role: "clinic_owner", title: "Owner", clinicId: "smile-studio" },
   { id: "demo-desk", name: "Kavya Menon", initials: "KM", role: "clinic_front_desk", title: "Front desk", clinicId: "smile-studio" },
+  { id: "demo-student", name: "Rhea Kapoor", initials: "RK", role: "student", title: "Dental student", clinicId: null },
 ];
 
 export const findDemoUser = (id: string | null) => DEMO_USERS.find((u) => u.id === id) ?? null;
@@ -38,4 +39,5 @@ export function safeNext(next: string | null) {
 }
 
 /** Where a person lands after choosing them. */
-export const homeOf = (user: DemoUser) => (user.clinicId ? `/clinic/${user.clinicId}` : "/");
+/** Where a person lands after choosing them: their clinic, FMD Scholar for the student, else home. */
+export const homeOf = (user: DemoUser) => (user.clinicId ? `/clinic/${user.clinicId}` : user.role === "student" ? "/scholar" : "/");

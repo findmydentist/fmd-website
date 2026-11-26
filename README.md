@@ -1,10 +1,24 @@
 # FindMyDentist (FMD)
 
-A dentistry-only platform connecting patients, dentists, clinics, dental students and dental companies through AI-guided discovery, booking, records, content, clinic operations and care coordination. The product definition is the **Master PDR** (`FMD_Master_PDR_Expanded_Revised.pdf`, sections 1–21 plus annex A–N).
+A dentistry-only platform that connects patients, dentists, clinics, dental students and dental companies: AI-guided discovery, booking, private records, professional content, jobs, clinic operations and care coordination. The product is defined by the **Master PDR** (`FMD_Master_PDR_Expanded_Revised.pdf`, sections 1–21 and annexes A–N).
 
-> **Status: pre-release.** Milestones 0–3 are built and tested (Main, FMD Edge, Clinic OS, Clinic AI manager). Scholar, the Admin/Accountant portals and the annex features are not built yet. Everything runs on **demo data and clearly labelled development stand-ins** for outside services (SMS, AI models, payments, storage). Nothing here is a compliance certification; see [What is not live](#what-is-not-live).
+> **Status: pre-release.** [findmydentist.io](https://www.findmydentist.io) shows the homepage only; every other page is open on previews and localhost. The apps run in **frontend demo mode** by default: sign-in, accounts and FMD Main work in the browser against fixed demo accounts and sample data, and nothing is sent to a server. Outside services (SMS, AI models, payments) are labelled stand-ins. See [What is not live](#what-is-not-live).
 
-Stack: Next.js 16 (App Router, Cache Components) · React 19 · TypeScript · Tailwind CSS 4 · Motion · Lucide · Node's built-in SQLite for development.
+**Stack:** Next.js 16 (App Router, Cache Components, Turbopack) · React 19 · TypeScript · Tailwind CSS 4 · Motion · Three.js (React Three Fiber) · Lucide. Hosted on Vercel.
+
+## Contents
+
+- [Quick start](#quick-start)
+- [Try the demo](#try-the-demo)
+- [What is built](#what-is-built)
+- [Design system](#design-system)
+- [Architecture](#architecture)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+- [What is not live](#what-is-not-live)
+- [Roadmap](#roadmap)
+- [Documentation](#documentation)
+- [Conventions](#conventions)
 
 ## Preview
 
@@ -14,212 +28,222 @@ Stack: Next.js 16 (App Router, Cache Components) · React 19 · TypeScript · Ta
   <img src="web/public/img/coming-soon-scene.webp" alt="Closing 'Coming soon' scene" width="48%">
 </p>
 
-*Hero, mascot, closing scene, demo dentists and treatment artwork from the homepage. All people shown are fictitious demo data.*
+*Hero, mascot and closing scene from the homepage. All people shown in the product are fictitious demo data.*
 
 ## Quick start
 
-Requires **Node 22+** (uses `node:sqlite` and native TypeScript type-stripping for tests).
+Requires **Node 22+** (tests use Node's built-in TypeScript type-stripping).
 
 ```bash
 cd web
 npm install
-cp .env.example .env.local      # optional; see Staff access below
-npm run dev                     # http://localhost:3000  (any port: next dev -p 3123)
+cp .env.example .env   # optional: nothing is required for the demo
+npm run dev            # http://localhost:3000
 ```
 
 | Command | Purpose |
 |---|---|
-| `npm run dev` | Dev server. Seeds a labelled demo directory and demo clinic on first use |
+| `npm run dev` | Development server |
 | `npm run build` / `npm start` | Production build and server |
-| `npm run lint` | ESLint (React Compiler rules included) |
-| `npm test` | 68 service-level tests (`node:test`), no framework or database server needed |
-| `npx tsc --noEmit` | Type check |
-| `npx next typegen` | Regenerate route types after adding routes |
+| `npm run lint` | ESLint, React Compiler rules included |
+| `npm test` | About 250 tests on `node:test`, no framework or database needed |
+| `npx tsc --noEmit` | Type check (run `npx next typegen` first on a fresh clone for the route types) |
 
-> **OneDrive tip:** if edits don't show up in dev, restart `npm run dev`. The file watcher can miss atomic-rename saves.
+> **Known test gap:** four suites (`fmd`, `bookings`, `reviews`, `support`) fail to load because `lib/fmd.ts` and `sample/bookings.ts` use TypeScript parameter properties, which Node's strip-only mode rejects. The code is fine in the app; the fix is to write those constructors out.
 
-### Sign-in and demo accounts
+> **Windows/OneDrive tip:** if a change doesn't show in development, save the file again or restart `npm run dev`; the file watcher can miss some saves.
 
-There are no passwords. Sign in with an email or Indian mobile number; a 6-digit code is sent. With no SMS/email provider configured, **the code is shown on screen in development** (and never in production).
+## Try the demo
 
-| Want to see | Do this |
-|---|---|
-| Patient experience | Sign up with any email/number at `/signin` |
-| Clinic OS | Sign in as **`owner@demo-clinic.test`**, open **For Clinics → Demo Dental Studio** |
-| Staff queues (`/admin/*`) | Put your email in `FMD_OPS_EMAILS` in `web/.env.local`, restart, sign up with it |
-| Dentist features | Sign up choosing **Dentist**, claim a demo profile at `/dentists/[id]`, approve it at `/admin/verification` |
+Open `/login` and tap **Try a demo?**. One tap logs you in as any of these (or type the number with password `Demo@1234`, or the code `123456`):
 
-### Frontend-only demo (no backend)
+| Person | Role | Lands on | Mobile | Email |
+|---|---|---|---|---|
+| Priya Sharma | Patient | Home | `90000 00001` | `patient@demo.fmd.test` |
+| Dr. Karthik Iyer | Dentist, verified | Home | `90000 00002` | `dentist@demo.fmd.test` |
+| Dr. Ananya Rao | Clinic owner, Smile Studio | FMD Clinic | `90000 00003` | `owner@demo.fmd.test` |
+| Dr. Meera Nair | New dentist, not verified | Home | `90000 00004` | `newdentist@demo.fmd.test` |
+| Rhea Kapoor | Dental student | FMD Scholar | `90000 00005` | `student@demo.fmd.test` |
+| Kavya Menon | Front desk, Smile Studio | FMD Clinic | (no FMD Main account) | |
 
-**On by default, the live site included** (`DEMO_MODE` in `web/src/toggle.ts`): Log in shows everywhere and FMD Main signs in against four fixed accounts in the browser (`web/src/lib/fmdDemo.ts`); nothing is sent to a server. To use the real FastAPI backend instead, build with `NEXT_PUBLIC_FMD_DEMO=0` (in `web/.env.local`, or the host's environment variables, then redeploy). The login page lists them: tap one to fill it in.
+Sign-up, password reset and most account-setting changes are off in demo mode. Demo data lives in the browser (localStorage) and can be cleared with the browser's site data. `/demo` picks the same people as roles.
 
-| Role | Mobile | Email | Password |
-|---|---|---|---|
-| Patient (Priya Sharma) | `90000 00001` | `patient@demo.fmd.test` | `Demo@1234` |
-| Dentist, verified (Dr. Karthik Iyer) | `90000 00002` | `dentist@demo.fmd.test` | `Demo@1234` |
-| Clinic owner (Dr. Ananya Rao, Smile Studio) | `90000 00003` | `owner@demo.fmd.test` | `Demo@1234` |
-| New dentist, not verified (Dr. Meera Nair) | `90000 00004` | `newdentist@demo.fmd.test` | `Demo@1234` |
+### Walkthrough: a new dentist getting verified
 
-OTP login works too; the code is always `123456`. Sign-up, password reset and most account-setting changes are off in this mode.
+Log in as **Dr. Meera Nair**. She has just signed up as a dentist without her registration, so she has no blue tick and can't post in Explore. Her profile (`/account`) shows **Not verified** in red, a **Get verified** chip and a card with the steps. Statuses are colour-coded everywhere: red not verified, yellow pending, green verified.
 
-#### Demo: a new dentist getting verified
+1. Open **Profile → Edit profile** (`/account/dentist`).
+2. Fill in **Get verified**: dental council and registration number, education (at least the BDS, with college and year) and the registration certificate (any PDF, JPG or PNG; it stays in the browser). **Submit for verification** sets the status to **Pending**.
+3. Fill in the public profile: photo, about, fees, languages, treatments, clinics, work experience, memberships and awards. **Preview as a patient** shows it as patients will.
+4. Under **Demo controls**, **Approve as FMD (demo)** plays FMD's verification team: the blue tick appears and **Create a post** opens in Explore.
+5. **Start over (demo)** clears the registration so the walkthrough can be run again.
 
-Log in as **Dr. Meera Nair** (`90000 00004`). She has just signed up as a dentist and hasn't added her registration, so she has no blue tick and can't post in Explore yet. Her profile (`/account`) shows **Not verified** in bold red by her name, a **Get verified** chip and a **You're not verified yet** card with the steps, LinkedIn style. Statuses are colour-coded everywhere: red not verified, yellow pending, green verified.
-
-1. Open **Profile → Edit profile** (or **Settings → Set up dentist profile**), at `/account/dentist`.
-2. Fill in the **Get verified** form: (1) dental council and registration number, (2) **education** (required: at least the BDS, with college and year passed) and (3) the **registration certificate** (any PDF, JPG or PNG; it stays in the browser). Press **Submit for verification**: the status becomes **Pending** (yellow).
-3. Her profile now shows **Pending** in bold yellow by her name instead of the Get verified card; Settings shows the same colour on **Edit dentist profile**.
-4. Fill in the **public profile**: photo, about, fees, languages, treatments, clinics, **work experience** (role, clinic or hospital, city, years, what you did) and **memberships and awards**. Then **Preview as a patient**.
-5. Under **Demo controls**, press **Approve as FMD (demo)** to play FMD's verification team. The status becomes **Verified**: the blue tick appears on her profile, the Get verified card and chip go away, and **Create a post** appears in Explore.
-6. **Start over (demo)** clears the registration so the walkthrough can be run again.
-
-Changing the council or registration number of a verified profile sends it back to **Pending**, as the real backend does. The registration is kept in the browser (localStorage) per account.
-
-Internal roles (`fmd_ops`, `super_admin`, `accountant`) can only come from environment variables, never from the sign-up form.
+Changing the council or registration number of a verified profile sends it back to **Pending**, as the backend does.
 
 ## What is built
 
-### Homepage: cinematic hero and landing sections (Milestone 1)
-Pinned, scroll-scrubbed sequence driven by one timeline (`components/hero/phases.ts`): headline → light spreading along the Earth's rim → the meditating mascot rising from behind the horizon with a 3D turn → the FMD AI conversation as its own stage → mascot descends and the page continues. Fully reversible; simplified on mobile; a still composition under `prefers-reduced-motion`. `npm test` asserts the timeline invariants (mascot starts at 75–80% illumination; AI stage and mascot never overlap).
+### Homepage
 
-Below the hero, sections 03–11 share one midnight-navy backdrop (`LowerWorld.tsx`). Order as in `app/page.tsx`:
+A pinned, scroll-scrubbed sequence driven by one timeline (`components/hero/phases.ts`): headline → light along the Earth's rim → the meditating mascot rising with a 3D turn → the FMD AI conversation → the mascot descends and the page continues. Fully reversible, simplified on phones, a still composition under reduced motion. Below it, one midnight-navy world (`LowerWorld.tsx`) carries the sections, in the order of `app/page.tsx`:
 
-| # | Section | File | What it does |
-|---|---|---|---|
-| 01 | Hero | `hero/*` | Scroll-scrubbed Earth, mascot and FMD AI stage |
-| 02 | Search | `Search.tsx` | Dentist search continuing out of the hero |
-| 03 | AI features | `AiFeatures.tsx` | FMD AI's capabilities orbiting the guide |
-| 04 | Walkthrough | `Walkthrough.tsx` | "From a question to the right care": hand, Care Core, guide, rotating example questions, six-step wave tablist with crossfading panel |
-| 05 | Explore | `Explore.tsx` | Editorial preview of the feed |
-| 06 | Trust Standard | `Journey.tsx` | Six safeguards on a rotating orbit (see below) |
-| 07 | Private Vault | `Records.tsx` | Records, sharing, access history |
-| 08 | FMD Edge | `Concierge.tsx` | Enquiry form; "received", never "confirmed" |
-| 09 | Dentists | `Dentists.tsx`, `ProfileDrawer.tsx` | Cards and profile drawer; verified vs sponsored |
-| 10 | Trust | `Trust.tsx` | Verification, privacy, AI disclaimer |
-| 11 | Products | `Products.tsx` | Main, Clinic OS, Scholar |
-| 12 | Coming soon | `ComingSoon.tsx` | Night-horizon scene with early-access field (no waitlist backend; a valid submit honestly shows "not saved") |
-| 13 | Footer | `Footer.tsx` | Links and legal |
+| Section | File | What it does |
+|---|---|---|
+| Hero | `hero/*` | Scroll-scrubbed Earth, mascot and FMD AI stage |
+| Search | `Search.tsx` | Dentist search continuing out of the hero |
+| AI features | `AiFeatures.tsx` | FMD AI's capabilities orbiting the guide |
+| Walkthrough | `Walkthrough.tsx` | "From a question to the right care": six steps on a wave tablist |
+| Explore | `Explore.tsx` | Editorial preview of the feed |
+| Trust Standard | `Journey.tsx` | Six safeguards on a rotating orbit, pausable, still under reduced motion |
+| Private Vault | `Records.tsx` | Records, sharing and access history |
+| FMD Edge | `Concierge.tsx` | Enquiry form; says "received", never "confirmed" |
+| Dentists | `Dentists.tsx` | Cards and profile drawer; verified and sponsored kept apart |
+| Trust | `Trust.tsx` | Verification, privacy, AI disclaimer |
+| Products | `Products.tsx` | FMD Main, FMD Clinic, FMD Scholar |
+| Coming soon | `ComingSoon.tsx` | Night-horizon scene with the waitlist form |
+| Footer | `Footer.tsx` | Links and legal |
 
-**06 · FMD Trust Standard** (repurposed from the old "Dental Journey"): six safeguards (AI Guardrails, Verification, Fair Ranking, Zero-Trust, Audit Trails, Anonymization) as tabs on a semicircular orbit around the mascot. The wheel turns 6° per step, the progress arc fills to the active node, and the hub mascot crossfades to the step's pose. It auto-advances every 2.5s while on screen, holds on mouse hover, has a pause button (WCAG 2.2.2) and never autoplays under reduced motion; clicks and arrow keys jump and restart the timer. Coordinates are rounded so server and client markup match. **Open:** some panel copy overclaims against the PRD ("cryptographic", "real-time", "encrypted", "state dental council") and the CTA links are placeholders; it also overlaps section 10.
-
-Assets: `public/img/hero/earth-4320.webp` and `mascot.webp` were cut from `Refrenece Image Mascot and Hero.jpeg`. A higher-resolution mascot master would improve edge quality (OD-H1). Mascot poses live in `public/img/mascots/` (source packs in `Images/*_asset_pack.zip`); `mascot-trust-1024.webp` (shield) was keyed from `Images/FMD Trust Mascot.png` the same way as the others (alpha = brightest channel, colour un-premultiplied). `mascot-shield-1024.webp` does not actually hold a shield. Walkthrough art is in `public/img/walkthrough/`. Shared path geometry for the wave sections is `components/sections/path.ts` (tested in `path.test.ts`).
-
-### FMD Main (Milestone 2)
+### FMD Main
 
 | Area | Routes | Notes |
 |---|---|---|
-| Accounts | `/signin`, `/account` | Purpose-separated consents, device/session management, deletion request |
-| FMD Edge (formerly Concierge) | Homepage section, `/admin/concierge` | Human-coordinated enquiries; 9-status state machine; no promised fees, areas or response times |
-| Discovery | Homepage, `/dentists/[id]` | Server-side filters; verified vs sponsored kept visually and algorithmically separate; no invented ratings |
-| Booking | `/dentists/[id]#book`, `/appointments` | Explicit confirmation, idempotent, DB-enforced no double-booking, reschedule/cancel, status history |
-| Records | `/records` | Content-sniffed uploads, signed expiring links bound to the viewer, per-dentist time-limited sharing, access history, export, delete |
-| FMD AI | Hero stage and assistant panel | Navigation-only actions; urgent-symptom escalation; output guard (no dosing/diagnosis); history saved only with consent |
-| Membership | `/account` | PDR prices, GST note, usage meter; checkout honestly unavailable |
-| Content & jobs | `/explore`, `/jobs` | Verified authors, pre-publication review, case posts need consent + de-identification, explainable feed, reports and moderation |
-| Support | `/help`, `/admin/support` | Searchable help, tickets with attachments, staff triage, reopen window |
-| Staff | `/admin/verification`, `/admin/moderation`, `/admin/clinics` | Claim verification records *what was checked*; clinic activation needs evidence |
+| Accounts | `/login`, `/register`, `/onboarding`, `/account`, `/account/settings`, `/account/privacy` | Purpose-separated consents, devices you're logged in on, deletion request |
+| Find a dentist | `/dentists`, `/dentists/[id]`, `/clinics/[id]` | Filters by treatment, area, language and fees; verified and sponsored kept apart; no invented ratings |
+| Booking | `/book/[dentistId]`, `/appointments` | Explicit confirmation, reschedule and cancel, status history |
+| Records | `/records` | Private vault, time-limited sharing with a dentist, access history |
+| FMD AI | `/assistant` | Plain-language guidance, urgent-symptom escalation, no dosing or diagnosis |
+| FMD Edge | `/concierge` | Human-coordinated enquiries |
+| Explore | `/explore` and below | See below |
+| Chats | `/messages` | See below |
+| Jobs and Consultation | `/jobs` and below | See below |
+| Membership | `/plans`, `/membership`, `/checkout/[plan]` | PDR prices and GST note; checkout is a labelled stand-in |
+| Notifications, help | `/notifications`, `/help` | Searchable help, tickets |
 
-#### Explore, Chats and Jobs (sample data)
+- **Explore** (`/explore`): Moments (24-hour updates; a full FMD-blue ring while unseen), a feed of photos, carousels, note slides, clips and polls, with Appreciate, Talk (comments with replies), Pass on, Keep and Ask FMD AI. Also Clips (`/explore/reels`), Discover (`/explore/search`), topic pages for patients with one concern (`/explore/topic/[slug]`), creator profiles (`/explore/u/[handle]`) and Create (`/explore/new`). Dentists, clinics and students post; patients watch and take part.
+- **Chats** (`/messages`): one inbox for Explore and Jobs, on frosted surfaces. Chats between a patient and a clinician always carry "Not medical advice".
+- **Jobs** (`/jobs`): three spaces. **Dentist roles** (`/jobs/dentists`, monthly or permanent, verified dentists only), **Clinic team** (`/jobs/team`) and **Consultation** (below). Apply inside FMD with one career profile (`/account/career`) and track applications (`/jobs/applications`); employers post (`/jobs/new`) and shortlist (`/jobs/mine`).
+- **Consultation** (`/jobs/consult`): hiring a specialist for a case, not a job. Clinics post cases (the procedure, never the patient), verified dentists list themselves as visiting consultants, and either side asks. Once the other agrees, the visit is an appointment on both sides tagged **Hired consultant**: on the consultant's profile and in My consultations (`/jobs/consult/mine`), and on the clinic's FMD Clinic calendar. Logic and tests in `sample/consults.ts`.
+- **Sample data:** posts, moments, chats, jobs, consultations and applications live in the browser (`web/src/sample/*`), shaped like the future API. Photos are CC0 or public domain from Wikimedia Commons (`node scripts/fetch-media.mjs`).
 
-- **Explore** (`/explore`): Moments (portrait updates for 24 hours), a feed of photos, swipeable posts, note slides, clips and polls, with Appreciate, Talk (comments with replies), Pass on, Keep and Ask FMD AI. Also Clips (`/explore/reels`), Discover search and topic grid (`/explore/search`), profiles (`/explore/u/<handle>`, your own at `/explore/u/me`) and Create (`/explore/new`). Dentists, clinics and students post; patients watch and take part.
-- **Chats** (`/messages`): one inbox for Explore and Jobs. Patient-to-dentist chats carry a "not medical advice" note.
-- **Jobs** (`/jobs`): two separate spaces, Dentist roles (`/jobs/dentists`, verified dentists only) and Clinic team (`/jobs/team`). Apply inside FMD with one career profile (`/account/career`) and track it (`/jobs/applications`). Employers post (`/jobs/new`), see their listings (`/jobs/mine`) and shortlist applicants (`/jobs/mine/<id>`).
-- **Sample data only:** posts, moments, chats, jobs and applications live in the browser (`web/src/sample/*`), shaped like the future API. Photos are free-licence (CC0 or public domain) from Wikimedia Commons, saved in `web/public/media` by `node scripts/fetch-media.mjs`; add more there.
+### FMD Scholar
 
-**Themes:** Dark (default) and Light ("calm and bright": off-white, white cards, one royal blue) for the apps, switched from the top bar. The landing page is designed for the dark look and always shows it.
+The study workspace that comes with the student membership (`/scholar`). Laptops get the menu on the left, phones a tab bar. Log in as **Rhea Kapoor** to open it; any other account can use **Demo: set me up as a paid student** on Scholar's gate.
 
-### FMD Clinic OS and Clinic AI manager (Milestone 3)
-Routes under `/clinic/[clinicId]/…`: dashboard, calendar, patients (+ record), billing, inventory, tasks & handover, AI manager, reports, team, settings.
+- **Ask:** doubts at four depths, beginner to specialist. Anything uncertain is marked; every source is the student's own file with a page number, or flagged as unverified. It never makes up references.
+- **Study and viva:** quizzes, flashcards, spaced repetition, a mistake notebook, picture questions from credited clinical photos, topic summaries, a day-by-day revision plan, syllabus coverage by BDS year and subject, and viva practice (spoken too) with examiner follow-ups.
+- **Presentations:** outline first, then slides with speaker notes; regenerate one slide, a section or the whole deck; export a PDF handout or Markdown.
+- **Research:** drafts for each step from research question to response to reviewers. It refuses to write results, data, ethics approvals or references.
+- **Projects and library:** upload notes into a project and ask about them; everything is saved, searchable, taggable, exportable and deletable.
 
-- **Roles** (owner, dentist, front desk, finance, assistant) with a fixed permission matrix in `server/clinic/workspace.ts`; non-members get 404 (tenant isolation).
-- **Clinical safety:** notes are drafts until signed; signed notes can only be amended as new versions with a reason; AI drafts need explicit acceptance; the tooth chart is append-only.
-- **Billing:** integer paise, sequential numbering, idempotent payments, refunds/voids restricted and audited. Clinic ledgers are never FMD revenue.
-- **AI manager:** works only through typed, permission-checked tools. Read-only and internal drafts run automatically; patient messages and publishing stop at a preview for approval; money, signed records, appointment changes and clinical decisions are not available to it. Results are verified, and "not sent" is reported honestly when no messaging provider exists.
+Answers come from five sample topics (pulpitis, caries, Class II preparation, local anaesthesia, periodontal staging) until an AI model is chosen; a dental academic should review them before anyone relies on them. Clinical photos: `node scripts/fetch-scholar-images.mjs` (Wikimedia Commons, credited in `sample/scholar/pictures.ts`).
+
+### FMD Clinic
+
+Routes under `/clinic/[clinicId]/…`; the demo clinic is Smile Studio (`/clinic/smile-studio`). Open it as Dr. Ananya Rao (owner) or Kavya Menon (front desk).
+
+| Section | Status |
+|---|---|
+| Home | Built: FMD Manager's briefing with approvals, the day's numbers, next appointments, follow-ups |
+| Calendar | Built: week strip, list and by-dentist views, booking with clash checks and suggestions, status changes, waitlist; consultant visits tagged **Hired consultant** |
+| Patients | Built: search, records with visits and notes |
+| Billing, Inventory, Tasks, Reports, AI manager, Team, Settings | Shown as **Soon**. Earlier implementations exist in the `fmd-experimental` repository (its `main` branch) and need porting to the current clinic data. `components/clinic/sections.ts` lists the sections that have pages; add a slug there when one lands |
+
+## Design system
+
+- **Theme:** colour is CSS variables on `[data-theme]` in `app/globals.css`; components read tokens only. The default and the live look is **Obsidian Royal** (`lib/themes.ts`). The brand accent is `--accent` (#5b8cff, a periwinkle royal blue). Filled controls with white text use the accent mixed 22% towards black, so labels keep 4.5:1 contrast.
+- **Type:** Plus Jakarta Sans for the brand and interface, **Inter** with optical sizing as the reading face for dense everyday text (`.type-read`: notifications, chats, Consultation), Source Serif 4 for Scholar's answers and slides, Geist Mono for codes and numbers.
+- **Surfaces:** `.frost` is the frosted card (translucent, blurred, a hairline of light on its top edge) over `.frost-stage`'s soft FMD-blue glow; used by notifications and chats. `.fmd-glow` is the log-in field's warm aura.
+- **Motion:** purposeful and short; everything still under `prefers-reduced-motion`.
 
 ## Architecture
 
-One Next.js app with a modular-monolith backend (PDR §11 allows this). **Authorisation lives in the services, not the UI or routes.**
-
 ```
 web/src/
-  app/                    pages and route handlers (thin)
-    api/…                 JSON endpoints; Clinic OS uses one catch-all router
-    clinic/ admin/ …      product surfaces
-  components/             UI (hero, sections, booking, content, clinic shell, support)
-  lib/                    client helpers (me.ts), reference lists (catalog.ts), help articles
-  server/                 ← all business rules
-    db.ts migrations.ts   SQLite access; 12 ordered, append-only migrations
-    auth.ts               OTP, sessions, roles, consents, audit hooks
-    http.ts               error shape, CSRF guard (JSON-only mutations), validators
-    booking.ts providers.ts records.ts assistant.ts content.ts jobs.ts support.ts membership.ts concierge.ts
-    clinic/               workspace, calendar, patients, billing, operations, router, seed
-    clinic/ai/            tools (registry), planner, engine (task lifecycle), routes
-    adapters/             otp, storage, ai, messaging - the vendor seams
-    seed.ts               labelled DEMO directory and posts
+  app/                pages and route handlers, grouped: (main) FMD Main, (scholar) FMD Scholar, clinic/ FMD Clinic
+    api/              assistant, concierge and waitlist endpoints
+  components/         UI by product: hero and sections (homepage), main/*, scholar/*, clinic/*, auth, app (shared kit)
+  lib/                fmd.ts (API client), fmdDemo.ts (the in-browser demo backend), demo.ts (demo roles),
+                      viewer.ts (who is looking, and what they may do), catalog.ts, device.ts
+  sample/             sample data and domain logic shaped like the future API, each with node:test tests
+  server/             small local server for the assistant and auth endpoints (SQLite in development)
+  toggle.ts           site-wide switches (below)
+  proxy.ts            on the live hosts, every page but the homepage redirects home
 ```
 
-Principles enforced in code and tests: server-side authorisation on every call; an append-only `audit_events` log for sensitive actions; idempotency keys on bookings and payments; no secrets in the browser; health data in separate tables; every external dependency behind an adapter that reports `configured: false` and never fakes success.
+FMD Main's account, booking and records calls go to the **FastAPI backend** (`/api/v1/*`, forwarded to `FMD_API_URL` by `next.config.ts`), or, in demo mode, to `lib/fmdDemo.ts` in the browser. The backend is developed separately and isn't part of this repository.
 
-### Themes
-All colour is CSS variables on `[data-theme]` in `globals.css`; components only read tokens. Default **Obsidian Silver**; others: Amber, Royal, Gold, Pearl Light, Silver Light, White + Royal Blue. The choice persists in `localStorage` (`fmd-theme`); preview without persisting via `/?theme=obsidian-amber`. To add one: a `[data-theme="…"]` block plus an entry in `lib/themes.ts` (and an `--earth-filter` for the hero).
+**Site switches** (`web/src/toggle.ts`):
+
+| Switch | Effect |
+|---|---|
+| `DEMO_MODE` | Frontend-only demo (on unless `NEXT_PUBLIC_FMD_DEMO=0` at build time) |
+| `LIVE_HOSTS` | Hosts that show the homepage only; empty the list when the rest of the app goes live |
+| `SHOW_ACCOUNT` | Log in and the account menu (on wherever the demo runs) |
+| `REFERRALS` | Invite friends; off until legal and professional-ethics review |
+| `USE_CLOUDINARY_MODELS`, `LOCAL_MODELS_VERSION` | Where the homepage's 3D models load from, and their cache version |
 
 ## Configuration
 
-`web/.env.example` documents every variable.
+`web/.env.example` documents every variable. None is needed for the demo.
 
 | Variable | Purpose |
 |---|---|
-| `FMD_OPS_EMAILS`, `FMD_ADMIN_EMAILS`, `FMD_ACCOUNTANT_EMAILS` | Comma-separated emails granted internal roles on first sign-up |
-| `FMD_DB` | SQLite file (default `web/.data/fmd.db`); tests use `:memory:` |
-| `FMD_SIGNING_SECRET` | Signs record/attachment links (dev generates one under `.data/`) |
-| `FMD_SEED_DEMO=0` | Skip demo seeding in development |
-| `FMD_CONCIERGE_AREAS`, `FMD_CONCIERGE_FIRST_CONTACT_HOURS` | FMD Edge service areas and the internal follow-up target |
-| `FMD_RECORDS_QUOTA_MB`, `FMD_MEMBERSHIP_GRACE_DAYS` | Storage quota and membership grace period (provisional) |
+| `FMD_API_URL` | Where `/api/v1/*` is forwarded (default `http://localhost:8000`) |
+| `NEXT_PUBLIC_FMD_DEMO` | `0` uses the real backend instead of the in-browser demo (read at build time) |
+| `DATABASE_URL` | PostgreSQL connection for the homepage waitlist |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Waitlist and FMD Edge notification emails |
+| `FMD_DB`, `FMD_SEED_DEMO` | The local server's SQLite file and demo seeding (optional) |
+| `FMD_ADMIN_EMAILS`, `FMD_OPS_EMAILS`, `FMD_ACCOUNTANT_EMAILS` | Staff roles given by email at sign-up (optional) |
+| `CLOUDINARY_*` | Only for `scripts/upload-models.mjs` |
 
-Never commit `.env*` or `web/.data/` (both are git-ignored).
+Never commit `.env*` files.
+
+## Deployment
+
+Vercel deploys `main` to [findmydentist.io](https://www.findmydentist.io) and builds a preview for every pull request. While `LIVE_HOSTS` lists the production hosts, the live site shows the homepage only; use a preview URL or localhost to see the apps.
 
 ## What is not live
 
-| Needs | Current stand-in | Decision |
-|---|---|---|
-| SMS / WhatsApp / email provider | Sign-in code shown in dev; patient messages reported "not sent" | OD-14 |
-| AI model, speech, vision | Rule-based assistant and planner, labelled in the UI | OD-14, OD-06 |
-| Payment gateway | Checkout unavailable; staff can record verified offline memberships | OD-04 |
-| Production hosting, PostgreSQL, encrypted object storage | Local SQLite and files | OD-20 |
-| Legal, clinical and tax review | Draft privacy notice and terms; clinical wording unreviewed | OD-22 |
-| Reels/short video | Text posts and polls only | media pipeline |
-| Early-access waitlist | Homepage form validates only; nothing is stored | - |
+| Needs | Current stand-in |
+|---|---|
+| FastAPI backend connected to the live site | In-browser demo backend (`lib/fmdDemo.ts`) |
+| SMS / WhatsApp / email for sign-in | Fixed demo code `123456` |
+| AI model, speech, vision | Rule-based assistant and Scholar's five sample topics, labelled in the UI |
+| Payment gateway | Checkout is a labelled stand-in |
+| Clinic sections beyond Home, Calendar and Patients | Shown as **Soon** |
+| Legal, clinical and tax review | Draft privacy notice and terms; clinical wording unreviewed |
 
-All demo dentists, clinics, patients and posts are fictitious and flagged `demo` in the UI. See `docs/OPEN_DECISIONS.md` for all 23+ decisions and provisional defaults.
+All demo dentists, clinics, patients and posts are fictitious and flagged as demo in the UI. Open product decisions and their provisional defaults are in `docs/OPEN_DECISIONS.md`.
 
 ## Roadmap
 
 | Milestone | Status |
 |---|---|
-| M0 Audit & traceability | Done |
-| M1 Cinematic hero | Done |
-| M2 FMD Main | Done |
-| M3 Clinic OS + Clinic AI | Done |
-| M4 FMD Scholar | Not started |
-| M5 Admin & Accountant portals | Not started (staff queues exist) |
-| M6 Annex features (warranty, treatment journey, content import, onboarding/migration, reviews, referral/loyalty, BI, accessibility pass) | Not started |
-| M7 End-to-end QA & handover | Not started |
-
-Known gaps in built milestones: week/month calendar, multiple branches, MFA for privileged roles, moderation appeals, a background worker for scheduled AI tasks.
+| M0 Audit and traceability | Done |
+| M1 Homepage | Done |
+| M2 FMD Main (incl. Explore, Chats, Jobs, Consultation) | Done on sample data |
+| M3 FMD Clinic | Home, Calendar and Patients done; the other sections to port |
+| M4 FMD Scholar | Done on sample answers; needs an AI model and academic review |
+| M5 Admin and Accountant portals | Not started in this repository |
+| M6 Annex features (warranty, treatment journey, content import, migration, reviews, referral, BI, accessibility pass) | Not started |
+| M7 End-to-end QA and handover | Not started |
 
 ## Documentation
 
 | File | Contents |
 |---|---|
-| `docs/PRD_TRACEABILITY.md` | Every PDR requirement → ID, status, evidence and tests. Status changes only with evidence |
-| `docs/OPEN_DECISIONS.md` | Decisions only FMD can make, the provisional defaults used, and the decision log |
+| `docs/PRD_TRACEABILITY.md` | Every PDR requirement with its ID, status, evidence and tests |
+| `docs/OPEN_DECISIONS.md` | Decisions only FMD can make, the defaults used meanwhile, and the decision log |
 | `docs/IMPLEMENTATION_ROADMAP.md` | Milestones, architecture, external dependencies |
-| `fmd-end-to-end-build-plan.md` | Earlier planning document (superseded where `PRD_TRACEABILITY.md` says so) |
+| `docs/FMD_MAIN_PLAN.md`, `docs/FMD_SCHOLAR_PLAN.md` | Product plans for FMD Main and FMD Scholar |
+| `docs/FRONTEND_REVIEW.md` | Review of `web/` with a checklist of what is done and left |
+| `docs/PRD_CHANGES.md` | Proposed changes to the PDR |
+| `docs/superpowers/specs/` | Design specs for individual features |
+| `fmd-end-to-end-build-plan.md` | Earlier planning document (superseded where the traceability file says so) |
 
 ## Conventions
 
-- Add a feature as a vertical slice: migration → service with authorisation → route → UI states (loading, empty, error, success) → tests → update the traceability row.
-- Services take the authenticated `Auth` and call `requireAuth` / `requireClinic` / `requireRole` first.
-- New external dependency: add an adapter that reports `configured` and never claims success it didn't verify.
+- Build a feature as a vertical slice: data and rules (with tests) → page → every UI state (loading, empty, error, success) → update the traceability row.
+- Sample modules in `web/src/sample/` keep the shape of the future API, so a screen switches to the backend by changing its data module only.
+- Every outside dependency goes behind an adapter that reports when it isn't configured and never claims success it didn't verify.
+- Colours, type and surfaces come from the tokens and classes in [Design system](#design-system); no hard-coded hues in components.
 - Next.js 16 differs from older versions; read `web/node_modules/next/dist/docs/` before changing framework-level code.
-# fmd-website

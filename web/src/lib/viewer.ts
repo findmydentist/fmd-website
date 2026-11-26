@@ -38,6 +38,7 @@ const DEMO_KIND: Record<DemoUser["role"], ViewerKind> = {
   dentist: "dentist",
   clinic_owner: "clinic_owner",
   clinic_front_desk: "clinic_staff",
+  student: "student",
 };
 
 /** The preview dentist and the preview owner (a dentist who runs the clinic) count as verified. */

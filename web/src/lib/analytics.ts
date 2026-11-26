@@ -17,6 +17,12 @@ export const EVENTS = {
   post_liked: { about: "A post liked", props: { kind: ["article", "image", "video", "poll"] } },
   edge_request_sent: { about: "An FMD Edge request", props: { contact: ["phone", "whatsapp", "email"] } },
   membership_paid: { about: "A membership payment confirmed", props: { plan: ["dentist", "student", "company"] } },
+  // FMD Scholar (PDR §16): which features are used, limits, failures, flagged citations, exports. Never the content.
+  scholar_activated: { about: "A student opened Scholar for the first time", props: {} },
+  scholar_feature_used: { about: "A Scholar feature produced something", props: { feature: ["ask", "quiz", "flashcards", "summary", "plan", "viva", "deck", "research"] } },
+  scholar_generation_failed: { about: "A Scholar action failed", props: { feature: ["ask", "quiz", "flashcards", "summary", "plan", "viva", "deck", "research"] } },
+  scholar_citation_flagged: { about: "Output shown with unverified sources", props: { count: "number" } },
+  scholar_export: { about: "Scholar work exported", props: { format: ["pdf", "markdown"], ok: "bool" } },
 } as const satisfies Record<string, { about: string; props: Record<string, Prop | "string-id"> }>;
 export type EventName = keyof typeof EVENTS;
 

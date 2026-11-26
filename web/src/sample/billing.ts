@@ -22,11 +22,9 @@ export const REFUND_TERMS = "Cancel within 7 days of your first payment for a fu
 export const PLANS: Plan[] = [
   { id: "patient", name: "Patient", yearly: 0, features: ["FMD AI", "Find and book dentists", "Records vault (100 MB)", "FMD Edge requests"], limits: ["No payment needed"] },
   { id: "dentist", name: "Dentist", yearly: 550, features: ["Verified public profile", "Posts in Explore", "Post jobs", "Everything patients get"], limits: ["One profile per registration"] },
-  { id: "student", name: "Dental student", yearly: 400, features: ["FMD Scholar included", "Doubts, viva practice, seminars and research help", "Everything patients get"], limits: ["Scholar: 200 questions and 10 presentations a month (demo limits)", "Student ID checked first"] },
+  { id: "student", name: "Dental student", yearly: 400, features: ["FMD Scholar included", "Doubts, viva practice, seminars and research help", "Everything patients get"], limits: ["Unlimited FMD Scholar", "Student ID checked first"] },
   { id: "company", name: "Dental company", yearly: 2000, features: ["Company page", "Post jobs", "Clearly labelled promotions"], limits: ["Company checked by FMD first"] },
 ];
-/** Tentative (PDR §8.1): what it buys and how often is still to be decided, so it can't be bought yet. */
-export const SCHOLAR_EXTRA = { price: 350, note: "Extra Scholar use once the included limit runs out. Price and details are tentative." };
 
 export const priceOf = (p: Plan) => {
   const gst = Math.round(p.yearly * GST_RATE);
@@ -130,15 +128,10 @@ export async function cancelMembership(userId: string, now = Date.now()): Promis
   return { refunded };
 }
 
-/** Usage against the plan's limits, for the meters (demo numbers, partway through the month). */
-export function usage(plan: PlanId | null, now = Date.now()) {
-  const d = new Date(now + 5.5 * 3_600_000);
-  const resets = iso(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) - 5.5 * 3_600_000);
-  if (plan === "student")
-    return [
-      { feature: "Scholar questions", used: 168, limit: 200, resets_at: resets },
-      { feature: "Scholar presentations", used: 3, limit: 10, resets_at: resets },
-    ];
+/** Usage against the plan's limits, for the meters (demo numbers). The student membership has none: FMD Scholar is
+ *  unlimited with it (owner, 16 Nov 2026). */
+export function usage(plan: PlanId | null): { feature: string; used: number; limit: number; resets_at: string | null }[] {
+  if (plan === "student") return [];
   return [{ feature: "Records storage (MB)", used: 1, limit: 100, resets_at: null }];
 }
 

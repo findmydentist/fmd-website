@@ -1612,47 +1612,158 @@ html[data-samsung] .btn-primary {
 }
 
 /* ---------------- the log-in field glow ----------------
-   An AI-style living border (as Gemini or Swiggy's assistant have), in FMD's own blues: periwinkle, royal and the
-   light headline blue, with one clean tooth-white highlight that travels round the field. ::before is the 1.5px
-   ribbon (the input covers its middle), ::after the soft halo behind it. Idle it turns slowly and the halo breathes;
-   typing brightens and quickens it. Still under reduced motion. */
-@property --fmd-glow-a {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-@keyframes fmd-glow-turn { to { --fmd-glow-a: 360deg; } }
-@keyframes fmd-glow-breathe { 0%, 100% { opacity: 0.32; } 50% { opacity: 0.55; } }
-.fmd-glow { position: relative; isolation: isolate; border-radius: 16px; }
+   The log-in page's centrepiece: a warm aura round the number/email field, as FMD's take on the glowing AI inputs of
+   Gemini or Swiggy. The halo is zero-offset shadows layered from tight to wide, so it fades evenly on every side:
+   warm champagne at the core, FMD periwinkle at the edge. A hairline ribbon drifts slowly between gold and blue. Idle
+   it breathes; typing blooms it. Still under reduced motion. The form's clip margin (AutoHeight) leaves room for it. */
+@keyframes fmd-glow-drift { to { background-position: 100% 50%; } }
+@keyframes fmd-glow-breathe { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }
+.fmd-glow { position: relative; isolation: isolate; border-radius: 18px; }
 .fmd-glow::before,
 .fmd-glow::after {
   content: "";
   position: absolute;
-  z-index: -1;
-  pointer-events: none;
   border-radius: inherit;
-  background: conic-gradient(
-    from var(--fmd-glow-a),
-    var(--accent) 0deg,
-    #2f5bff 70deg,
-    var(--headline-accent) 140deg,
-    #eef4ff 168deg,
-    var(--headline-accent) 196deg,
-    #2f5bff 260deg,
-    var(--accent) 360deg
-  );
-  animation: fmd-glow-turn 7s linear infinite;
+  pointer-events: none;
 }
-.fmd-glow::before { inset: -1.5px; }
+/* the ribbon: 1.5px, gold melting into blue and back */
+.fmd-glow::before {
+  inset: -1.5px;
+  z-index: -1;
+  background: linear-gradient(105deg, #5b8cff, #a9bdff 22%, #f1cf98 42%, #ffc2a6 52%, #a9bdff 72%, #5b8cff) 0% 50% / 300% 100%;
+  animation: fmd-glow-drift 9s ease-in-out infinite alternate;
+}
+/* the aura: even all round */
 .fmd-glow::after {
-  inset: -7px;
-  border-radius: 22px;
-  filter: blur(16px);
-  animation: fmd-glow-turn 7s linear infinite, fmd-glow-breathe 3.5s ease-in-out infinite;
+  inset: 0;
+  z-index: -2;
+  box-shadow:
+    0 0 14px 1px rgb(241 207 152 / 0.3),
+    0 0 34px 4px rgb(255 194 166 / 0.16),
+    0 0 52px 8px rgb(var(--accent-rgb) / 0.26),
+    0 0 78px 14px rgb(var(--accent-rgb) / 0.12);
+  animation: fmd-glow-breathe 4.8s ease-in-out infinite;
+  transition: box-shadow 0.4s ease;
 }
-.fmd-glow:focus-within::before { animation-duration: 3.5s; }
-.fmd-glow:focus-within::after { animation: fmd-glow-turn 3.5s linear infinite; opacity: 0.7; }
+.fmd-glow:focus-within::after {
+  animation: none;
+  opacity: 1;
+  box-shadow:
+    0 0 16px 2px rgb(241 207 152 / 0.42),
+    0 0 38px 6px rgb(255 194 166 / 0.22),
+    0 0 60px 10px rgb(var(--accent-rgb) / 0.34),
+    0 0 86px 16px rgb(var(--accent-rgb) / 0.16);
+}
+.fmd-glow:focus-within::before { animation-duration: 4.5s; }
 @media (prefers-reduced-motion: reduce) {
   .fmd-glow::before, .fmd-glow::after { animation: none; }
-  .fmd-glow::after { opacity: 0.4; }
+  .fmd-glow::after { opacity: 0.85; }
+}
+
+/* ---------- FMD Scholar colours: FMD Royal (owner's choice, 16 Nov 2026) ----------
+   Set on <html> while a Scholar page is open, so dialogs drawn on <body> pick them up too. FMD's light/dark toggle
+   picks the light (white and royal blue) or dark (obsidian) side; one theme choice is shared with FMD Main. */
+html:has(.scholar) {
+  color-scheme: dark;
+  --background: #04050a;
+  --background-secondary: #070912;
+  --surface: #0b0e18;
+  --surface-elevated: #10141f;
+  --surface-glass: rgba(220, 230, 255, 0.04);
+  --border: rgba(200, 215, 255, 0.1);
+  --border-strong: rgba(200, 215, 255, 0.18);
+  --inner-hi: transparent;
+  --text-primary: #f3f5fa;
+  --text-secondary: #c9d1df;
+  --text-muted: #9ea7b9;
+  --text-faint: #8d97aa;
+  --accent: #5b8cff;
+  --accent-soft: rgba(91, 140, 255, 0.14);
+  --headline-accent: #8fb0ff;
+  --button-primary: #f3f5fa;
+  --button-primary-fg: #070912;
+  --button-secondary: rgba(220, 230, 255, 0.06);
+  --tone-warn: #e3c28c;
+  --sch-amber: #d9a24a;
+  --sch-amber-ink: #e3c28c;
+}
+html:is([data-theme="pearl-light"], [data-theme="silver-light"], [data-theme="white-royal"]):has(.scholar) {
+  color-scheme: light;
+  --background: #f4f6fb;
+  --background-secondary: #eef1f8;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-glass: rgba(255, 255, 255, 0.8);
+  --border: #e3e7f0;
+  --border-strong: #cfd6e4;
+  --text-primary: #11151d;
+  --text-secondary: #374151;
+  --text-muted: #525b6b;
+  --text-faint: #5f6878;
+  --accent: #0a3fd1;
+  --accent-soft: rgba(10, 63, 209, 0.08);
+  --headline-accent: #0a3fd1;
+  --button-primary: #0a3fd1;
+  --button-primary-fg: #ffffff;
+  --button-secondary: rgba(17, 21, 29, 0.04);
+  --tone-warn: #7a4f0f;
+  --sch-amber: #c98a2b;
+  --sch-amber-ink: #7a4f0f;
+}
+@layer components {
+  /* quiet, solid cards: no glass, no glow, a hairline and a little space */
+  html:has(.scholar) .app-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  html:has(.scholar) .app-panel::before {
+    display: none;
+  }
+  .sch-serif {
+    font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+  }
+  .sch-prose {
+    font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+    font-size: 16.5px;
+    line-height: 1.72;
+    max-width: 62ch;
+    color: var(--text-secondary);
+  }
+  @media (min-width: 640px) {
+    .sch-prose {
+      font-size: 17.5px;
+    }
+  }
+  .sch-prose p + p {
+    margin-top: 0.85em;
+  }
+  /* Home's question of the day, the moment it's answered (once a day): the mark settles in, the explanation rises.
+     Only on a fresh answer, never on a reload that shows a saved one. */
+  .sch-answer-mark {
+    transition: opacity 180ms var(--ease-out-expo), scale 180ms var(--ease-out-expo);
+    @starting-style {
+      opacity: 0;
+      scale: 0.9;
+    }
+  }
+  .sch-answer-why {
+    transition: opacity 220ms var(--ease-out-expo), translate 220ms var(--ease-out-expo);
+    @starting-style {
+      opacity: 0;
+      translate: 0 4px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sch-answer-mark,
+    .sch-answer-why {
+      transition-property: opacity;
+      @starting-style {
+        scale: 1;
+        translate: none;
+      }
+    }
+  }
 }
