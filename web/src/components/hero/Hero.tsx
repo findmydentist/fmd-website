@@ -638,12 +638,12 @@ function HeroAssistantStage({ active }: { active: boolean }) {
           e.preventDefault();
           send(text);
         }}
-        className="chat-pane flex w-full min-w-0 items-center gap-0.5 rounded-xl p-1.5 transition-[border-color,box-shadow] duration-300 focus-within:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] focus-within:shadow-[0_0_40px_-12px_var(--accent-glow)]"
+        className="chat-pane flex w-full min-w-0 items-center gap-0.5 rounded-[22px] p-1.5 transition-[border-color,box-shadow] duration-300 focus-within:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] focus-within:shadow-[0_0_40px_-12px_var(--accent-glow)]"
       >
-        <button type="button" aria-label="New chat" disabled={!chatting} onClick={() => chat.load(null, [])} className="grid size-11 shrink-0 place-items-center rounded-lg text-ink-3 transition-colors hover:text-ink disabled:opacity-40">
+        <button type="button" aria-label="New chat" disabled={!chatting} onClick={() => chat.load(null, [])} className="grid size-11 shrink-0 place-items-center rounded-2xl text-ink-3 transition-colors hover:text-ink disabled:opacity-40">
           <Orbit className="size-[18px]" strokeWidth={1.5} />
         </button>
-        <button type="button" aria-label="Suggest a question" onClick={suggest} className="grid size-11 shrink-0 place-items-center rounded-lg text-ink-3 transition-colors hover:text-ink disabled:opacity-40">
+        <button type="button" aria-label="Suggest a question" onClick={suggest} className="grid size-11 shrink-0 place-items-center rounded-2xl text-ink-3 transition-colors hover:text-ink disabled:opacity-40">
           <Lightbulb className="size-[18px]" strokeWidth={1.5} />
         </button>
         <label htmlFor="hero-ai" className="sr-only">
@@ -666,7 +666,7 @@ function HeroAssistantStage({ active }: { active: boolean }) {
             onClick={toggleVoice}
             aria-pressed={listening}
             aria-label={listening ? "Stop voice input" : "Speak your question"}
-            className={`grid size-11 shrink-0 place-items-center rounded-lg transition-colors ${listening ? "bg-[var(--accent-soft)] text-ink" : "text-ink-3 hover:text-ink"}`}
+            className={`grid size-11 shrink-0 place-items-center rounded-2xl transition-colors ${listening ? "bg-[var(--accent-soft)] text-ink" : "text-ink-3 hover:text-ink"}`}
           >
             <Mic className="size-[18px]" strokeWidth={1.5} />
             {listening && <span className="sr-only">Listening</span>}
@@ -676,7 +676,7 @@ function HeroAssistantStage({ active }: { active: boolean }) {
           type="submit"
           aria-label="Send"
           disabled={!text.trim() || chat.typing}
-          className="grid size-11 shrink-0 place-items-center rounded-lg text-[var(--accent)] transition-[opacity,translate,scale] duration-200 active:scale-90 enabled:hover:translate-x-0.5 disabled:opacity-40"
+          className="grid size-11 shrink-0 place-items-center rounded-2xl text-[var(--accent)] transition-[opacity,translate,scale] duration-200 active:scale-90 enabled:hover:translate-x-0.5 disabled:opacity-40"
         >
           <Send className="size-[18px]" strokeWidth={1.75} />
         </button>
