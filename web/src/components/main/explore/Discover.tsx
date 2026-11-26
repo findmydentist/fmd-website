@@ -81,6 +81,7 @@ export function DiscoverPage() {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[200px_minmax(0,760px)] lg:justify-center lg:gap-10">
       <ExploreNav active="search" viewer={viewer ?? null} />
+      <h1 className="sr-only">Discover</h1>
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5">
         <label className="card flex h-14 items-center gap-3 px-5">
           <DiscoverIcon size={22} className="text-ink-3" />

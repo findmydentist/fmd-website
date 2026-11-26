@@ -42,18 +42,6 @@ function Header({ title, line, back = "/jobs/consult", backLabel = "Consultation
   );
 }
 
-function Facts({ items }: { items: [string, ReactNode][] }) {
-  return (
-    <dl className="grid gap-1.5 text-[14px]">
-      {items.map(([k, v]) => (
-        <div key={k} className="grid grid-cols-[92px_minmax(0,1fr)] gap-2">
-          <dt className="text-ink-3">{k}</dt>
-          <dd className="text-ink">{v}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
 
 /* ---------------- the board: open cases and available consultants ---------------- */
 
@@ -68,6 +56,8 @@ export function ConsultBoard() {
   const [docs, setDocs] = useState<Consultant[] | null>(null);
   const [offering, setOffering] = useState<ConsultCase | null>(null);
   const [asking, setAsking] = useState<Consultant | null>(null);
+  const [openCase, setOpenCase] = useState<ConsultCase | null>(null);
+  const [openDoc, setOpenDoc] = useState<Consultant | null>(null);
   const [done, setDone] = useState("");
   const key = params.toString();
   const load = () => {
@@ -90,7 +80,7 @@ export function ConsultBoard() {
   };
 
   return (
-    <div className="grid gap-8 pb-10">
+    <div className="type-read grid gap-8 pb-10">
       <header className="grid gap-3 pt-2">
         <Link href="/jobs" className="w-fit text-[13.5px] font-semibold text-ink-3 hover:text-ink">
           ← FMD Jobs
@@ -159,13 +149,16 @@ export function ConsultBoard() {
 
       {tab === "cases" ? (
         <List items={cases} empty="No open cases match these filters">
-          {(c: ConsultCase) => <CaseCard key={c.id} c={c} viewer={viewer} onOffer={() => setOffering(c)} />}
+          {(c: ConsultCase) => <CaseCard key={c.id} c={c} onOpen={() => setOpenCase(c)} />}
         </List>
       ) : (
         <List items={docs} empty="No consultants match these filters">
-          {(d: Consultant) => <ConsultantCard key={d.id} d={d} viewer={viewer} onAsk={() => setAsking(d)} />}
+          {(d: Consultant) => <ConsultantCard key={d.id} d={d} onOpen={() => setOpenDoc(d)} />}
         </List>
       )}
+
+      {openCase && <CaseDetail c={openCase} viewer={viewer} onClose={() => setOpenCase(null)} onOffer={() => (setOpenCase(null), setOffering(openCase))} />}
+      {openDoc && <ConsultantDetail d={openDoc} viewer={viewer} onClose={() => setOpenDoc(null)} onAsk={() => (setOpenDoc(null), setAsking(openDoc))} />}
 
       {offering && <VisitSheet title={`Offer to take: ${offering.procedure}`} hint={`${offering.clinic.name} can host: ${offering.when}`} onClose={() => setOffering(null)} send={(i) => offerToTake(viewer, offering.id, i).then(finished)} />}
       {asking && viewer && (
@@ -190,7 +183,7 @@ function List<T>({ items, empty, children }: { items: T[] | null; empty: string;
     return (
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-busy>
         {[0, 1, 2].map((i) => (
-          <div key={i} className="card h-[280px] animate-pulse" />
+          <div key={i} className="card h-[164px] animate-pulse" />
         ))}
       </div>
     );
@@ -198,85 +191,146 @@ function List<T>({ items, empty, children }: { items: T[] | null; empty: string;
   return <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{items.map((x) => children(x))}</ul>;
 }
 
-function CaseCard({ c, viewer, onOffer }: { c: ConsultCase; viewer: Viewer | null; onOffer: () => void }) {
+/* The board shows only what decides a click: what, where, for how much. Everything else waits in the detail sheet. */
+
+/** "₹6,000" + "per case", or "40%" + "of the treatment fee": the number leads, the basis follows quietly. */
+const payParts = (p: Pay): [string, string] => (p.basis === "share" ? [`${p.amount}%`, PAY_BASIS.share] : [`₹${p.amount.toLocaleString("en-IN")}`, PAY_BASIS[p.basis]]);
+
+const cardBtn =
+  "card group flex h-full w-full flex-col gap-5 p-5 text-left transition-[translate,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:p-6";
+
+function Fee({ pay, size = 17 }: { pay: Pay; size?: number }) {
+  const [n, basis] = payParts(pay);
   return (
-    <li className="card grid content-start gap-4 p-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <Tag tone="accent">{SPECIALTIES[c.specialty]}</Tag>
-        <Tag tone="muted">
-          {c.cases} case{c.cases > 1 ? "s" : ""}
-        </Tag>
-      </div>
-      <div className="grid gap-1">
-        <h2 className="text-[18px] font-bold leading-snug text-ink">{c.procedure}</h2>
-        <p className="text-[14px] text-ink-2">
-          {c.clinic.name} · {c.area}, {c.clinic.city}
-        </p>
-      </div>
-      <Facts
-        items={[
-          ["Fee", <b key="f">{payText(c.pay)}</b>],
-          ["When", c.when],
-          ["Clinic has", c.provides.join(", ") || "Not given"],
-          ["Bring", c.bring.join(", ") || "Nothing special"],
-        ]}
-      />
-      {c.note && <p className="text-[13.5px] text-ink-3">{c.note}</p>}
-      <div className="mt-auto">
-        {canConsult(viewer) ? (
-          viewer?.clinicId === c.clinic.id ? (
-            <p className="text-[13px] text-ink-3">Your clinic&apos;s case</p>
-          ) : (
-            <button type="button" onClick={onOffer} className={primary}>
-              Offer to take this
-            </button>
-          )
-        ) : (
-          <p className="text-[13px] text-ink-3">{viewer ? "Only dentists verified by FMD can take cases." : "Sign in as a verified dentist to take cases."}</p>
-        )}
-      </div>
+    <span className="flex items-baseline gap-1.5">
+      <span className="font-semibold tabular-nums tracking-[-0.015em] text-ink" style={{ fontSize: size }}>
+        {n}
+      </span>
+      <span className="text-[13px] text-ink-3">{basis}</span>
+    </span>
+  );
+}
+
+function CaseCard({ c, onOpen }: { c: ConsultCase; onOpen: () => void }) {
+  return (
+    <li className="flex">
+      <button type="button" onClick={onOpen} className={cardBtn} aria-haspopup="dialog">
+        <span className="grid gap-1.5">
+          <span className="text-[17px] font-semibold leading-snug tracking-[-0.015em] text-ink [text-wrap:balance]">{c.procedure}</span>
+          <span className="truncate text-[14px] text-ink-3">
+            {c.clinic.name} · {c.area}
+          </span>
+        </span>
+        <span className="mt-auto flex items-end justify-between gap-3 border-t border-line pt-4">
+          <Fee pay={c.pay} />
+          <span className="shrink-0 text-[13px] font-medium text-[var(--accent)]">
+            {SPECIALTIES[c.specialty]}
+            {c.cases > 1 && <span className="text-ink-3"> · {c.cases} cases</span>}
+          </span>
+        </span>
+      </button>
     </li>
   );
 }
 
-function ConsultantCard({ d, viewer, onAsk }: { d: Consultant; viewer: Viewer | null; onAsk: () => void }) {
+function ConsultantCard({ d, onOpen }: { d: Consultant; onOpen: () => void }) {
   return (
-    <li className="card grid content-start gap-4 p-6">
-      <div className="flex items-center gap-3">
-        <Monogram name={d.name} size={52} />
-        <div className="min-w-0">
-          <h2 className="truncate text-[17px] font-bold text-ink">{d.name}</h2>
-          <p className="text-[13.5px] text-ink-2">
-            {SPECIALTIES[d.specialty]} · {d.years} years
+    <li className="flex">
+      <button type="button" onClick={onOpen} className={cardBtn} aria-haspopup="dialog">
+        <span className="flex items-center gap-3.5">
+          <Monogram name={d.name} size={48} />
+          <span className="grid min-w-0 gap-0.5">
+            <span className="truncate text-[16.5px] font-semibold tracking-[-0.015em] text-ink">{d.name}</span>
+            <span className="truncate text-[14px] text-ink-3">
+              {SPECIALTIES[d.specialty]} · {d.cities[0]}
+              {d.cities.length > 1 && ` +${d.cities.length - 1}`}
+            </span>
+          </span>
+        </span>
+        <span className="mt-auto flex items-end justify-between gap-3 border-t border-line pt-4">
+          <Fee pay={d.pay} />
+          {d.days && <span className="min-w-0 truncate text-[13px] text-ink-3">{d.days}</span>}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+/** A label and its value, read as a line; the detail sheets are built from these. */
+function Row({ k, children }: { k: string; children: ReactNode }) {
+  return (
+    <div className="grid gap-1 border-t border-line py-3.5 sm:grid-cols-[128px_minmax(0,1fr)] sm:gap-4">
+      <dt className="text-[13.5px] text-ink-3">{k}</dt>
+      <dd className="text-[15px] leading-[1.5] text-ink">{children}</dd>
+    </div>
+  );
+}
+
+/** Why someone can't act on this, said plainly where the button would be. */
+const Cant = ({ children }: { children: ReactNode }) => <p className="rounded-2xl bg-[var(--surface-glass)] px-4 py-3 text-[14px] text-ink-2">{children}</p>;
+
+function CaseDetail({ c, viewer, onOffer, onClose }: { c: ConsultCase; viewer: Viewer | null; onOffer: () => void; onClose: () => void }) {
+  return (
+    <Sheet title={c.procedure} onClose={onClose}>
+      <div className="type-read grid gap-5">
+        <div className="grid gap-1">
+          <p className="text-[15px] text-ink-2">
+            {c.clinic.name} · {c.area}, {c.clinic.city}
+          </p>
+          <p className="text-[14px] text-ink-3">
+            {SPECIALTIES[c.specialty]} · {c.cases} case{c.cases > 1 ? "s" : ""}
           </p>
         </div>
+        <Fee pay={c.pay} size={26} />
+        <dl>
+          <Row k="When">{c.when || "Ask the clinic"}</Row>
+          <Row k="Clinic provides">{c.provides.join(", ") || "Not given"}</Row>
+          <Row k="Bring">{c.bring.join(", ") || "Nothing special"}</Row>
+          {c.note && <Row k="Note">{c.note}</Row>}
+        </dl>
+        {!canConsult(viewer) ? (
+          <Cant>{viewer ? "Only dentists verified by FMD can take consultation cases." : "Log in as a verified dentist to take this case."}</Cant>
+        ) : viewer?.clinicId === c.clinic.id ? (
+          <Cant>This is your clinic&apos;s case. Offers from consultants arrive in My consultations.</Cant>
+        ) : (
+          <button type="button" onClick={onOffer} className={`${primary} w-full`}>
+            Offer to take this
+          </button>
+        )}
       </div>
-      <p className="text-[13.5px] text-ink-3">{d.qualification}</p>
-      <ul className="flex flex-wrap gap-1.5" aria-label="Takes on">
-        {d.procedures.map((p) => (
-          <li key={p}>
-            <Tag tone="muted">{p}</Tag>
-          </li>
-        ))}
-      </ul>
-      <Facts
-        items={[
-          ["Fee", <b key="f">{payText(d.pay)}</b>],
-          ["Visits", d.cities.join(", ")],
-          ["Usually", d.days || "Ask"],
-        ]}
-      />
-      {d.bio && <p className="text-[13.5px] text-ink-2">{d.bio}</p>}
-      <div className="mt-auto">
+    </Sheet>
+  );
+}
+
+function ConsultantDetail({ d, viewer, onAsk, onClose }: { d: Consultant; viewer: Viewer | null; onAsk: () => void; onClose: () => void }) {
+  return (
+    <Sheet title={d.name} onClose={onClose}>
+      <div className="type-read grid gap-5">
+        <div className="flex items-center gap-4">
+          <Monogram name={d.name} size={56} />
+          <div className="grid gap-0.5">
+            <p className="text-[15px] font-medium text-ink">{SPECIALTIES[d.specialty]}</p>
+            <p className="text-[14px] text-ink-3">
+              {d.qualification} · {d.years} years
+            </p>
+          </div>
+        </div>
+        <Fee pay={d.pay} size={26} />
+        {d.bio && <p className="max-w-[60ch] text-[15px] leading-[1.55] text-ink-2">{d.bio}</p>}
+        <dl>
+          <Row k="Takes on">{d.procedures.join(", ")}</Row>
+          <Row k="Visits">{d.cities.join(", ")}</Row>
+          <Row k="Usually free">{d.days || "Ask"}</Row>
+        </dl>
         {canHire(viewer) ? (
-          <button type="button" onClick={onAsk} className={primary}>
+          <button type="button" onClick={onAsk} className={`${primary} w-full`}>
             Ask for a visit
           </button>
         ) : (
-          <p className="text-[13px] text-ink-3">{viewer?.id === d.id ? "This is your listing" : "Clinics can ask consultants for a visit."}</p>
+          <Cant>{viewer?.id === d.id ? "This is your listing. Clinics see it when they look for a specialist." : "Clinics can ask a consultant for a visit."}</Cant>
         )}
       </div>
-    </li>
+    </Sheet>
   );
 }
 
@@ -372,7 +426,7 @@ export function ConsultMine() {
   const load = () => viewer && myConsults(viewer).then(setData);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when the viewer changes
   useEffect(() => void load(), [viewer?.id]);
-  if (viewer === null) return <Header title="My consultations" line="Sign in to see your consultations." />;
+  if (viewer === null) return <Header title="My consultations" line="Log in to see your consultations." />;
   const reply = (id: string, yes: boolean) => answer(viewer!, id, yes).then(load, (x: Error) => setErr(x.message));
   return (
     <div className="grid gap-8 pb-10">

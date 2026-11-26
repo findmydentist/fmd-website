@@ -6,12 +6,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ButtonLink, Panel } from "@/components/app/kit";
-import { Field, fieldCls } from "@/components/app/Sheet";
+import { Field, fieldCls, Sheet } from "@/components/app/Sheet";
 import { Notice } from "@/components/Page";
-import { safeNext } from "@/lib/demo";
+import { DEMO_USERS, findDemoUser, homeOf, safeNext } from "@/lib/demo";
 import { auth, fmtPhone, initials, passwordRules } from "@/lib/fmd";
 import { DEMO_ACCOUNTS, DEMO_OTP, DEMO_PASSWORD, demoRole } from "@/lib/fmdDemo";
 import { authChanged } from "@/lib/me";
+import { useDemoUser } from "@/lib/useDemoUser";
 import { track } from "@/lib/analytics";
 import { DEMO_MODE } from "@/toggle";
 
@@ -47,14 +48,14 @@ export function AuthCard({ title, text, children, footer, wide = false, brand = 
             <div className="grid gap-4">
               <h2 className="text-[44px] font-semibold leading-[1.08] tracking-[-0.025em] text-ink">
                 Your dental care,{" "}
-                <span className="bg-gradient-to-r from-sky-300 to-blue-500 bg-clip-text text-transparent [--solid:#7dd3fc]">in one place.</span>
+                <span className="bg-gradient-to-r from-[var(--headline-accent)] to-[var(--accent)] bg-clip-text text-transparent [--solid:#8fb0ff]">in one place.</span>
               </h2>
               <p className="text-[16px] leading-relaxed text-ink-3">Find dentists you can trust, ask questions in plain words and keep your records safe, with one account for FMD and FMD Clinic.</p>
             </div>
             <ul className="grid gap-4">
               {BENEFITS.map(([Icon, head, line]) => (
                 <li key={head} className="flex items-start gap-4">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-sky-400/20 bg-sky-500/10 text-sky-300">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-[rgb(var(--accent-rgb)/0.2)] bg-[var(--accent-soft)] text-[var(--accent)]">
                     <Icon className="size-5" strokeWidth={1.75} />
                   </span>
                   <span className="pt-0.5">
@@ -74,18 +75,18 @@ export function AuthCard({ title, text, children, footer, wide = false, brand = 
                 </span>
                 <span className="min-w-0 leading-tight">
                   <span className="flex items-center gap-1.5 text-[14px] font-semibold text-ink">
-                    Dr. Aditi Sharma <BadgeCheck className="size-4 text-sky-400" strokeWidth={2} />
+                    Dr. Aditi Sharma <BadgeCheck className="size-4 text-[var(--accent)]" strokeWidth={2} />
                   </span>
                   <span className="mt-0.5 block text-[12px] text-ink-3">General Dentist · Koramangala</span>
                 </span>
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5 text-[11.5px] font-semibold">
                 <span className="rounded-md bg-emerald-500/15 px-2 py-1 text-emerald-300">Verified by FMD</span>
-                <span className="rounded-md bg-sky-500/15 px-2 py-1 text-sky-300">Next: today, 4:30 pm</span>
+                <span className="rounded-md bg-[rgb(var(--accent-rgb)/0.15)] px-2 py-1 text-[var(--accent)]">Next: today, 4:30 pm</span>
               </div>
             </div>
             <div className="absolute bottom-0 right-0 w-[280px] rounded-2xl border border-white/10 bg-[color-mix(in_srgb,var(--surface-elevated)_92%,transparent)] p-3.5 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
-              <p className="flex items-center gap-2 text-[12.5px] font-semibold text-sky-300">
+              <p className="flex items-center gap-2 text-[12.5px] font-semibold text-[var(--accent)]">
                 <Image src="/img/hero/mascot-512.webp" alt="" width={24} height={24} className="size-6" /> FMD AI
               </p>
               <p className="mt-2 rounded-xl rounded-tl-sm bg-white/[0.06] px-3 py-2 text-[12.5px] leading-snug text-ink-2">
@@ -197,12 +198,12 @@ function Collapse({ open, children, gap = "-mt-5" }: { open: boolean; children: 
 const Spin = () => <Loader2 className="size-[18px] animate-spin" strokeWidth={2} aria-hidden />;
 
 /** mobile number (with +91 shown in front) or, once letters are typed, an email */
-function IdField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function IdField({ value, onChange, glow = false }: { value: string; onChange: (v: string) => void; glow?: boolean }) {
   const email = /[a-z@]/i.test(value);
   return (
     <label className="grid gap-1.5">
       <span className="text-[13.5px] font-medium text-ink-2">Mobile number or email</span>
-      <span className="relative block">
+      <span className={`relative block ${glow ? "fmd-glow" : ""}`}>
         {email ? (
           <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-ink-3" strokeWidth={1.75} />
         ) : (
@@ -211,7 +212,7 @@ function IdField({ value, onChange }: { value: string; onChange: (v: string) => 
           </span>
         )}
         <input
-          className={`${fieldCls} h-12 text-[15.5px] ${email ? "pl-11" : "pl-[66px]"}`}
+          className={`${fieldCls} h-12 text-[15.5px] ${email ? "pl-11" : "pl-[66px]"} ${glow ? "!border-transparent !bg-[var(--background)]" : ""}`}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           autoComplete="username"
@@ -225,9 +226,9 @@ function IdField({ value, onChange }: { value: string; onChange: (v: string) => 
   );
 }
 
-const linkCls = "font-semibold text-sky-400 underline-offset-4 hover:underline";
+const linkCls = "font-semibold text-[var(--accent)] underline-offset-4 hover:underline";
 /** the one big action on each step */
-const primary = "inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-sky-600 text-[15px] font-semibold text-white transition-[background-color,opacity] hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-45";
+const primary = "inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[color-mix(in_srgb,var(--accent)_78%,black)] text-[15px] font-semibold text-white transition-[background-color,opacity] hover:bg-[color-mix(in_srgb,var(--accent)_90%,black)] disabled:cursor-not-allowed disabled:opacity-45";
 const big = `${fieldCls} h-12 pl-11`;
 
 /** an input with an icon inside it, on the left */
@@ -367,8 +368,8 @@ export function OtpStep({
 
   return (
     <form onSubmit={submit(() => onCode(code))} className="grid gap-4">
-      <div className="flex items-start gap-3 rounded-xl bg-sky-500/10 p-3.5">
-        <MessageSquareText className="mt-0.5 size-5 shrink-0 text-sky-400" strokeWidth={1.75} />
+      <div className="flex items-start gap-3 rounded-xl bg-[var(--accent-soft)] p-3.5">
+        <MessageSquareText className="mt-0.5 size-5 shrink-0 text-[var(--accent)]" strokeWidth={1.75} />
         <p className="text-[14.5px] text-ink-2">
           Enter the 6-digit code sent to <span className="font-semibold text-ink">{to}</span>.
         </p>
@@ -382,7 +383,7 @@ export function OtpStep({
               key={i}
               aria-hidden
               className={`grid h-14 place-items-center rounded-xl border text-[22px] font-semibold text-ink transition-colors ${
-                i === code.length && code.length < 6 ? "border-sky-400 bg-sky-500/10" : code[i] ? "border-line-strong bg-white/[0.06]" : "border-line bg-[var(--surface-glass)]"
+                i === code.length && code.length < 6 ? "border-[var(--accent)] bg-[var(--accent-soft)]" : code[i] ? "border-line-strong bg-white/[0.06]" : "border-line bg-[var(--surface-glass)]"
               }`}
             >
               {code[i] ?? ""}
@@ -414,7 +415,7 @@ export function OtpStep({
             Resend in {wait}s
           </span>
         ) : (
-          <button type="button" onClick={resend} disabled={busy} className="font-semibold text-sky-400 hover:underline">
+          <button type="button" onClick={resend} disabled={busy} className="font-semibold text-[var(--accent)] hover:underline">
             Resend code
           </button>
         )}
@@ -427,6 +428,9 @@ export function OtpStep({
 
 export function LoginForm() {
   const { next, finish } = useFinish();
+  const router = useRouter();
+  const { signIn: chooseRole, signOut: clearRole } = useDemoUser();
+  const [demoOpen, setDemoOpen] = useState(false);
   const { busy, err, setErr, run } = useRun();
   const [method, setMethod] = useState<"otp" | "password">("otp");
   const [step, setStep] = useState<"form" | "otp" | "mfa">("form");
@@ -465,6 +469,16 @@ export function LoginForm() {
         setChallenge(r.challenge_token);
         setDir(1);
         setStep("mfa");
+        return;
+      }
+      // the same person in the demo roles too, so FMD Clinic opens for its team (its own check reads the role)
+      const role = findDemoUser(DEMO_ACCOUNTS.find((a) => a.phone === phone)?.id ?? null);
+      if (role) chooseRole(role.id);
+      else clearRole();
+      setDemoOpen(false);
+      if (!next && role?.clinicId) {
+        authChanged();
+        router.replace(homeOf(role));
       } else finish();
     }).finally(() => setDemoBusy(null));
   };
@@ -472,6 +486,55 @@ export function LoginForm() {
   const [dir, setDir] = useState(1);
   const go = (to: typeof step, d: number) => (setDir(d), setStep(to), setErr(null));
   const pw = method === "password";
+
+  const demoSheet = demoOpen && (
+    <Sheet title="Try FMD with a demo account" onClose={() => setDemoOpen(false)}>
+      <div className="grid gap-4">
+        <p className="text-[14.5px] leading-relaxed text-ink-2">Everything is sample data, kept in this browser. Pick who you want to be; one tap logs you in.</p>
+        <ul className="grid gap-2">
+          {DEMO_ACCOUNTS.map((a) => (
+            <li key={a.id}>
+              <button
+                type="button"
+                onClick={() => demoLogin(a.phone)}
+                disabled={busy}
+                className="flex w-full items-center gap-3 rounded-2xl border border-line bg-[var(--surface)] p-3 text-left transition-[border-color,background-color] duration-150 hover:border-[rgb(var(--accent-rgb)/0.5)] hover:bg-[rgb(var(--accent-rgb)/0.06)] disabled:opacity-60"
+              >
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[12px] font-semibold text-white">
+                  {demoBusy === a.phone ? <Loader2 className="size-4 animate-spin" strokeWidth={2} /> : initials(a.full_name)}
+                </span>
+                <span className="min-w-0 flex-1 leading-tight">
+                  <span className="block truncate text-[15px] font-semibold text-ink">{a.full_name}</span>
+                  <span className="mt-0.5 block truncate text-[13px] text-ink-3">{demoRole(a)}</span>
+                </span>
+                <ArrowRight className="size-4 shrink-0 text-ink-3" strokeWidth={1.75} />
+              </button>
+            </li>
+          ))}
+          {DEMO_USERS.filter((u) => !DEMO_ACCOUNTS.some((a) => a.id === u.id)).map((u) => (
+            <li key={u.id}>
+              {/* clinic team roles without an FMD Main account open FMD Clinic directly */}
+              <button
+                type="button"
+                onClick={() => (chooseRole(u.id), router.push(homeOf(u)))}
+                className="flex w-full items-center gap-3 rounded-2xl border border-line bg-[var(--surface)] p-3 text-left transition-[border-color,background-color] duration-150 hover:border-[rgb(var(--accent-rgb)/0.5)] hover:bg-[rgb(var(--accent-rgb)/0.06)]"
+              >
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[12px] font-semibold text-white">{u.initials}</span>
+                <span className="min-w-0 flex-1 leading-tight">
+                  <span className="block truncate text-[15px] font-semibold text-ink">{u.name}</span>
+                  <span className="mt-0.5 block truncate text-[13px] text-ink-3">{u.title}, FMD Clinic</span>
+                </span>
+                <ArrowRight className="size-4 shrink-0 text-ink-3" strokeWidth={1.75} />
+              </button>
+            </li>
+          ))}
+        </ul>
+        <p className="text-center text-[12.5px] text-ink-3">
+          Or type it: password <span className="font-mono text-ink-2">{DEMO_PASSWORD}</span>, code <span className="font-mono text-ink-2">{DEMO_OTP}</span>
+        </p>
+      </div>
+    </Sheet>
+  );
 
   return (
     <AuthCard
@@ -521,7 +584,7 @@ export function LoginForm() {
                 </div>
 
                 <form onSubmit={submit(pw ? withPassword : sendLoginOtp)} className="grid gap-5">
-                  <IdField value={id} onChange={setId} />
+                  <IdField value={id} onChange={setId} glow />
                   {/* the password field opens under the number; the number stays where it is */}
                   <Collapse open={pw}>
                     <div className="grid gap-1.5">
@@ -529,7 +592,7 @@ export function LoginForm() {
                         <span className="text-[13.5px] font-medium text-ink-2">Password</span>
                         <PasswordInput value={password} onChange={setPassword} autoComplete="current-password" required={pw} />
                       </label>
-                      <Link href={withNext("/forgot-password", next)} className="w-fit justify-self-end text-[13.5px] font-medium text-sky-400 hover:underline">
+                      <Link href={withNext("/forgot-password", next)} className="w-fit justify-self-end text-[13.5px] font-medium text-[var(--accent)] hover:underline">
                         Forgot password?
                       </Link>
                     </div>
@@ -556,36 +619,14 @@ export function LoginForm() {
                 </form>
 
                 {DEMO_MODE && (
-                  <section aria-label="Demo accounts" className="mt-1 grid gap-3">
-                    <div className="flex items-center gap-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-ink-3">
-                      <span className="h-px flex-1 bg-[var(--border)]" /> Or try a demo account <span className="h-px flex-1 bg-[var(--border)]" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {DEMO_ACCOUNTS.map((a, i) => (
-                        <button
-                          key={a.id}
-                          type="button"
-                          onClick={() => demoLogin(a.phone)}
-                          disabled={busy}
-                          style={{ "--d": `${120 + i * 50}ms` } as React.CSSProperties}
-                          className="fmd-rise group flex items-center gap-2.5 rounded-xl border border-line bg-[var(--surface)] p-2.5 text-left transition-[border-color,background-color,translate] duration-200 hover:-translate-y-0.5 hover:border-sky-500/50 hover:bg-sky-500/[0.06] disabled:opacity-60"
-                        >
-                          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-blue-700 text-[11.5px] font-semibold text-white">
-                            {demoBusy === a.phone ? <Loader2 className="size-4 animate-spin" strokeWidth={2} /> : initials(a.full_name)}
-                          </span>
-                          <span className="min-w-0 leading-tight">
-                            <span className="block truncate text-[13.5px] font-semibold text-ink">{a.full_name}</span>
-                            <span className="block truncate text-[12px] text-ink-3" title={demoRole(a)}>
-                              {demoRole(a)}
-                            </span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-center text-[12px] text-ink-3">
-                      One tap logs you in. Or type it: password <span className="font-mono text-ink-2">{DEMO_PASSWORD}</span>, code <span className="font-mono text-ink-2">{DEMO_OTP}</span>
-                    </p>
-                  </section>
+                  <button
+                    type="button"
+                    onClick={() => setDemoOpen(true)}
+                    aria-haspopup="dialog"
+                    className="mx-auto inline-flex h-10 items-center gap-2 rounded-full px-4 text-[14px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent-soft)]"
+                  >
+                    <Sparkles className="size-4" strokeWidth={1.75} /> Try a demo?
+                  </button>
                 )}
               </div>
             </Step>
@@ -621,6 +662,7 @@ export function LoginForm() {
           )}
         </div>
       </AutoHeight>
+      {demoSheet}
     </AuthCard>
   );
 }
@@ -670,7 +712,7 @@ export function RegisterForm() {
             return (
               <li key={label} className="grid gap-1.5">
                 <span className="relative h-1 overflow-hidden rounded-full bg-white/[0.1]">
-                  <span className={`absolute inset-0 origin-left rounded-full bg-sky-500 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${on ? "scale-x-100" : "scale-x-0"}`} />
+                  <span className={`absolute inset-0 origin-left rounded-full bg-[var(--accent)] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${on ? "scale-x-100" : "scale-x-0"}`} />
                 </span>
                 <span className={on ? "text-ink" : "text-ink-3"}>
                   {i + 1}. {label}
@@ -785,7 +827,7 @@ export function RegisterForm() {
 function Check2({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: ReactNode }) {
   return (
     <label className="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-2 hover:bg-white/[0.04]">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 size-[18px] shrink-0 accent-sky-500" />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 size-[18px] shrink-0 accent-[var(--accent)]" />
       <span>{children}</span>
     </label>
   );

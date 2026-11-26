@@ -123,7 +123,7 @@ export default function Navbar() {
             </span>
           )}
           <Link href="/#coming-soon" className="btn-primary cta-pulse h-11 gap-1.5 whitespace-nowrap pl-5 pr-4 text-[13.5px]">
-            Join Waitlist<ArrowRight className="cta-arrow size-4" strokeWidth={2} />
+            Join the waitlist<ArrowRight className="cta-arrow size-4" strokeWidth={2} />
           </Link>
           <MobileMenu sections={LINKS} account={SHOW_ACCOUNT} className="xl:hidden" />
         </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { ButtonLink } from "@/components/app/kit";
 import { Chats, Send, Verified } from "@/components/main/explore/icons";
 import { Monogram } from "@/components/main/explore/Monogram";
@@ -59,6 +59,12 @@ function SignedOut() {
   );
 }
 
+/** Preview only: /messages?look=glass shows chats on frosted surfaces, to compare with the plain look before deciding. */
+const noSubscribe = () => () => {};
+function useGlassPreview() {
+  return useSyncExternalStore(noSubscribe, () => new URLSearchParams(location.search).get("look") === "glass", () => false);
+}
+
 /* ---------------- list ---------------- */
 
 /** Clinics (and, later, dentists with an Explore profile) choose whether new people can start a chat. */
@@ -78,16 +84,17 @@ function NewPeopleSwitch({ me }: { me: Viewer }) {
 }
 
 function ThreadList({ me, threads, active }: { me: Viewer; threads: Thread[]; active: string | null }) {
+  const look = useGlassPreview() ? "?look=glass" : "";
   const [q, setQ] = useState("");
   const shown = useMemo(() => threads.filter((t) => t.with.name.toLowerCase().includes(q.trim().toLowerCase())), [threads, q]);
   return (
     <section aria-label="Chats" className="flex min-h-0 flex-col">
       <div className="px-5 pb-3 pt-5">
-        <h1 className="text-[24px] font-bold tracking-[-0.02em] text-ink">Chats</h1>
+        <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.028em] text-ink">Chats</h1>
         <NewPeopleSwitch me={me} />
-        <label className="mt-3 flex h-11 items-center gap-2 rounded-[14px] bg-[var(--background)] px-3.5 text-ink-3">
+        <label className={`mt-3 flex h-11 items-center gap-2 rounded-[14px] px-3.5 text-ink-3 ${look ? "frost" : "bg-[var(--background)]"}`}>
           <span className="sr-only">Search chats</span>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search chats" className="w-full bg-transparent text-[14.5px] text-ink outline-none placeholder:text-ink-3" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search chats" className="w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3" />
         </label>
       </div>
       {shown.length === 0 ? (
@@ -99,21 +106,21 @@ function ThreadList({ me, threads, active }: { me: Viewer; threads: Thread[]; ac
             return (
               <li key={t.id}>
                 <Link
-                  href={`/messages/${t.id}`}
+                  href={`/messages/${t.id}${look}`}
                   aria-current={on ? "page" : undefined}
                   className={`flex items-center gap-3 rounded-[18px] px-3 py-3 transition-colors ${on ? "bg-[var(--accent-soft)]" : "hover:bg-[var(--background)]"}`}
                 >
                   <Monogram name={t.with.name} size={48} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
-                      <span className={`truncate text-[14.5px] ${t.unread ? "font-bold text-ink" : "font-semibold text-ink"}`}>{t.with.name}</span>
+                      <span className="truncate text-[15.5px] font-semibold tracking-[-0.012em] text-ink">{t.with.name}</span>
                       {t.with.verified && <Verified size={14} />}
                     </span>
-                    {t.context === "job" && <span className="block truncate text-[12px] font-medium text-[var(--accent)]">About a job</span>}
-                    <span className={`block truncate text-[13.5px] ${t.unread ? "font-semibold text-ink" : "text-ink-3"}`}>{lastLine(t, me.id)}</span>
+                    {t.context === "job" && <span className="block truncate text-[12.5px] font-medium text-[var(--accent)]">About a job</span>}
+                    <span className={`mt-0.5 block truncate text-[14px] leading-snug ${t.unread ? "font-medium text-ink" : "text-ink-3"}`}>{lastLine(t, me.id)}</span>
                   </span>
                   <span className="flex shrink-0 flex-col items-end gap-1.5">
-                    <span className="text-[12px] text-ink-3">{ago(t.updated_at)}</span>
+                    <span className={`text-[12.5px] tabular-nums ${t.unread ? "font-medium text-[var(--accent)]" : "text-ink-3"}`}>{ago(t.updated_at)}</span>
                     {t.unread > 0 && (
                       <span className="grid size-5 place-items-center rounded-full bg-[var(--accent)] text-[11px] font-bold text-white">
                         {t.unread}
@@ -148,6 +155,7 @@ function Attachment({ m }: { m: Message }) {
 }
 
 function Chat({ me, threadId, onSent }: { me: Viewer; threadId: string; onSent: () => void }) {
+  const glass = useGlassPreview();
   const [t, setT] = useState<Thread | null | undefined>(undefined);
   const [text, setText] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -157,7 +165,9 @@ function Chat({ me, threadId, onSent }: { me: Viewer; threadId: string; onSent: 
   useEffect(() => {
     markRead(me.id, threadId).then(load).then(onSent);
   }, [me.id, threadId, load, onSent]);
-  useEffect(() => end.current?.scrollIntoView({ block: "end" }), [t?.messages.length]);
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "end" }); // braces: newer browsers return a Promise from scroll methods
+  }, [t?.messages.length]);
 
   const send = async (e: FormEvent) => {
     e.preventDefault();
@@ -192,10 +202,10 @@ function Chat({ me, threadId, onSent }: { me: Viewer; threadId: string; onSent: 
         <Monogram name={t.with.name} size={40} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-[15px] font-semibold text-ink">{t.with.name}</span>
+            <span className="truncate text-[16.5px] font-semibold tracking-[-0.015em] text-ink">{t.with.name}</span>
             {t.with.verified && <Verified size={14} />}
           </div>
-          <Link href={profileHref(t)} className="text-[12.5px] text-ink-3 hover:text-ink">
+          <Link href={profileHref(t)} className="text-[13px] text-ink-3 hover:text-ink">
             View profile
           </Link>
         </div>
@@ -224,13 +234,13 @@ function Chat({ me, threadId, onSent }: { me: Viewer; threadId: string; onSent: 
             const gap = !prev || Date.parse(m.at) - Date.parse(prev.at) > 3_600_000;
             return (
               <li key={m.id} className="flex flex-col">
-                {gap && <span className="my-3 self-center text-[12px] text-ink-3">{divider(m.at)}</span>}
+                {gap && <span className="my-4 self-center text-[12px] font-medium tabular-nums tracking-[0.01em] text-ink-3">{divider(m.at)}</span>}
                 <div className={`max-w-[78%] ${mine ? "self-end" : "self-start"}`}>
                   <Attachment m={m} />
                   {m.body && (
                     <p
-                      className={`whitespace-pre-wrap break-words rounded-[20px] px-4 py-2.5 text-[14.5px] leading-[1.45] ${
-                        mine ? "rounded-br-[6px] bg-[var(--accent)] text-white" : "rounded-bl-[6px] bg-[var(--background)] text-ink"
+                      className={`whitespace-pre-wrap break-words rounded-[20px] px-4 py-2.5 text-[15px] leading-[1.42] ${
+                        mine ? `rounded-br-[6px] text-white ${glass ? "bg-[linear-gradient(180deg,color-mix(in_srgb,var(--accent)_92%,white),var(--accent))] shadow-[0_8px_20px_-12px_rgb(var(--accent-rgb)/0.9)]" : "bg-[var(--accent)]"}` : `rounded-bl-[6px] text-ink ${glass ? "frost" : "bg-[var(--background)]"}`
                       }`}
                     >
                       {m.body}
@@ -265,7 +275,7 @@ function Chat({ me, threadId, onSent }: { me: Viewer; threadId: string; onSent: 
               rows={1}
               maxLength={MAX_MESSAGE}
               placeholder="Write a message…"
-              className="max-h-32 min-h-11 w-full resize-none rounded-[22px] bg-[var(--background)] px-4 py-2.5 text-[14.5px] text-ink outline-none placeholder:text-ink-3 focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className={`max-h-32 min-h-11 w-full resize-none rounded-[22px] px-4 py-2.5 text-[15px] text-ink outline-none placeholder:text-ink-3 focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${glass ? "frost" : "bg-[var(--background)]"}`}
             />
           </label>
           <button type="submit" disabled={!text.trim()} aria-label="Send" className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-white transition-opacity disabled:opacity-40">
@@ -285,6 +295,7 @@ export function MessagesPage() {
   const threadId = params.threadId ? decodeURIComponent(params.threadId) : null;
   const viewer = useViewer();
   const router = useRouter();
+  const glass = useGlassPreview();
   const [threads, setThreads] = useState<Thread[] | null>(null);
   const refresh = useCallback(() => {
     if (viewer) inbox(viewer.id, viewer.kind).then(setThreads);
@@ -299,8 +310,8 @@ export function MessagesPage() {
   if (viewer === null) return <SignedOut />;
   if (!threads) return <div className="card h-[70vh] animate-pulse" aria-busy />;
 
-  return (
-    <div className="card flex h-[calc(100dvh-180px)] min-h-[520px] overflow-hidden">
+  const box = (
+    <div className={`type-read flex h-[calc(100dvh-180px)] min-h-[520px] overflow-hidden ${glass ? "frost rounded-[28px]" : "card"}`}>
       <div className={`w-full flex-col border-line lg:flex lg:w-[360px] lg:shrink-0 lg:border-r ${threadId ? "hidden" : "flex"}`}>
         <ThreadList me={viewer} threads={threads} active={threadId} />
       </div>
@@ -321,6 +332,7 @@ export function MessagesPage() {
       </div>
     </div>
   );
+  return glass ? <div className="frost-stage">{box}</div> : box;
 }
 
 /** For the top bar: how many chats have something new. */

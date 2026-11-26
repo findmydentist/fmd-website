@@ -134,7 +134,7 @@ function About({ v }: { v: DentistView }) {
         <LiSection id="li-lic" title="Licenses & certifications">
           <ul className="grid gap-4">
             <Entry
-              tile={<ShieldCheck aria-hidden className={`size-6 ${verified ? "text-sky-400" : ""}`} strokeWidth={1.6} />}
+              tile={<ShieldCheck aria-hidden className={`size-6 ${verified ? "text-[var(--accent)]" : ""}`} strokeWidth={1.6} />}
               title="Dental council registration"
               lines={[verified ? "Checked by FMD" : "Not checked by FMD yet", p.verification.checks]}
               extra={
@@ -153,7 +153,7 @@ function About({ v }: { v: DentistView }) {
               {p.serviceFees.map((f) => (
                 <li key={f.service} className="flex items-center justify-between gap-3 border-t border-line py-3 first:border-t-0 first:pt-0 last:pb-0">
                   <span className="text-[15.5px] font-semibold text-ink">{f.service}</span>
-                  <button type="button" onClick={() => v.pickTab("book")} className={`inline-flex min-h-9 items-center rounded-full border border-line px-3.5 text-[13.5px] font-semibold text-ink-2 hover:border-sky-500 hover:text-ink ${hy.focus}`}>
+                  <button type="button" onClick={() => v.pickTab("book")} className={`inline-flex min-h-9 items-center rounded-full border border-line px-3.5 text-[13.5px] font-semibold text-ink-2 hover:border-[var(--accent)] hover:text-ink ${hy.focus}`}>
                     See fees
                   </button>
                 </li>
@@ -186,14 +186,14 @@ function About({ v }: { v: DentistView }) {
               <h2 id="li-glance" className="text-[16px] font-semibold text-ink">
                 At a glance
               </h2>
-              <p className="flex items-center gap-1.5 text-[13px] font-medium text-sky-400">
+              <p className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--accent)]">
                 <Sparkles aria-hidden className="size-3.5" strokeWidth={2} /> Summary by FMD AI
               </p>
             </div>
           </div>
           <dl className="grid gap-2.5 text-[14.5px]">
             <div className="flex items-center gap-2.5">
-              <ShieldCheck aria-hidden className={`size-[18px] ${verified ? "text-sky-400" : "text-ink-3"}`} strokeWidth={1.75} />
+              <ShieldCheck aria-hidden className={`size-[18px] ${verified ? "text-[var(--accent)]" : "text-ink-3"}`} strokeWidth={1.75} />
               <dt className="sr-only">Verification</dt>
               <dd className="text-ink">{verified ? "Registration checked by FMD" : "Not verified yet"}</dd>
             </div>
@@ -277,7 +277,7 @@ function Reviews({ dentistId }: { dentistId: string }) {
                     <dt className="text-[14px] text-ink-2">{ASPECTS[a]}</dt>
                     <dd className="text-[14px] font-medium tabular-nums text-ink">{data.averages[a]?.toFixed(1)} / 5</dd>
                     <span aria-hidden className="col-span-2 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
-                      <span className="block h-full rounded-full bg-sky-500" style={{ width: `${((data.averages[a] ?? 0) / 5) * 100}%` }} />
+                      <span className="block h-full rounded-full bg-[var(--accent)]" style={{ width: `${((data.averages[a] ?? 0) / 5) * 100}%` }} />
                     </span>
                   </div>
                 ))}
@@ -293,7 +293,7 @@ function Reviews({ dentistId }: { dentistId: string }) {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="text-[15px] font-semibold text-ink">{r.mine ? "You" : r.author}</span>
                 {r.verified_visit && (
-                  <span className="inline-flex items-center gap-1 text-[13px] text-sky-400">
+                  <span className="inline-flex items-center gap-1 text-[13px] text-[var(--accent)]">
                     <BadgeCheck aria-hidden className="size-4" strokeWidth={1.9} /> Verified visit
                   </span>
                 )}
@@ -377,12 +377,12 @@ function Book({ v }: { v: DentistView }) {
                       type="button"
                       aria-pressed={on}
                       onClick={() => (setDay(i), setSlot(null))}
-                      className={`relative grid min-w-[104px] shrink-0 gap-0.5 border-r border-line px-4 py-3 text-left transition-colors last:border-r-0 hover:bg-white/[0.04] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400 ${
-                        on ? "bg-sky-500/15 after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:bg-sky-500" : ""
+                      className={`relative grid min-w-[104px] shrink-0 gap-0.5 border-r border-line px-4 py-3 text-left transition-colors last:border-r-0 hover:bg-white/[0.04] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent)] ${
+                        on ? "bg-[rgb(var(--accent-rgb)/0.15)] after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:bg-[var(--accent)]" : ""
                       }`}
                     >
                       <span className={`text-[14px] font-semibold ${on ? "text-ink" : "text-ink-2"}`}>{dayLabel(noonOf(x))}</span>
-                      <span className={`text-[13px] tabular-nums ${n <= 4 ? "text-amber-300" : "text-sky-400"}`}>
+                      <span className={`text-[13px] tabular-nums ${n <= 4 ? "text-amber-300" : "text-[var(--accent)]"}`}>
                         {n} {n === 1 ? "time" : "times"}
                       </span>
                     </button>
@@ -399,7 +399,7 @@ function Book({ v }: { v: DentistView }) {
                         aria-pressed={on}
                         onClick={() => setSlot(on ? null : t)}
                         className={`flex min-h-11 w-full items-center justify-center rounded-xl border text-[15px] font-medium tabular-nums transition-colors ${hy.focus} ${
-                          on ? "border-sky-500 bg-sky-600 text-white" : "border-line text-ink hover:border-sky-500 hover:bg-sky-500/15"
+                          on ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_78%,black)] text-white" : "border-line text-ink hover:border-[var(--accent)] hover:bg-[rgb(var(--accent-rgb)/0.15)]"
                         }`}
                       >
                         {timeLabel(t)}
@@ -421,7 +421,7 @@ function Book({ v }: { v: DentistView }) {
             {options.map((o) => {
               const on = o.service === visit;
               return (
-                <li key={o.service} className={`grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3 rounded-xl border p-4 transition-colors ${on ? "border-sky-500 bg-sky-500/15" : "border-line"}`}>
+                <li key={o.service} className={`grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3 rounded-xl border p-4 transition-colors ${on ? "border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.15)]" : "border-line"}`}>
                   {/* left: what it is */}
                   <div className="row-span-2 min-w-0 self-center">
                     <p className="text-[15.5px] font-semibold text-ink">{o.service}</p>
@@ -434,7 +434,7 @@ function Book({ v }: { v: DentistView }) {
                     aria-label={`${on ? "Selected" : "Select"}: ${o.service}`}
                     onClick={() => setVisit(o.service)}
                     className={`inline-flex min-h-10 min-w-[104px] items-center justify-center gap-1.5 justify-self-end rounded-lg border px-4 text-[14px] font-semibold transition-colors ${hy.focus} ${
-                      on ? "border-sky-500 bg-sky-600 text-white" : "border-sky-500/60 text-sky-400 hover:bg-sky-500/10"
+                      on ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_78%,black)] text-white" : "border-[rgb(var(--accent-rgb)/0.6)] text-[var(--accent)] hover:bg-[var(--accent-soft)]"
                     }`}
                   >
                     {on ? (
@@ -488,14 +488,14 @@ function Book({ v }: { v: DentistView }) {
         </Link>
         <ul aria-label="What's assured" className="grid gap-2 text-[13.5px] text-ink-2">
           <li className="flex items-center gap-2">
-            <Check aria-hidden className="size-4 text-sky-400" strokeWidth={2.5} /> Free to change or cancel up to {POLICY.freeCancelHours} hours before
+            <Check aria-hidden className="size-4 text-[var(--accent)]" strokeWidth={2.5} /> Free to change or cancel up to {POLICY.freeCancelHours} hours before
           </li>
           <li className="flex items-center gap-2">
-            <Check aria-hidden className="size-4 text-sky-400" strokeWidth={2.5} /> No payment online, pay at the clinic
+            <Check aria-hidden className="size-4 text-[var(--accent)]" strokeWidth={2.5} /> No payment online, pay at the clinic
           </li>
           {p.verification.status === "verified" && (
             <li className="flex items-center gap-2">
-              <Check aria-hidden className="size-4 text-sky-400" strokeWidth={2.5} /> Registration checked by FMD
+              <Check aria-hidden className="size-4 text-[var(--accent)]" strokeWidth={2.5} /> Registration checked by FMD
             </li>
           )}
         </ul>

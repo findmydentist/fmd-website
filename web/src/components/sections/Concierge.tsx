@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useAnimate, useInView, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
-import { ArrowRight, Check, Info, Mail, MapPin, MessageCircle, Phone, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Info, Mail, MessageCircle, Phone, Sparkles } from "lucide-react";
 // import MascotArt from "@/components/MascotArt"; // the earlier butler, see below
 import { MascotLoop } from "@/components/MascotLoop";
 import Image from "next/image";

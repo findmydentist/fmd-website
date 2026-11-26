@@ -38,7 +38,7 @@ const employerName = (v: Viewer) => (v.kind === "clinic_owner" && v.clinicId ===
 function Gate({ viewer, what }: { viewer: Viewer | null; what: string }) {
   return (
     <div className="card mx-auto grid max-w-[560px] justify-items-center gap-3 px-6 py-14 text-center">
-      <p className="text-[17px] font-semibold text-ink">{viewer ? `Only clinic owners, verified dentists and dental companies can ${what}` : `Log in to ${what}`}</p>
+      <h1 className="text-[17px] font-semibold text-ink">{viewer ? `Only clinic owners, verified dentists and dental companies can ${what}` : `Log in to ${what}`}</h1>
       {viewer?.kind === "clinic_staff" && <p className="text-[14px] text-ink-3">Ask your clinic owner to post it. You can still reply to applicants from Your listings.</p>}
       {viewer ? <ButtonLink href="/jobs">Back to jobs</ButtonLink> : <ButtonLink href="/login?next=/jobs/new">Log in</ButtonLink>}
     </div>

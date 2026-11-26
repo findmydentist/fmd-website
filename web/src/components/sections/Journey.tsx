@@ -32,7 +32,7 @@ const STEPS = [
     line: "Algorithmic transparency",
     eyebrow: "Search integrity",
     heading: "Algorithmic transparency in search.",
-    body: "Our ranking algorithm prioritizes verified status, clinical rating, distance, and live availability. Sponsored placements are strictly capped and explicitly labeled. You cannot buy organic rank.",
+    body: "Our ranking algorithm prioritises verified status, clinical rating, distance, and live availability. Sponsored placements are strictly capped and explicitly labeled. You cannot buy organic rank.",
     img: "/img/mascots/mascot-guide-1024.webp",
   },
   {
@@ -55,11 +55,11 @@ const STEPS = [
   },
   {
     icon: EyeOff,
-    title: "Anonymization",
+    title: "Anonymisation",
     line: "Strict PHI redaction",
     eyebrow: "Privacy compliance",
-    heading: "Clinical-grade data sanitization.",
-    body: "We enforce strict data sanitization protocols. No identifiable patient cases are ever used, displayed, or fed into AI models without documented consent and rigorous clinical review.",
+    heading: "Clinical-grade data sanitisation.",
+    body: "We enforce strict data sanitisation protocols. No identifiable patient cases are ever used, displayed, or fed into AI models without documented consent and rigorous clinical review.",
     img: "/img/mascots/mascot-trust-1024.webp",
   },
 ];

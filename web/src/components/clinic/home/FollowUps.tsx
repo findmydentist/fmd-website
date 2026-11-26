@@ -3,6 +3,7 @@
 import { Check } from "lucide-react";
 import Link from "next/link";
 import { Empty, Panel, Tag } from "@/components/app/kit";
+import { sectionHref } from "../sections";
 import { toggleFollowUp, type FollowUp } from "@/sample/clinic";
 
 const DUE = { overdue: ["bad", "Overdue"], today: ["warn", "Today"], upcoming: ["muted", "Upcoming"] } as const;
@@ -41,9 +42,11 @@ export function FollowUps({ items, clinicId, base, onChange }: { items: FollowUp
     <Panel as="section" className="p-4 sm:p-5">
       <div className="mb-1 flex items-center justify-between">
         <h2 className="text-[16px] font-medium text-ink">Follow-ups & tasks</h2>
-        <Link href={`${base}/tasks`} className="text-[13.5px] text-ink-2 hover:text-ink">
-          All tasks ›
-        </Link>
+        {sectionHref(base, "tasks") && (
+          <Link href={sectionHref(base, "tasks")!} className="text-[13.5px] text-ink-2 hover:text-ink">
+            All tasks ›
+          </Link>
+        )}
       </div>
       {items.length === 0 ? (
         <Empty title="Nothing waiting" />

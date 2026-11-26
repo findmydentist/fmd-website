@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IconButton } from "@/components/app/kit";
 import { listNotices, markNoticesRead, type Notice } from "@/sample/clinic";
+import { sectionHref } from "./sections";
 import { useDismiss } from "./dismiss";
 
 const clock = (hm: string) => {
@@ -60,12 +61,22 @@ export function Notifications({ clinicId, base }: { clinicId: string; base: stri
               <ul>
                 {items.map((n) => (
                   <li key={n.id} className="border-t border-line first:border-0">
-                    <Link href={`${base}/${n.href}`} onClick={() => setOpen(false)} className="flex gap-3 rounded-xl px-1 py-3 hover:bg-[var(--accent-soft)]">
-                      <span className="text-[14.5px] leading-snug text-ink">
-                        {n.text}
-                        <span className="mt-0.5 block text-[13px] text-ink-3">{clock(n.at)}</span>
-                      </span>
-                    </Link>
+                    {(() => {
+                      const body = (
+                        <span className="text-[14.5px] leading-snug text-ink">
+                          {n.text}
+                          <span className="mt-0.5 block text-[13px] text-ink-3">{clock(n.at)}</span>
+                        </span>
+                      );
+                      const href = sectionHref(base, n.href);
+                      return href ? (
+                        <Link href={href} onClick={() => setOpen(false)} className="flex gap-3 rounded-xl px-1 py-3 hover:bg-[var(--accent-soft)]">
+                          {body}
+                        </Link>
+                      ) : (
+                        <div className="flex gap-3 px-1 py-3">{body}</div>
+                      );
+                    })()}
                   </li>
                 ))}
               </ul>

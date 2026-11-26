@@ -2,14 +2,12 @@
 
 import { BadgeCheck } from "lucide-react";
 import MascotArt from "@/components/MascotArt";
-import { useEffect, useState } from "react";
-import { api } from "@/lib/me";
 import type { FeedItem } from "../content/FeedCard";
 import { Container, Reveal, SponsoredBadge } from "../ui";
 import { Atmosphere } from "./LowerWorld";
 
 
-// mock posts shown while the feed API is unavailable or empty; remove this block (and the two fallbacks below) when real posts exist
+// sample posts for the homepage preview; replace with the feed once it has an endpoint
 const base = { kind: "education", sponsoredBy: null, publishedAt: null, likes: 0, comments: 0, liked: false, saved: false, poll: null, reason: "", demo: true } as const;
 const dr = (id: string, name: string) => ({ dentistId: id, name, photo: null, verified: true, followed: false });
 const MOCK_ITEMS: FeedItem[] = [
@@ -21,11 +19,9 @@ const MOCK_ITEMS: FeedItem[] = [
 
 /** Section 05: homepage preview of the live feed, editorial layout (one lead story, a short list); full feed at /explore. */
 export default function Explore() {
-  const [items, setItems] = useState<FeedItem[] | null>(null);
-  useEffect(() => {
-    api<{ items: FeedItem[] }>("/api/feed").then((r) => setItems((r.items.length ? r.items : MOCK_ITEMS).slice(0, 4))).catch(() => setItems(MOCK_ITEMS));
-  }, []);
-  const [lead, ...rest] = items ?? [];
+  // ponytail: sample posts until there's a feed endpoint to read (there is no /api/feed; the request only ever 404'd)
+  const items: FeedItem[] = MOCK_ITEMS;
+  const [lead, ...rest] = items;
   return (
     <section id="explore" className="relative isolate scroll-mt-24 pt-28 sm:pt-40">
       <Atmosphere scene="learn" />
@@ -38,12 +34,6 @@ export default function Explore() {
             <p className="type-lede mt-5 max-w-sm">Explore expert dental advice and simple tips for a healthier, brighter smile.</p>
           </Reveal>
 
-          {!items && <p className="self-center p-6 text-[13px] text-ink-4">Loading…</p>}
-          {items?.length === 0 && (
-            <p className="self-start rounded-[var(--sf-r-md)] fmd-surface p-6 text-[13.5px] text-ink-3">
-              No posts to show right now.
-            </p>
-          )}
           {lead && (
             <Reveal delay={0.06}>
               <article className="relative flex min-h-[360px] flex-col overflow-hidden rounded-[var(--sf-r-lg)] fmd-surface-raised p-7 sm:p-9 lg:pl-[290px]">

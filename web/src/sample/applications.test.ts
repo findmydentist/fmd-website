@@ -20,7 +20,7 @@ const full = (userId: string, dentist = false): ApplicantProfile => ({
 });
 
 test("signed out, unverified dentists and incomplete profiles can't apply", async () => {
-  await assert.rejects(apply(null, "job-assist-kor", ""), /^Error: Sign in to apply$/);
+  await assert.rejects(apply(null, "job-assist-kor", ""), /^Error: Log in to apply$/);
   const unverified = v("ap1", "dentist");
   await saveProfile(full("ap1", true));
   await assert.rejects(apply(unverified, "job-assoc-kor", ""), /^Error: Only verified dentists can apply to dentist roles$/);

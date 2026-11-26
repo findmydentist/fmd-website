@@ -32,7 +32,7 @@ export function CoverEdit({ has, onPick, onRemove }: { has: boolean; onPick: (f:
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const btn =
-    "inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg bg-black/55 px-3 text-[14px] font-semibold text-white backdrop-blur transition-colors hover:bg-black/70 has-[input:focus-visible]:outline has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-sky-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400";
+    "inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg bg-black/55 px-3 text-[14px] font-semibold text-white backdrop-blur transition-colors hover:bg-black/70 has-[input:focus-visible]:outline has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]";
   return (
     <div className="absolute bottom-3 right-3 z-10 grid justify-items-end gap-1.5">
       {err && (

@@ -6,7 +6,7 @@ import { DISTRICTS } from "@/lib/districts";
 import { Reveal } from "../ui";
 
 const PERKS = [
-  { icon: Crown, label: "Join Waitlist" },
+  { icon: Crown, label: "Join the waitlist" },
   { icon: Bell, label: "Product updates" },
   { icon: Users, label: "Exclusive insights" },
 ];
@@ -157,7 +157,7 @@ export default function ComingSoon() {
       setStatus("success");
       setServerMsg(data.message || "🎉 You are on the waitlist! Check your inbox for a confirmation email.");
       setForm({ name: "", email: "", role: "", state: "", city: "" });
-    } catch (err) {
+    } catch {
       setStatus("error");
       setServerMsg("Network error. Please check your connection and try again.");
     }
@@ -272,7 +272,7 @@ export default function ComingSoon() {
                 disabled={status === "pending"}
                 className="group inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-7 text-[15px] font-medium text-[#0b1230] shadow-[0_8px_24px_-10px_rgb(180_200_255/0.7)] transition-[translate,box-shadow,opacity] hover:-translate-y-px hover:shadow-[0_10px_30px_-8px_rgb(180_200_255/0.9)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7f9cff] disabled:opacity-60"
               >
-                {status === "pending" ? "Joining..." : "Join Waitlist"}
+                {status === "pending" ? "Joining…" : "Join the waitlist"}
                 <ArrowRight className="arrow-nudge size-4" strokeWidth={1.75} />
               </button>
             </div>
@@ -419,7 +419,7 @@ export default function ComingSoon() {
 
             {/* Server Feedback Message */}
             <p id={`${id}-msg`} role="status" aria-live="polite" className="mt-3 min-h-5 px-4 text-[13px]">
-              {status === "pending" && <span className="text-[#c3cce6]">Submitting your details...</span>}
+              {status === "pending" && <span className="text-[#c3cce6]">Submitting your details…</span>}
               {status === "success" && <span className="text-[#86efac]">{serverMsg}</span>}
               {status === "error" && <span className="text-[#ffb4a8]">{serverMsg}</span>}
             </p>

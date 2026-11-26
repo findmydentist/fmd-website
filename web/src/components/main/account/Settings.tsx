@@ -165,7 +165,7 @@ export function AccountSettings() {
         />
       </Group>
 
-      <Group id="security" title="Login and security">
+      <Group id="security" title="Security">
         <button type="button" onClick={() => show("password")} className={rowCls}>
           <RowBody icon={KeyRound} label="Password" sub="Change the password you log in with" />
           <ChevronRight className="size-5 shrink-0 text-ink-3" strokeWidth={1.75} />
@@ -202,7 +202,7 @@ export function AccountSettings() {
           </Card>
         </ExpandRow>
         <div id="devices" className="scroll-mt-24">
-          <ExpandRow open={expand === "devices"} onToggle={() => toggle("devices")} icon={Monitor} label="Where you're signed in" sub="Your devices, and signing out of them">
+          <ExpandRow open={expand === "devices"} onToggle={() => toggle("devices")} icon={Monitor} label="Where you're logged in" sub="Your devices, and logging out of them">
             <Devices onSignOutAll={() => show("logout-all")} flat />
           </ExpandRow>
         </div>
@@ -214,7 +214,7 @@ export function AccountSettings() {
         <LinkRow href="/account/privacy" icon={Lock} label="Privacy and data" sub="Your consents, which messages you get, a copy of your data, or deleting your account." />
       </Group>
 
-      <Group title="Login">
+      <Group title="Session">
         <button type="button" onClick={() => logout().catch(() => setFlash(null))} className={rowCls}>
           <RowBody icon={LogOut} label="Log out" tone="text-[var(--tone-bad)]" />
         </button>
@@ -649,7 +649,7 @@ function Devices({ onSignOutAll, flat = false }: { onSignOutAll: () => void; fla
   };
 
   return (
-    <Card flat={flat} title="Where you're signed in" text="Sign out of any device you don't recognise.">
+    <Card flat={flat} title="Where you're logged in" text="Log out of any device you don't recognise.">
       <div className="grid w-full gap-4">
         {err && (
           <Notice kind="error">
@@ -680,8 +680,8 @@ function Devices({ onSignOutAll, flat = false }: { onSignOutAll: () => void; fla
                     </p>
                   </div>
                   {!s.current && (
-                    <Button variant="secondary" size="sm" disabled={busyId === s.id} onClick={() => revoke(s.id)} aria-label={`Sign out ${name}`}>
-                      {busyId === s.id ? "Signing out…" : "Sign out"}
+                    <Button variant="secondary" size="sm" disabled={busyId === s.id} onClick={() => revoke(s.id)} aria-label={`Log out ${name}`}>
+                      {busyId === s.id ? "Logging out…" : "Log out"}
                     </Button>
                   )}
                 </li>
@@ -691,7 +691,7 @@ function Devices({ onSignOutAll, flat = false }: { onSignOutAll: () => void; fla
         )}
       </div>
       <Button variant="secondary" size="sm" onClick={onSignOutAll}>
-        Sign out everywhere
+        Log out everywhere
       </Button>
     </Card>
   );
@@ -700,7 +700,7 @@ function Devices({ onSignOutAll, flat = false }: { onSignOutAll: () => void; fla
 function LogoutAllSheet({ onClose }: { onClose: () => void }) {
   const { busy, err, run } = useRun();
   return (
-    <Sheet title="Sign out everywhere?" onClose={onClose}>
+    <Sheet title="Log out everywhere?" onClose={onClose}>
       <div className="grid gap-4">
         {err && <Notice kind="error">{err}</Notice>}
         <p className="text-[14.5px] text-ink-2">This signs you out on every device, including this one. You&apos;ll need to log in again.</p>
@@ -710,7 +710,7 @@ function LogoutAllSheet({ onClose }: { onClose: () => void }) {
           </Button>
           {/* once signed out, the page's sign-in guard takes over and opens /login */}
           <Button disabled={busy} onClick={() => run(() => logout(true))}>
-            {busy ? "Signing out…" : "Sign out everywhere"}
+            {busy ? "Logging out…" : "Log out everywhere"}
           </Button>
         </div>
       </div>

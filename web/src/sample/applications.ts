@@ -109,7 +109,7 @@ function owns(viewer: Viewer, job: Job) {
 
 /** Sends the profile (as it is now) to the employer, once per job. */
 export async function apply(viewer: Viewer | null, jobId: string, note: string): Promise<Application> {
-  if (!viewer) throw new Error("Sign in to apply");
+  if (!viewer) throw new Error("Log in to apply");
   const job = await getJob(viewer.id, jobId);
   if (!job) throw new Error("This job isn't listed any more.");
   if (job.space === "dentist" && !canApplyDentistRole(viewer)) throw new Error("Only verified dentists can apply to dentist roles");

@@ -75,7 +75,7 @@ export const HIGHLIGHTS: Story[] = [
 /* ---------------- by the name: the blue tick, the verification status, "Get verified" ---------------- */
 
 export function VerifiedTick({ me }: { me: Me }) {
-  return me.dentist_profile?.verification_status === "verified" ? <BadgeCheck className="size-5 text-sky-400" strokeWidth={2} aria-label="Verified dentist" /> : null;
+  return me.dentist_profile?.verification_status === "verified" ? <BadgeCheck className="size-5 text-[var(--accent)]" strokeWidth={2} aria-label="Verified dentist" /> : null;
 }
 
 /** a dentist's verification status, and a "Get verified" chip while they aren't */
@@ -87,7 +87,7 @@ export function VerifyBadges({ v }: { v: AccountView }) {
     <>
       {dentist && <VerifyStatus status={me.dentist_profile?.verification_status ?? null} className="text-[14px]" />}
       {nudge && (
-        <a href="#get-verified" className="inline-flex h-8 items-center gap-1.5 rounded-full border border-dashed border-sky-500/60 px-3 text-[13px] font-semibold text-sky-400 hover:bg-sky-500/10">
+        <a href="#get-verified" className="inline-flex h-8 items-center gap-1.5 rounded-full border border-dashed border-[rgb(var(--accent-rgb)/0.6)] px-3 text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--accent-soft)]">
           <BadgeCheck className="size-4" strokeWidth={2} /> Get verified
         </a>
       )}
@@ -103,12 +103,12 @@ export function SavedPanel({ posts }: { posts: FeedItem[] | null }) {
   if (posts.length) return <PostGrid posts={posts} />;
   return (
     <div className="grid justify-items-center gap-3 py-12 text-center">
-      <span className="grid size-16 place-items-center rounded-3xl bg-sky-500/15 text-sky-300">
+      <span className="grid size-16 place-items-center rounded-3xl bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent)]">
         <Bookmark className="size-7" strokeWidth={1.5} />
       </span>
       <p className="text-[20px] font-semibold text-ink">Save posts</p>
       <p className="text-[14px] text-ink-3">Tap the bookmark on a post in Explore to keep it here. Only you can see what you save.</p>
-      <Link href="/explore" className="text-[14px] font-medium text-sky-400 hover:underline">
+      <Link href="/explore" className="text-[14px] font-medium text-[var(--accent)] hover:underline">
         Go to Explore
       </Link>
     </div>
@@ -192,7 +192,7 @@ export function FollowingCard({ v }: { v: AccountView }) {
 
 const ROLE_LOOK: Record<string, { label: string; Icon: LucideIcon; cls: string }> = {
   owner: { label: "Clinic owner", Icon: Building2, cls: "border-violet-400/40 bg-violet-500/15 text-violet-200" },
-  dentist: { label: "Dentist", Icon: Stethoscope, cls: "border-sky-400/40 bg-sky-500/15 text-sky-200" },
+  dentist: { label: "Dentist", Icon: Stethoscope, cls: "border-[rgb(var(--accent-rgb)/0.4)] bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--headline-accent)]" },
   student: { label: "Dental student", Icon: GraduationCap, cls: "border-amber-400/40 bg-amber-500/15 text-amber-200" },
   company: { label: "Dental company", Icon: Briefcase, cls: "border-emerald-400/40 bg-emerald-500/15 text-emerald-200" },
   patient: { label: "Patient", Icon: HeartPulse, cls: "border-rose-400/40 bg-rose-500/15 text-rose-200" },
@@ -228,7 +228,7 @@ export function OwnGrid({ me, posts, reels }: { me: Me; posts: FeedItem[] | null
       <div className="grid gap-4">
         <PostGrid posts={shown} />
         {me.dentist_profile && (
-          <Link href="/explore/mine" className="w-fit text-[14px] font-medium text-sky-400 hover:underline">
+          <Link href="/explore/mine" className="w-fit text-[14px] font-medium text-[var(--accent)] hover:underline">
             Drafts and posts in review
           </Link>
         )}
@@ -239,7 +239,7 @@ export function OwnGrid({ me, posts, reels }: { me: Me; posts: FeedItem[] | null
   const vid = "videos";
   return (
     <div className="grid justify-items-center gap-3 py-14 text-center">
-      <span className="grid size-16 place-items-center rounded-3xl bg-sky-500/15 text-sky-300">
+      <span className="grid size-16 place-items-center rounded-3xl bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent)]">
         <Icon className="size-7" strokeWidth={1.5} />
       </span>
       <p className="text-[20px] font-semibold text-ink">{reels ? `No ${vid} yet` : "No posts yet"}</p>
@@ -253,15 +253,15 @@ export function OwnGrid({ me, posts, reels }: { me: Me; posts: FeedItem[] | null
             : `Posts and ${vid} are shared by verified dentists on FMD.`}
       </p>
       {verified ? (
-        <Link href="/explore/new" className="text-[14px] font-semibold text-sky-400 hover:underline">
+        <Link href="/explore/new" className="text-[14px] font-semibold text-[var(--accent)] hover:underline">
           {reels ? "Share a video" : "Create your first post"}
         </Link>
       ) : me.dentist_profile ? (
-        <Link href="/account/dentist" className="text-[14px] font-semibold text-sky-400 hover:underline">
+        <Link href="/account/dentist" className="text-[14px] font-semibold text-[var(--accent)] hover:underline">
           Get verified
         </Link>
       ) : (
-        <Link href="/explore" className="text-[14px] font-semibold text-sky-400 hover:underline">
+        <Link href="/explore" className="text-[14px] font-semibold text-[var(--accent)] hover:underline">
           Go to Explore
         </Link>
       )}
@@ -290,9 +290,9 @@ export function GetVerified({ me, accountType, certificate }: { me: Me; accountT
   const cta = status === "rejected" ? "Fix your details" : "Verify now";
   return (
     <section id="get-verified" aria-label="Get verified" className="scroll-mt-24">
-      <div className="grid gap-4 overflow-hidden rounded-xl border border-sky-500/30 bg-gradient-to-br from-sky-500/[0.12] via-[var(--surface)] to-[var(--surface)] p-4 sm:p-5">
+      <div className="grid gap-4 overflow-hidden rounded-xl border border-[rgb(var(--accent-rgb)/0.3)] bg-gradient-to-br from-[rgb(var(--accent-rgb)/0.12)] via-[var(--surface)] to-[var(--surface)] p-4 sm:p-5">
         <div className="flex flex-wrap items-start gap-4">
-          <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-[0_8px_24px_rgba(37,99,235,0.35)]">
+          <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--accent)_78%,black)] text-white shadow-[0_8px_24px_rgb(var(--accent-rgb)/0.35)]">
             <BadgeCheck className="size-8" strokeWidth={1.75} />
           </span>
           <div className="min-w-0 flex-1 basis-[240px]">
@@ -301,7 +301,7 @@ export function GetVerified({ me, accountType, certificate }: { me: Me; accountT
               A verified badge shows patients that FMD has checked your dental council registration. Verified dentists get the blue tick, can post in Explore and show as verified in search.
             </p>
           </div>
-          <Link href="/account/dentist" className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-sky-600 px-5 text-[14px] font-semibold text-white hover:bg-sky-500">
+          <Link href="/account/dentist" className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--accent)_78%,black)] px-5 text-[14px] font-semibold text-white hover:bg-[color-mix(in_srgb,var(--accent)_90%,black)]">
             {cta} <ChevronRight className="size-4" strokeWidth={2} />
           </Link>
         </div>
@@ -313,14 +313,14 @@ export function GetVerified({ me, accountType, certificate }: { me: Me; accountT
             {status && <Tag tone={STATUS[status].tone}>{STATUS[status].tag}</Tag>}
           </div>
           <span className="block h-1.5 overflow-hidden rounded-full bg-white/[0.08]" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={done} aria-label="Verification steps done">
-            <span className="block h-full rounded-full bg-gradient-to-r from-sky-400 to-blue-500 transition-[width] duration-500" style={{ width: `${(done / steps.length) * 100}%` }} />
+            <span className="block h-full rounded-full bg-[var(--accent)] transition-[width] duration-500" style={{ width: `${(done / steps.length) * 100}%` }} />
           </span>
         </div>
         <ol className="grid gap-2 sm:grid-cols-3">
           {steps.map(([label, line, isDone, isNow], i) => (
-            <li key={label} className={`flex gap-3 rounded-xl border p-3 ${isNow ? "border-sky-500/50 bg-sky-500/[0.06]" : "border-line bg-white/[0.02]"}`}>
+            <li key={label} className={`flex gap-3 rounded-xl border p-3 ${isNow ? "border-[rgb(var(--accent-rgb)/0.5)] bg-[rgb(var(--accent-rgb)/0.06)]" : "border-line bg-white/[0.02]"}`}>
               <span
-                className={`grid size-7 shrink-0 place-items-center rounded-full text-[12.5px] font-bold ${isDone ? "bg-emerald-500 text-white" : isNow ? "bg-sky-500 text-white" : "bg-white/[0.08] text-ink-3"}`}
+                className={`grid size-7 shrink-0 place-items-center rounded-full text-[12.5px] font-bold ${isDone ? "bg-emerald-500 text-white" : isNow ? "bg-[color-mix(in_srgb,var(--accent)_78%,black)] text-white" : "bg-white/[0.08] text-ink-3"}`}
               >
                 {isDone ? <Check className="size-4" strokeWidth={3} /> : i + 1}
               </span>

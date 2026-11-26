@@ -39,18 +39,33 @@ function useNotifications() {
   return { me, list, read };
 }
 
-function Item({ n, onOpen }: { n: Notification; onOpen: () => void }) {
+/** One notification, Notification Centre style: an icon tile, the title with its time on the right, the message, and a
+ *  blue dot while unread. `frosted` gives it its own glass card (the /notifications page). */
+function Item({ n, onOpen, frosted = false }: { n: Notification; onOpen: () => void; frosted?: boolean }) {
   const Icon = ICON[n.kind];
   return (
-    <Link href={n.href} onClick={onOpen} className={`flex gap-3 rounded-xl px-3 py-2.5 hover:bg-[var(--surface-glass)] ${n.read ? "" : "bg-[var(--accent-soft)]"}`}>
-      <Icon className="mt-0.5 size-4 shrink-0 text-ink-2" strokeWidth={1.75} />
-      <span className="min-w-0">
-        <span className="flex items-center gap-2 text-[14px] font-medium text-ink">
-          {n.title}
-          {!n.read && <span className="sr-only">(unread)</span>}
+    <Link
+      href={n.href}
+      onClick={onOpen}
+      className={`type-read flex gap-3.5 transition-[background-color,scale] duration-150 active:scale-[0.99] ${
+        frosted ? "frost rounded-[22px] p-4 hover:bg-[rgb(255_255_255/0.04)]" : `rounded-[16px] px-3 py-3 hover:bg-[var(--surface-glass)] ${n.read ? "" : "bg-[var(--accent-soft)]"}`
+      }`}
+    >
+      <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-[rgb(var(--accent-rgb)/0.16)] text-[var(--accent)]">
+        <Icon className="size-[19px]" strokeWidth={1.75} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-start gap-2">
+          {!n.read && <span aria-hidden className="mt-[7px] size-2 shrink-0 rounded-full bg-[var(--accent)]" />}
+          <span className="min-w-0 flex-1 text-[15px] font-semibold leading-[1.3] tracking-[-0.012em] text-ink">
+            {n.title}
+            {!n.read && <span className="sr-only"> (unread)</span>}
+          </span>
+          <time dateTime={n.at} className="shrink-0 pt-px text-[12.5px] tabular-nums text-ink-3">
+            {when(Date.parse(n.at))}
+          </time>
         </span>
-        <span className="block text-[13px] text-ink-2">{n.body}</span>
-        <span className="block text-[12px] text-ink-3">{when(Date.parse(n.at))}</span>
+        <span className="mt-1 block text-[14px] leading-[1.45] text-ink-2">{n.body}</span>
       </span>
     </Link>
   );
@@ -100,23 +115,43 @@ export function NotificationsPage() {
   useRequireMe();
   const { list, read } = useNotifications();
   if (!list) return <div className="app-panel h-48 animate-pulse" aria-busy />;
-  const unread = list.filter((n) => !n.read).length;
+  const groups = [
+    ["New", list.filter((n) => !n.read)],
+    ["Earlier", list.filter((n) => n.read)],
+  ] as const;
   return (
-    <div className="mx-auto grid w-full max-w-[720px] gap-5">
+    <div className="type-read mx-auto grid w-full max-w-[640px] gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="flex flex-wrap items-center gap-3 text-[24px] font-medium text-ink">
+        <h1 className="flex flex-wrap items-center gap-3 text-[30px] font-semibold leading-tight tracking-[-0.028em] text-ink">
           Notifications <Tag tone="muted">Demo</Tag>
         </h1>
-        {unread > 0 && (
+        {groups[0][1].length > 0 && (
           <Button variant="secondary" size="sm" onClick={() => read(list.map((n) => n.id))}>
             Mark all read
           </Button>
         )}
       </div>
-      <Panel className="grid gap-1 p-2">
-        {list.length ? list.map((n) => <Item key={n.id} n={n} onOpen={() => read([n.id])} />) : <p className="p-4 text-[14.5px] text-ink-3">Nothing yet.</p>}
-      </Panel>
-      <p className="text-[13px] text-ink-3">
+      <div className="frost-stage grid gap-7">
+        {list.length === 0 && <p className="frost rounded-[22px] p-6 text-center text-[15px] text-ink-2">You&apos;re all caught up.</p>}
+        {groups.map(
+          ([title, items]) =>
+            items.length > 0 && (
+              <section key={title} aria-labelledby={`n-${title}`} className="grid gap-2.5">
+                <h2 id={`n-${title}`} className="px-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-ink-3">
+                  {title}
+                </h2>
+                <ul className="grid gap-2.5">
+                  {items.map((n) => (
+                    <li key={n.id}>
+                      <Item n={n} frosted onOpen={() => read([n.id])} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ),
+        )}
+      </div>
+      <p className="text-[13px] leading-relaxed text-ink-3">
         Choose how these reach you (SMS, WhatsApp, email or app) in{" "}
         <Link href="/account/privacy" className="font-medium text-ink underline underline-offset-4">
           Privacy and data

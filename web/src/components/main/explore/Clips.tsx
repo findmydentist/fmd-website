@@ -198,6 +198,7 @@ export function ClipsPage() {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[200px_minmax(0,480px)] lg:justify-center lg:gap-10">
       <ExploreNav active="reels" viewer={viewer ?? null} />
+      <h1 className="sr-only">Clips</h1>
       <div
         ref={scroller}
         tabIndex={0}

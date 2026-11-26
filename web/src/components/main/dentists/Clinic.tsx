@@ -64,7 +64,7 @@ export function ClinicView() {
             <Clock3 aria-hidden className="size-4 shrink-0 text-ink-3" strokeWidth={1.75} />
             {c.hours}
           </span>
-          <a href={c.mapUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg font-medium text-sky-400 hover:underline">
+          <a href={c.mapUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg font-medium text-[var(--accent)] hover:underline">
             Open in Google Maps <ExternalLink aria-hidden className="size-3.5" strokeWidth={1.9} />
           </a>
         </div>
@@ -94,10 +94,10 @@ export function ClinicView() {
                     type="button"
                     aria-pressed={on}
                     onClick={() => setService(t && !on ? t : null)}
-                    className={`group grid w-[84px] justify-items-center gap-2 text-center sm:w-28 lg:flex lg:w-full lg:items-center lg:gap-3 lg:rounded-xl lg:px-2 lg:py-1.5 lg:text-left ${on ? "lg:bg-sky-500/15" : "lg:hover:bg-[var(--surface-glass)]"}`}
+                    className={`group grid w-[84px] justify-items-center gap-2 text-center sm:w-28 lg:flex lg:w-full lg:items-center lg:gap-3 lg:rounded-xl lg:px-2 lg:py-1.5 lg:text-left ${on ? "lg:bg-[rgb(var(--accent-rgb)/0.15)]" : "lg:hover:bg-[var(--surface-glass)]"}`}
                   >
                     <span
-                      className={`relative grid size-[72px] shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br ${coverOf(t ?? "All")} to-[var(--surface-elevated)] ring-offset-[3px] ring-offset-[var(--background)] sm:size-24 lg:size-11 lg:ring-offset-2 ${on ? "ring-2 ring-sky-400" : ""}`}
+                      className={`relative grid size-[72px] shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br ${coverOf(t ?? "All")} to-[var(--surface-elevated)] ring-offset-[3px] ring-offset-[var(--background)] sm:size-24 lg:size-11 lg:ring-offset-2 ${on ? "ring-2 ring-[var(--accent)]" : ""}`}
                     >
                       {art ? (
                         <Image src={art} alt="" fill sizes="(min-width: 1024px) 44px, 96px" className="object-cover transition-transform duration-500 group-hover:scale-110" />
@@ -105,7 +105,7 @@ export function ClinicView() {
                         <Icon aria-hidden className="size-8 text-ink sm:size-10 lg:size-5" strokeWidth={1.5} />
                       )}
                     </span>
-                    <span className={`text-[12.5px] leading-tight sm:text-[14.5px] lg:text-[14.5px] ${on ? "font-semibold text-sky-400" : "font-medium text-ink-2 group-hover:text-ink"}`}>
+                    <span className={`text-[12.5px] leading-tight sm:text-[14.5px] lg:text-[14.5px] ${on ? "font-semibold text-[var(--accent)]" : "font-medium text-ink-2 group-hover:text-ink"}`}>
                       {t ?? "All treatments"}
                     </span>
                   </button>
@@ -129,7 +129,7 @@ export function ClinicView() {
                 );
               })}
               {filtered && (
-                <button type="button" onClick={reset} className="inline-flex h-9 shrink-0 items-center px-2 text-[13.5px] font-medium text-sky-400 hover:underline">
+                <button type="button" onClick={reset} className="inline-flex h-9 shrink-0 items-center px-2 text-[13.5px] font-medium text-[var(--accent)] hover:underline">
                   Clear all
                 </button>
               )}

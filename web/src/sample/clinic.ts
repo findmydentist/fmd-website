@@ -32,6 +32,8 @@ export type AiTask = {
   needsApproval: boolean;
   status: "proposed" | "approved" | "skipped" | "done";
   actionLabel: string;
+  /** done tasks: the clinic section (slug) the action opens */
+  opens?: string;
   preview?: { recipients: string[]; message: string } | { lines: [string, string][]; total: string };
 };
 
@@ -177,6 +179,7 @@ const TASKS: Record<string, AiTask[]> = {
       needsApproval: false,
       status: "done",
       actionLabel: "Open sheet",
+      opens: "billing",
     },
   ],
   kora: [
@@ -188,6 +191,7 @@ const TASKS: Record<string, AiTask[]> = {
       needsApproval: false,
       status: "done",
       actionLabel: "Open list",
+      opens: "patients",
     },
   ],
 };

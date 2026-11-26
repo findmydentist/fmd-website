@@ -18,7 +18,7 @@ const list = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
 function SignIn({ next }: { next: string }) {
   return (
     <div className="card mx-auto grid max-w-[520px] justify-items-center gap-3 px-6 py-14 text-center">
-      <p className="text-[17px] font-semibold text-ink">Log in to apply for jobs</p>
+      <h1 className="text-[17px] font-semibold text-ink">Log in to apply for jobs</h1>
       <ButtonLink href={`/login?next=${encodeURIComponent(next)}`}>Log in</ButtonLink>
     </div>
   );
