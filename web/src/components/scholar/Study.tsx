@@ -155,7 +155,7 @@ function Quiz({ item, save }: { item: Item<QuizData>; save: (d: QuizData) => voi
   return (
     <fieldset className="grid max-w-[62ch] gap-4">
       <legend className="mb-3">
-        <span className="mb-2 block text-[11.5px] font-semibold uppercase tracking-[0.08em] text-ink-4">
+        <span className="mb-2 block text-[13.5px] font-medium text-ink-2">
           Question {at + 1} of {d.questions.length}
         </span>
         <span className="sch-serif block text-[21px] font-semibold leading-snug text-ink sm:text-[24px]">{q.q}</span>

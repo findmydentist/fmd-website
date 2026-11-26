@@ -44,9 +44,14 @@ export type Me = User & {
 
 export type MfaChallenge = { mfa_required: true; challenge_token: string };
 
+// fields written out (not constructor parameter properties) so Node's test runner can strip the types
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number, readonly code: string) {
+  readonly status: number;
+  readonly code: string;
+  constructor(message: string, status: number, code: string) {
     super(message);
+    this.status = status;
+    this.code = code;
   }
 }
 
@@ -220,8 +225,11 @@ export const passwordRules = (pw: string) => RULES.map(([re, label]) => ({ label
 export const fmtPhone = (p: string) => p.replace(/^\+91(\d{5})(\d{5})$/, "+91 $1 $2");
 
 /** "Priya Ramesh Sharma" → "PS" */
+/** "Dr. Ananya Rao" → "AR": honorifics are skipped, so doctors' avatars show their own initials. */
 export const initials = (name: string) => {
-  const w = name.trim().split(/\s+/).filter(Boolean);
+  const all = name.trim().split(/\s+/).filter(Boolean);
+  const named = all.filter((x) => !/^(dr|mr|mrs|ms|miss|prof)\.?$/i.test(x));
+  const w = named.length ? named : all;
   return ((w[0]?.[0] ?? "") + (w.length > 1 ? (w.at(-1)?.[0] ?? "") : "")).toUpperCase() || "?";
 };
 

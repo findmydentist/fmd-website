@@ -17,6 +17,8 @@ import {
   UserRound,
   X,
   type LucideIcon,
+  Building2,
+  GraduationCap,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -24,6 +26,8 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { fmtPhone, initials } from "@/lib/fmd";
 import { logout, useMe } from "@/lib/me";
+import { useDemoUser } from "@/lib/useDemoUser";
+import { workspacesOf } from "@/lib/workspaces";
 
 type Entry = [href: string, label: string, Icon: LucideIcon];
 const GO: Entry[] = [
@@ -60,6 +64,7 @@ export function MobileMenu({
   className?: string;
 }) {
   const me = useMe();
+  const { user: demo } = useDemoUser();
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -140,7 +145,7 @@ export function MobileMenu({
           <div className="flex items-center gap-3 border-b border-line p-4">
             {me && account ? (
               <Link href="/account" onClick={close} className="flex min-w-0 flex-1 items-center gap-3">
-                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] text-[15px] font-semibold text-ink ring-2 ring-sky-500/60">{initials(me.full_name)}</span>
+                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] text-[15px] font-semibold text-ink ring-2 ring-[rgb(var(--accent-rgb)/0.6)]">{initials(me.full_name)}</span>
                 <span className="min-w-0 leading-tight">
                   <span className="block truncate text-[16px] font-semibold text-ink">{me.full_name}</span>
                   <span className="block text-[13px] text-ink-3">{fmtPhone(me.phone)}</span>
@@ -169,6 +174,22 @@ export function MobileMenu({
             )}
             {account && (
               <div data-staging>
+            {workspacesOf(me, demo).length > 0 && (
+              <>
+                <p className="px-3 pb-1.5 pt-1 text-[12px] font-semibold uppercase tracking-[0.1em] text-ink-3">Your workspaces</p>
+                <div className="mb-4 grid gap-0.5">
+                  {workspacesOf(me, demo).map((w) => (
+                    <Link key={w.href} href={w.href} onClick={close} className="flex items-center gap-3.5 rounded-xl px-3 py-3 text-[15px] text-ink transition-colors hover:bg-white/[0.06]">
+                      {w.kind === "clinic" ? <Building2 className="size-5 shrink-0 text-[var(--accent)]" strokeWidth={1.75} /> : <GraduationCap className="size-5 shrink-0 text-[var(--accent)]" strokeWidth={1.75} />}
+                      <span className="min-w-0">
+                        <span className="block font-medium">{w.title}</span>
+                        <span className="block truncate text-[13px] text-ink-3">{w.detail}</span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
             <p className="px-3 pb-1.5 pt-1 text-[12px] font-semibold uppercase tracking-[0.1em] text-ink-3">Go to</p>
             <div className="grid gap-0.5">{GO.map(([h, l, I]) => item(h, l, I))}</div>
             {me && (
@@ -192,7 +213,7 @@ export function MobileMenu({
               <Link
                 href={path === "/" ? "/login" : `/login?next=${encodeURIComponent(path)}`}
                 onClick={close}
-                className="flex h-12 items-center justify-center gap-2 rounded-xl bg-sky-600 text-[15px] font-semibold text-white hover:bg-sky-500"
+                className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[color-mix(in_srgb,var(--accent)_78%,black)] text-[15px] font-semibold text-white hover:bg-[color-mix(in_srgb,var(--accent)_90%,black)]"
               >
                 <LogIn className="size-5" strokeWidth={1.75} /> Log in
               </Link>

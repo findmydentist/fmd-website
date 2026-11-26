@@ -1,6 +1,6 @@
 "use client";
 
-import { Briefcase, Compass, LogOut, Search, Sparkles, UserRound } from "lucide-react";
+import { Briefcase, Building2, Compass, GraduationCap, LogOut, Search, Sparkles, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
@@ -8,6 +8,8 @@ import { useDismiss } from "@/components/clinic/dismiss";
 import { fmtPhone, initials } from "@/lib/fmd";
 import { useT } from "@/lib/i18n";
 import { logout, useMe } from "@/lib/me";
+import { useDemoUser } from "@/lib/useDemoUser";
+import { workspacesOf } from "@/lib/workspaces";
 
 const itemCls = "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] text-ink-2 hover:bg-[var(--surface-glass)] hover:text-ink";
 
@@ -17,6 +19,7 @@ const itemCls = "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left
  */
 export function AccountMenu({ loginClassName = "", sections = [] }: { loginClassName?: string; sections?: { href: string; label: string }[] }) {
   const me = useMe();
+  const { user: demo } = useDemoUser();
   const { t } = useT();
   const path = usePathname();
   const router = useRouter();
@@ -73,6 +76,21 @@ export function AccountMenu({ loginClassName = "", sections = [] }: { loginClass
                 <a key={l.href} href={l.href} onClick={close} className={itemCls}>
                   {l.label}
                 </a>
+              ))}
+            </div>
+          )}
+          {/* the apps this person works or studies in: FMD Clinic for the clinic team, FMD Scholar for a student */}
+          {workspacesOf(me, demo).length > 0 && (
+            <div className="border-b border-line py-1.5">
+              <p className="px-3 pb-1 pt-1 text-[12px] font-medium text-ink-3">Your workspaces</p>
+              {workspacesOf(me, demo).map((w) => (
+                <Link key={w.href} href={w.href} onClick={close} className={`${itemCls} !items-start`}>
+                  {w.kind === "clinic" ? <Building2 className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" strokeWidth={1.5} /> : <GraduationCap className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" strokeWidth={1.5} />}
+                  <span className="min-w-0">
+                    <span className="block font-medium text-ink">{w.title}</span>
+                    <span className="block truncate text-[12.5px] text-ink-3">{w.detail}</span>
+                  </span>
+                </Link>
               ))}
             </div>
           )}

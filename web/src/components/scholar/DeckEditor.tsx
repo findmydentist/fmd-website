@@ -41,7 +41,7 @@ export function DeckPage() {
   const d = item.data;
   const head = (
     <header className="mb-6 grid gap-1">
-      <p className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-ink-4">
+      <p className="text-[13.5px] font-medium text-ink-2">
         {FORMATS.find((f) => f.id === d.config.format)?.label} · {d.config.minutes} min{d.slides.length ? ` · ${d.slides.length} slides` : ""}
       </p>
       <h1 className="sch-serif text-[24px] font-semibold leading-tight text-ink sm:text-[28px]">{item.title}</h1>
