@@ -90,9 +90,10 @@ export function ScholarShell({ children }: { children: ReactNode }) {
   const demoStudent = demo?.role === "student";
   const [settled, setSettled] = useState(0); // bumped once the demo payment has gone through
   const nobody = me === null;
+  const [leaving, setLeaving] = useState(false); // logging out: go to a plain log-in page, not one that leads back here
   useEffect(() => {
-    if (nobody) router.replace(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
-  }, [nobody, router]);
+    if (nobody && !leaving) router.replace(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+  }, [nobody, leaving, router]);
   const refresh = useCallback(() => {
     if (!userId) return;
     getScholarAccess(userId).then(async (x) => {
@@ -114,6 +115,7 @@ export function ScholarShell({ children }: { children: ReactNode }) {
 
   const value = me && access ? { me, access, refresh } : undefined;
   const logOut = async () => {
+    setLeaving(true);
     await auth.logout().catch(() => undefined);
     signOut();
     authChanged();

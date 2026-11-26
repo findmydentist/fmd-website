@@ -8,7 +8,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { ButtonLink, Panel } from "@/components/app/kit";
 import { Field, fieldCls, Sheet } from "@/components/app/Sheet";
 import { Notice } from "@/components/Page";
-import { DEMO_USERS, findDemoUser, homeOf, safeNext } from "@/lib/demo";
+import { DEMO_USERS, demoLanding, findDemoUser, homeOf, safeNext } from "@/lib/demo";
 import { auth, fmtPhone, initials, passwordRules } from "@/lib/fmd";
 import { DEMO_ACCOUNTS, DEMO_OTP, DEMO_PASSWORD, demoRole } from "@/lib/fmdDemo";
 import { authChanged } from "@/lib/me";
@@ -476,10 +476,8 @@ export function LoginForm() {
       if (role) chooseRole(role.id);
       else clearRole();
       setDemoOpen(false);
-      if (!next && (role?.clinicId || role?.role === "student")) {
-        authChanged();
-        router.replace(homeOf(role));
-      } else finish();
+      authChanged();
+      router.replace(demoLanding(role, next));
     }).finally(() => setDemoBusy(null));
   };
   // which way the next step slides: on to the code (right), back to the form (left)
