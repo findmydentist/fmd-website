@@ -4,13 +4,16 @@ import {
   BarChart3, CalendarDays, Check, ChevronDown, CreditCard, House, ListChecks, LogOut, MapPin, Menu,
   Settings, Sparkles, Users, UsersRound, X, Briefcase, Compass, MessageCircle, type LucideIcon,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/nav/ThemeSwitcher";
 import { sectionHref } from "./sections";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createContext, use, useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { ButtonLink, IconButton, Panel } from "@/components/app/kit";
-import { canOpenClinic, type DemoUser } from "@/lib/demo";
+import { type DemoUser } from "@/lib/demo";
+import { logout, useMe } from "@/lib/me";
+import { clinicPerson } from "@/lib/workspaces";
 import { useDemoUser } from "@/lib/useDemoUser";
 import { cleanBranch, cleanDate, getClinic, getClinicHome, type Clinic } from "@/sample/clinic";
 import { ClinicAi } from "./ClinicAi";
@@ -151,9 +154,10 @@ function SideNav({ ctx, section, counts, onPick }: { ctx: ClinicCtx; section: st
         <IconButton
           label="Log out"
           className="size-9"
-          onClick={() => {
+          onClick={async () => {
+            await logout().catch(() => undefined);
             signOut();
-            router.push("/demo");
+            router.push("/login");
           }}
         >
           <LogOut className="size-4" strokeWidth={1.5} />
@@ -253,6 +257,7 @@ function TopBar({ ctx, section, onMenu, menuBtn }: { ctx: ClinicCtx; section: st
           select: () => setBranchId(b.key),
         }))}
       />
+      <ThemeToggle />
       <Notifications clinicId={clinic.id} base={base} />
     </header>
   );
@@ -296,7 +301,10 @@ export function ClinicShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const params = useSearchParams();
   const router = useRouter();
-  const { user } = useDemoUser();
+  const { user: demo } = useDemoUser();
+  const me = useMe();
+  // the demo role if it works here, else the logged-in account's own membership of this clinic
+  const user = demo === undefined || me === undefined ? undefined : clinicPerson(me, demo, clinicId);
   const [clinic, setClinic] = useState<Clinic | null | undefined>(undefined);
   const [counts, setCounts] = useState<Partial<Record<NavKey, number>>>({});
   const [menu, setMenu] = useState(false);
@@ -328,7 +336,7 @@ export function ClinicShell({ children }: { children: ReactNode }) {
     getClinic(clinicId).then(setClinic);
   }, [clinicId]);
 
-  const allowed = canOpenClinic(user ?? null, clinicId);
+  const allowed = Boolean(user);
   const branchId = clinic ? cleanBranch(params.get("branch"), clinic) : "main";
   useEffect(() => {
     if (!clinic || !allowed) return;

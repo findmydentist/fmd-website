@@ -35,7 +35,7 @@ export function Gate({ access, userId, onChange }: { access: ScholarAccess; user
       <PageHead meta="FMD Scholar" title={c.title} lede={c.lede} />
       <ButtonLink href={c.cta.href}>{c.cta.label}</ButtonLink>
       <section className="mt-10 grid gap-2 rounded-2xl border border-dashed border-line p-5">
-        <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-ink-4">Demo</h2>
+        <h2 className="text-[13.5px] font-medium text-ink-2">Demo</h2>
         <p className="text-[14px] text-ink-3">Trying FMD Scholar? Make this account a dental student with a sample ID and a paid student membership. Nothing real is charged.</p>
         <div>
           <Button

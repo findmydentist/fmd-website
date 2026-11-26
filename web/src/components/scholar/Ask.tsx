@@ -23,7 +23,7 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function Depth({ level, onPick, disabled }: { level: Level; onPick: (l: Level) => void; disabled: boolean }) {
   return (
     <fieldset className="grid gap-2" disabled={disabled}>
-      <legend className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.08em] text-ink-4">Depth</legend>
+      <legend className="mb-2 text-[13.5px] font-medium text-ink-2">Depth</legend>
       <div className="flex flex-wrap gap-1.5 lg:grid lg:gap-0.5">
         {LEVELS.map((l) => (
           <button
@@ -181,7 +181,7 @@ export function AskPage() {
           const Head = i === 0 ? "h1" : "h2";
           return (
             <section key={i}>
-              <p className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.08em] text-ink-4">
+              <p className="mb-2 text-[13.5px] font-medium text-ink-2">
                 {i === 0 ? "Your question" : "Follow-up"}
                 {isLast && ` · ${LEVELS[idx(level)].label} level`}
               </p>

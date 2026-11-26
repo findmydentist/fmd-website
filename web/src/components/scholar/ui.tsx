@@ -14,17 +14,18 @@ export const AI_NOTE = "AI-generated study material. Check it against your textb
 
 export function PageHead({ meta, title, lede, children }: { meta?: ReactNode; title: ReactNode; lede?: ReactNode; children?: ReactNode }) {
   return (
-    <header className="mb-6 grid gap-2">
-      {meta && <SectionLabel>{meta}</SectionLabel>}
-      <h1 className="sch-serif text-[24px] font-semibold leading-tight text-ink sm:text-[30px]">{title}</h1>
-      {lede && <p className="max-w-[62ch] text-[15px] leading-relaxed text-ink-3">{lede}</p>}
+    <header className="mb-8 grid gap-2.5">
+      {meta && <p className="text-[13px] font-medium text-ink-3">{meta}</p>}
+      <h1 className="sch-serif text-[28px] font-semibold leading-[1.12] tracking-[-0.015em] text-ink [text-wrap:balance] sm:text-[36px]">{title}</h1>
+      {lede && <p className="max-w-[62ch] text-[15.5px] leading-[1.6] text-ink-2">{lede}</p>}
       {children}
     </header>
   );
 }
 
 export function SectionLabel({ children, as: Tag = "p" }: { children: ReactNode; as?: "p" | "h2" | "h3" }) {
-  return <Tag className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-ink-4">{children}</Tag>;
+  // a section's own heading: sentence case and readable, not a tiny all-caps kicker
+  return <Tag className="text-[15px] font-semibold leading-snug tracking-[-0.01em] text-ink">{children}</Tag>;
 }
 
 /** "Uncertain" or "Evidence differs": an amber rule and italics, never hidden in the prose (SCH-11). */

@@ -305,7 +305,7 @@ export function VivaSession() {
     <div className="mx-auto max-w-[900px]">
       <div className="grid gap-10 lg:grid-cols-[1fr_230px]">
         <div>
-          <p className="mb-3 text-[11.5px] font-semibold uppercase tracking-[0.08em] text-ink-4">
+          <p className="mb-3 text-[13.5px] font-medium text-ink-2">
             {topic.title} · Question {v.index + 1} of {v.questions.length}
           </p>
           <p ref={prompt} tabIndex={-1} aria-live="polite" className="sch-serif mb-6 text-[21px] leading-snug text-ink outline-none sm:text-[24px]">

@@ -55,7 +55,9 @@ test("phone and initials for display", async () => {
   assert.equal(fmtPhone("+919876543210"), "+91 98765 43210");
   assert.equal(fmtPhone("+14155550100"), "+14155550100");
   assert.equal(initials("Priya Ramesh Sharma"), "PS");
-  assert.equal(initials("  dr.  karthik "), "DK");
+  assert.equal(initials("  dr.  karthik "), "K"); // honorifics are skipped
+  assert.equal(initials("Dr. Ananya Rao"), "AR");
+  assert.equal(initials("Dr."), "D"); // a bare honorific still gives something
   assert.equal(initials("Ananya"), "A");
   assert.equal(initials(" "), "?");
 });
