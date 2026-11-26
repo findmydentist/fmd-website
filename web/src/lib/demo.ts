@@ -31,6 +31,19 @@ export const canOpenClinic = (user: DemoUser | null, clinicId: string) => user?.
  * Only same-site paths. Parsed the way a browser would (it drops tabs and newlines, so "/\t/evil.com" means
  * "//evil.com"), then kept only if it stays on this site.
  */
+/**
+ * Where a demo log-in lands: the page that sent them here (?next=) when this person can use it, else their own home.
+ * A link back into FMD Scholar only fits the student, one into FMD Clinic only the clinic team; everyone else goes to
+ * their own home, so a ?next= left over from someone else's session never drops a patient into Scholar.
+ */
+export function demoLanding(role: DemoUser | null, next: string | null): string {
+  const home = role ? homeOf(role) : "/";
+  if (!next) return home;
+  const to = safeNext(next);
+  const fits = to.startsWith("/clinic") ? Boolean(role?.clinicId) : to.startsWith("/scholar") ? role?.role === "student" : true;
+  return fits && to !== "/" ? to : home;
+}
+
 export function safeNext(next: string | null) {
   if (!next?.startsWith("/")) return "/";
   const base = "http://same.site";
