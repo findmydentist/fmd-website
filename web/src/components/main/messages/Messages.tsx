@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ButtonLink } from "@/components/app/kit";
 import { Chats, Send, Verified } from "@/components/main/explore/icons";
 import { Monogram } from "@/components/main/explore/Monogram";
@@ -59,12 +59,6 @@ function SignedOut() {
   );
 }
 
-/** Preview only: /messages?look=glass shows chats on frosted surfaces, to compare with the plain look before deciding. */
-const noSubscribe = () => () => {};
-function useGlassPreview() {
-  return useSyncExternalStore(noSubscribe, () => new URLSearchParams(location.search).get("look") === "glass", () => false);
-}
-
 /* ---------------- list ---------------- */
 
 /** Clinics (and, later, dentists with an Explore profile) choose whether new people can start a chat. */
@@ -84,7 +78,6 @@ function NewPeopleSwitch({ me }: { me: Viewer }) {
 }
 
 function ThreadList({ me, threads, active }: { me: Viewer; threads: Thread[]; active: string | null }) {
-  const look = useGlassPreview() ? "?look=glass" : "";
   const [q, setQ] = useState("");
   const shown = useMemo(() => threads.filter((t) => t.with.name.toLowerCase().includes(q.trim().toLowerCase())), [threads, q]);
   return (
@@ -92,7 +85,7 @@ function ThreadList({ me, threads, active }: { me: Viewer; threads: Thread[]; ac
       <div className="px-5 pb-3 pt-5">
         <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.028em] text-ink">Chats</h1>
         <NewPeopleSwitch me={me} />
-        <label className={`mt-3 flex h-11 items-center gap-2 rounded-[14px] px-3.5 text-ink-3 ${look ? "frost" : "bg-[var(--background)]"}`}>
+        <label className="frost mt-3 flex h-11 items-center gap-2 rounded-[14px] px-3.5 text-ink-3">
           <span className="sr-only">Search chats</span>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search chats" className="w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3" />
         </label>
@@ -106,7 +99,7 @@ function ThreadList({ me, threads, active }: { me: Viewer; threads: Thread[]; ac
             return (
               <li key={t.id}>
                 <Link
-                  href={`/messages/${t.id}${look}`}
+                  href={`/messages/${t.id}`}
                   aria-current={on ? "page" : undefined}
                   className={`flex items-center gap-3 rounded-[18px] px-3 py-3 transition-colors ${on ? "bg-[var(--accent-soft)]" : "hover:bg-[var(--background)]"}`}
                 >
@@ -155,7 +148,6 @@ function Attachment({ m }: { m: Message }) {
 }
 
 function Chat({ me, threadId, onSent }: { me: Viewer; threadId: string; onSent: () => void }) {
-  const glass = useGlassPreview();
   const [t, setT] = useState<Thread | null | undefined>(undefined);
   const [text, setText] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -240,7 +232,7 @@ function Chat({ me, threadId, onSent }: { me: Viewer; threadId: string; onSent: 
                   {m.body && (
                     <p
                       className={`whitespace-pre-wrap break-words rounded-[20px] px-4 py-2.5 text-[15px] leading-[1.42] ${
-                        mine ? `rounded-br-[6px] text-white ${glass ? "bg-[linear-gradient(180deg,color-mix(in_srgb,var(--accent)_92%,white),var(--accent))] shadow-[0_8px_20px_-12px_rgb(var(--accent-rgb)/0.9)]" : "bg-[var(--accent)]"}` : `rounded-bl-[6px] text-ink ${glass ? "frost" : "bg-[var(--background)]"}`
+                        mine ? "rounded-br-[6px] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--accent)_92%,white),var(--accent))] text-white shadow-[0_8px_20px_-12px_rgb(var(--accent-rgb)/0.9)]" : "frost rounded-bl-[6px] text-ink"
                       }`}
                     >
                       {m.body}
@@ -275,7 +267,7 @@ function Chat({ me, threadId, onSent }: { me: Viewer; threadId: string; onSent: 
               rows={1}
               maxLength={MAX_MESSAGE}
               placeholder="Write a message…"
-              className={`max-h-32 min-h-11 w-full resize-none rounded-[22px] px-4 py-2.5 text-[15px] text-ink outline-none placeholder:text-ink-3 focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${glass ? "frost" : "bg-[var(--background)]"}`}
+              className={`max-h-32 min-h-11 w-full resize-none rounded-[22px] px-4 py-2.5 text-[15px] text-ink outline-none placeholder:text-ink-3 focus-visible:ring-2 focus-visible:ring-[var(--accent)] frost`}
             />
           </label>
           <button type="submit" disabled={!text.trim()} aria-label="Send" className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-white transition-opacity disabled:opacity-40">
@@ -295,7 +287,6 @@ export function MessagesPage() {
   const threadId = params.threadId ? decodeURIComponent(params.threadId) : null;
   const viewer = useViewer();
   const router = useRouter();
-  const glass = useGlassPreview();
   const [threads, setThreads] = useState<Thread[] | null>(null);
   const refresh = useCallback(() => {
     if (viewer) inbox(viewer.id, viewer.kind).then(setThreads);
@@ -311,7 +302,7 @@ export function MessagesPage() {
   if (!threads) return <div className="card h-[70vh] animate-pulse" aria-busy />;
 
   const box = (
-    <div className={`type-read flex h-[calc(100dvh-180px)] min-h-[520px] overflow-hidden ${glass ? "frost rounded-[28px]" : "card"}`}>
+    <div className="frost type-read flex h-[calc(100dvh-180px)] min-h-[520px] overflow-hidden rounded-[28px]">
       <div className={`w-full flex-col border-line lg:flex lg:w-[360px] lg:shrink-0 lg:border-r ${threadId ? "hidden" : "flex"}`}>
         <ThreadList me={viewer} threads={threads} active={threadId} />
       </div>
@@ -332,7 +323,7 @@ export function MessagesPage() {
       </div>
     </div>
   );
-  return glass ? <div className="frost-stage">{box}</div> : box;
+  return <div className="frost-stage">{box}</div>;
 }
 
 /** For the top bar: how many chats have something new. */
