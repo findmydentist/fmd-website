@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  BarChart3, Boxes, CalendarDays, Check, ChevronDown, CreditCard, House, ListChecks, LogOut, MapPin, Menu,
+  BarChart3, CalendarDays, Check, ChevronDown, CreditCard, House, ListChecks, LogOut, MapPin, Menu,
   Settings, Sparkles, Users, UsersRound, X, Briefcase, Compass, MessageCircle, type LucideIcon,
 } from "lucide-react";
 import { sectionHref } from "./sections";
@@ -13,6 +13,7 @@ import { ButtonLink, IconButton, Panel } from "@/components/app/kit";
 import { canOpenClinic, type DemoUser } from "@/lib/demo";
 import { useDemoUser } from "@/lib/useDemoUser";
 import { cleanBranch, cleanDate, getClinic, getClinicHome, type Clinic } from "@/sample/clinic";
+import { ClinicAi } from "./ClinicAi";
 import { useDismiss } from "./dismiss";
 import { Notifications } from "./Notifications";
 
@@ -51,13 +52,12 @@ export function useClinic() {
 
 /* ---------------- navigation ---------------- */
 
-type NavKey = "calendar" | "inventory" | "tasks" | "ai";
+type NavKey = "calendar" | "tasks" | "ai";
 const NAV: [slug: string, label: string, Icon: LucideIcon, count?: NavKey][] = [
   ["", "Home", House],
   ["calendar", "Calendar", CalendarDays, "calendar"],
   ["patients", "Patients", UsersRound],
   ["billing", "Billing", CreditCard],
-  ["inventory", "Inventory", Boxes, "inventory"],
   ["tasks", "Tasks", ListChecks, "tasks"],
   ["reports", "Reports", BarChart3],
   ["ai", "AI manager", Sparkles, "ai"],
@@ -72,16 +72,22 @@ const MAIN_LINKS: [href: string, label: string, Icon: LucideIcon][] = [
 ];
 
 export const SECTION_TITLES = Object.fromEntries(NAV.map(([slug, label]) => [slug, label]));
+/** An associate dentist works from their own schedule, patients and tasks, and keeps their profile in Settings. */
+const DENTIST_SECTIONS = new Set(["", "calendar", "patients", "tasks", "settings"]);
+const navFor = (role: string) => (role === "dentist" ? NAV.filter(([slug]) => DENTIST_SECTIONS.has(slug)) : NAV);
 
 function SideNav({ ctx, section, counts, onPick }: { ctx: ClinicCtx; section: string; counts: Partial<Record<NavKey, number>>; onPick?: () => void }) {
-  const { clinic, user, base, branchId } = ctx;
+  const { clinic, user, base, branchId, date } = ctx;
+  // keep the chosen day and branch when moving between sections
+  const keep = new URLSearchParams({ ...(date !== todayIst() && { date }), ...(branchId !== "main" && { branch: branchId }) }).toString();
+  const to = (slug: string) => `${slug ? `${base}/${slug}` : base}${keep ? `?${keep}` : ""}`;
   const { signOut } = useDemoUser();
   const router = useRouter();
   const branch = clinic.branches.find((b) => b.id === branchId);
   return (
     <div className="flex h-full flex-col gap-1">
       <div className="flex items-center gap-2.5 px-2 pb-3">
-        <Link href={base} onClick={onPick} aria-label="FMD Clinic home">
+        <Link href={to("")} onClick={onPick} aria-label="FMD Clinic home">
           <Image src="/img/logo-fmd.webp" alt="FindMyDentist" width={337} height={180} className="h-9 w-auto" />
         </Link>
         <span className="rounded-full border border-line px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-3">Clinic</span>
@@ -90,8 +96,10 @@ function SideNav({ ctx, section, counts, onPick }: { ctx: ClinicCtx; section: st
         <p className="text-[14.5px] font-medium text-ink">{clinic.name}</p>
         <p className="text-[13px] text-ink-3">{branch ? `${branch.area} · ${branch.name}` : "All branches"}</p>
       </div>
-      <nav aria-label="Clinic sections" className="flex flex-col gap-0.5">
-        {NAV.map(([slug, label, Icon, key]) => {
+      {/* on a short window the links scroll, so the person and sign-out below always stay inside the column */}
+      <nav aria-label="Clinic sections" className="-mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1">
+
+        {navFor(user.role).map(([slug, label, Icon, key]) => {
           const on = section === slug;
           const n = key ? counts[key] : undefined;
           const href = sectionHref(base, slug);
@@ -106,7 +114,7 @@ function SideNav({ ctx, section, counts, onPick }: { ctx: ClinicCtx; section: st
           return (
             <Link
               key={slug}
-              href={href}
+              href={to(slug)}
               onClick={onPick}
               aria-current={on ? "page" : undefined}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] transition-colors ${
@@ -132,7 +140,7 @@ function SideNav({ ctx, section, counts, onPick }: { ctx: ClinicCtx; section: st
           </Link>
         ))}
       </nav>
-      <div className="mt-auto flex items-center gap-3 border-t border-line px-2 pt-3">
+      <div className="mt-auto flex shrink-0 items-center gap-3 border-t border-line px-2 pt-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] text-[13px] font-semibold text-ink ring-[1.5px] ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]">
           {user.initials}
         </span>
@@ -269,7 +277,14 @@ export function ChooseDemo({ next }: { next: string }) {
     <Centered
       title="Choose a demo account to open FMD Clinic"
       text="FMD is in preview. Pick the clinic owner or the front desk; no password needed."
-      action={<ButtonLink href={`/demo?next=${encodeURIComponent(next)}`}>Choose a demo account</ButtonLink>}
+      action={
+        <div className="flex flex-wrap justify-center gap-2">
+          <ButtonLink href={`/login?next=${encodeURIComponent(next)}`}>Sign in</ButtonLink>
+          <ButtonLink variant="secondary" href={`/demo?next=${encodeURIComponent(next)}`}>
+            Choose a demo account
+          </ButtonLink>
+        </div>
+      }
     />
   );
 }
@@ -320,7 +335,6 @@ export function ClinicShell({ children }: { children: ReactNode }) {
     getClinicHome(clinic.id, { date: todayIst(), branchId }).then((h) =>
       setCounts({
         calendar: h.counts.total,
-        inventory: h.attention.stockAlerts,
         tasks: h.followUps.filter((f) => !f.done).length,
         ai: h.tasks.filter((t) => t.needsApproval && t.status === "proposed").length,
       }),
@@ -349,6 +363,8 @@ export function ClinicShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </div>
+      {/* FMD AI, on every page of the clinic */}
+      <ClinicAi />
       {menu && (
         <div className="lg:hidden">
           <div className="fixed inset-0 z-40 bg-black/60" aria-hidden />

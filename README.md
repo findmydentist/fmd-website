@@ -140,12 +140,18 @@ Answers come from five sample topics (pulpitis, caries, Class II preparation, lo
 
 Routes under `/clinic/[clinicId]/…`; the demo clinic is Smile Studio (`/clinic/smile-studio`). Open it as Dr. Ananya Rao (owner) or Kavya Menon (front desk).
 
-| Section | Status |
+| Section | What it does |
 |---|---|
-| Home | Built: FMD Manager's briefing with approvals, the day's numbers, next appointments, follow-ups |
-| Calendar | Built: week strip, list and by-dentist views, booking with clash checks and suggestions, status changes, waitlist; consultant visits tagged **Hired consultant** |
-| Patients | Built: search, records with visits and notes |
-| Billing, Inventory, Tasks, Reports, AI manager, Team, Settings | Shown as **Soon**. Earlier implementations exist in the `fmd-experimental` repository (its `main` branch) and need porting to the current clinic data. `components/clinic/sections.ts` lists the sections that have pages; add a slug there when one lands |
+| Home | FMD Manager's briefing with approvals, the day's numbers, next appointments, follow-ups |
+| Calendar | Week strip, list and by-dentist views, booking with clash checks and suggestions, status changes, waitlist; consultant visits tagged **Hired consultant** |
+| Patients | Search, duplicates, records with visits, chart and notes (signed or draft) |
+| Billing | Bills paid in full on the day, today's collection by payment mode, discounts and voids with a reason |
+| Tasks | Checklists and shift handover |
+| Reports | Clinic Pulse, daily operations and collection, utilisation, no-shows, patient base, new patients by source, recall, case acceptance, pending treatment, procedure mix, revenue summary, GST register |
+| AI manager | Approval queue, questions answered from the clinic's own figures, scheduled jobs; it drafts, people approve |
+| Team, Settings | Roles and invites; clinic details, GST mapping, AI permissions, each dentist's own profile |
+
+An associate dentist sees Home, Calendar, Patients, Tasks and Settings. `components/clinic/sections.ts` lists the sections that have pages; anything else shows as **Soon** rather than a dead link.
 
 ## Design system
 
@@ -209,7 +215,6 @@ Vercel deploys `main` to [findmydentist.io](https://www.findmydentist.io) and bu
 | SMS / WhatsApp / email for sign-in | Fixed demo code `123456` |
 | AI model, speech, vision | Rule-based assistant and Scholar's five sample topics, labelled in the UI |
 | Payment gateway | Checkout is a labelled stand-in |
-| Clinic sections beyond Home, Calendar and Patients | Shown as **Soon** |
 | Legal, clinical and tax review | Draft privacy notice and terms; clinical wording unreviewed |
 
 All demo dentists, clinics, patients and posts are fictitious and flagged as demo in the UI. Open product decisions and their provisional defaults are in `docs/OPEN_DECISIONS.md`.
@@ -221,7 +226,7 @@ All demo dentists, clinics, patients and posts are fictitious and flagged as dem
 | M0 Audit and traceability | Done |
 | M1 Homepage | Done |
 | M2 FMD Main (incl. Explore, Chats, Jobs, Consultation) | Done on sample data |
-| M3 FMD Clinic | Home, Calendar and Patients done; the other sections to port |
+| M3 FMD Clinic | Done on sample data |
 | M4 FMD Scholar | Done on sample answers; needs an AI model and academic review |
 | M5 Admin and Accountant portals | Not started in this repository |
 | M6 Annex features (warranty, treatment journey, content import, migration, reviews, referral, BI, accessibility pass) | Not started |
