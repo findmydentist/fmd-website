@@ -1610,3 +1610,49 @@ html[data-samsung] .btn-primary {
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .frost { background: var(--surface); }
 }
+
+/* ---------------- the log-in field glow ----------------
+   An AI-style living border (as Gemini or Swiggy's assistant have), in FMD's own blues: periwinkle, royal and the
+   light headline blue, with one clean tooth-white highlight that travels round the field. ::before is the 1.5px
+   ribbon (the input covers its middle), ::after the soft halo behind it. Idle it turns slowly and the halo breathes;
+   typing brightens and quickens it. Still under reduced motion. */
+@property --fmd-glow-a {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes fmd-glow-turn { to { --fmd-glow-a: 360deg; } }
+@keyframes fmd-glow-breathe { 0%, 100% { opacity: 0.32; } 50% { opacity: 0.55; } }
+.fmd-glow { position: relative; isolation: isolate; border-radius: 16px; }
+.fmd-glow::before,
+.fmd-glow::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--fmd-glow-a),
+    var(--accent) 0deg,
+    #2f5bff 70deg,
+    var(--headline-accent) 140deg,
+    #eef4ff 168deg,
+    var(--headline-accent) 196deg,
+    #2f5bff 260deg,
+    var(--accent) 360deg
+  );
+  animation: fmd-glow-turn 7s linear infinite;
+}
+.fmd-glow::before { inset: -1.5px; }
+.fmd-glow::after {
+  inset: -7px;
+  border-radius: 22px;
+  filter: blur(16px);
+  animation: fmd-glow-turn 7s linear infinite, fmd-glow-breathe 3.5s ease-in-out infinite;
+}
+.fmd-glow:focus-within::before { animation-duration: 3.5s; }
+.fmd-glow:focus-within::after { animation: fmd-glow-turn 3.5s linear infinite; opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) {
+  .fmd-glow::before, .fmd-glow::after { animation: none; }
+  .fmd-glow::after { opacity: 0.4; }
+}
