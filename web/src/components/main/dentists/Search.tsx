@@ -88,7 +88,7 @@ const QUICK: [key: string, value: string, label: string][] = [
 
 export const chip = "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-[13.5px] shadow-sm";
 export const chipOff = "border-line bg-[var(--surface-elevated)] text-ink-2 hover:text-ink";
-export const chipOn = "border-sky-500/60 bg-sky-500/15 text-ink";
+export const chipOn = "border-[rgb(var(--accent-rgb)/0.6)] bg-[rgb(var(--accent-rgb)/0.15)] text-ink";
 
 /** /dentists */
 export function DentistSearch() {
@@ -253,7 +253,7 @@ export function DentistSearch() {
             onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setLocOpen(false)}
             onKeyDown={(e) => e.key === "Escape" && setLocOpen(false)}
           >
-            <MapPin className="size-5 shrink-0 text-sky-400" strokeWidth={1.75} />
+            <MapPin className="size-5 shrink-0 text-[var(--accent)]" strokeWidth={1.75} />
             <label className="min-w-0 flex-1">
               <span className="sr-only">City or area</span>
               <input
@@ -277,9 +277,9 @@ export function DentistSearch() {
               <ul id="fmd-places" className="fmd-enter absolute inset-x-0 top-full z-30 mt-2 max-h-80 overflow-y-auto rounded-xl border border-line bg-[var(--surface-elevated)] py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
                 <li>
                   <button type="button" onClick={locate} disabled={locating} className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-[var(--surface-glass)]">
-                    {locating ? <LoaderCircle className="mt-0.5 size-5 animate-spin text-sky-400" strokeWidth={1.75} /> : <LocateFixed className="mt-0.5 size-5 text-sky-400" strokeWidth={1.75} />}
+                    {locating ? <LoaderCircle className="mt-0.5 size-5 animate-spin text-[var(--accent)]" strokeWidth={1.75} /> : <LocateFixed className="mt-0.5 size-5 text-[var(--accent)]" strokeWidth={1.75} />}
                     <span>
-                      <span className="block text-[14.5px] font-medium text-sky-400">Use my location</span>
+                      <span className="block text-[14.5px] font-medium text-[var(--accent)]">Use my location</span>
                       <span className="block text-[12.5px] text-ink-3">Using your device&apos;s GPS</span>
                     </span>
                   </button>
@@ -321,11 +321,11 @@ export function DentistSearch() {
         {WHEN_TABS.map(([v, label, Icon]) => {
           const on = (f.available ?? "") === v;
           return (
-            <button key={label} role="tab" aria-selected={on} onClick={() => set({ available: v || null })} className={`-mb-px flex shrink-0 items-center gap-3 border-b-2 pb-3 pt-1 ${on ? "border-sky-400" : "border-transparent"}`}>
-              <span className={`grid size-12 place-items-center rounded-full transition-colors sm:size-14 ${on ? "bg-sky-500/20 text-sky-400" : "bg-[var(--surface-glass)] text-ink-3"}`}>
+            <button key={label} role="tab" aria-selected={on} onClick={() => set({ available: v || null })} className={`-mb-px flex shrink-0 items-center gap-3 border-b-2 pb-3 pt-1 ${on ? "border-[var(--accent)]" : "border-transparent"}`}>
+              <span className={`grid size-12 place-items-center rounded-full transition-colors sm:size-14 ${on ? "bg-[rgb(var(--accent-rgb)/0.2)] text-[var(--accent)]" : "bg-[var(--surface-glass)] text-ink-3"}`}>
                 <Icon className="size-6" strokeWidth={1.5} />
               </span>
-              <span className={`text-[16px] sm:text-[18px] ${on ? "font-semibold text-sky-400" : "text-ink-3"}`}>{label}</span>
+              <span className={`text-[16px] sm:text-[18px] ${on ? "font-semibold text-[var(--accent)]" : "text-ink-3"}`}>{label}</span>
             </button>
           );
         })}
@@ -355,10 +355,10 @@ export function DentistSearch() {
                     type="button"
                     aria-pressed={on}
                     onClick={() => set({ service: t && !on ? t : null })}
-                    className={`group grid w-[84px] justify-items-center gap-2 text-center sm:w-36 sm:gap-2.5 lg:flex lg:w-full lg:items-center lg:gap-3 lg:rounded-xl lg:px-2 lg:py-1.5 lg:text-left ${on ? "lg:bg-sky-500/15" : "lg:hover:bg-[var(--surface-glass)]"}`}
+                    className={`group grid w-[84px] justify-items-center gap-2 text-center sm:w-36 sm:gap-2.5 lg:flex lg:w-full lg:items-center lg:gap-3 lg:rounded-xl lg:px-2 lg:py-1.5 lg:text-left ${on ? "lg:bg-[rgb(var(--accent-rgb)/0.15)]" : "lg:hover:bg-[var(--surface-glass)]"}`}
                   >
                     <span
-                      className={`relative grid size-[76px] shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br ${coverOf(t ?? "All")} to-[var(--surface-elevated)] ring-offset-[3px] ring-offset-[var(--background)] transition-shadow sm:ring-offset-4 sm:size-36 lg:size-11 lg:ring-offset-2 ${on ? "ring-2 ring-sky-400" : ""}`}
+                      className={`relative grid size-[76px] shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br ${coverOf(t ?? "All")} to-[var(--surface-elevated)] ring-offset-[3px] ring-offset-[var(--background)] transition-shadow sm:ring-offset-4 sm:size-36 lg:size-11 lg:ring-offset-2 ${on ? "ring-2 ring-[var(--accent)]" : ""}`}
                     >
                       {art ? (
                         <Image src={art} alt="" fill sizes="(min-width: 1024px) 44px, 144px" className="object-cover transition-transform duration-500 group-hover:scale-110" />
@@ -366,7 +366,7 @@ export function DentistSearch() {
                         <Icon className="size-8 text-ink transition-transform duration-500 group-hover:scale-110 sm:size-12 lg:size-5" strokeWidth={1.5} />
                       )}
                     </span>
-                    <span className={`text-[12.5px] leading-tight sm:text-[16px] sm:leading-normal lg:text-[14.5px] ${on ? "font-semibold text-sky-400" : "font-medium text-ink-2 group-hover:text-ink"}`}>{t ?? "All treatments"}</span>
+                    <span className={`text-[12.5px] leading-tight sm:text-[16px] sm:leading-normal lg:text-[14.5px] ${on ? "font-semibold text-[var(--accent)]" : "font-medium text-ink-2 group-hover:text-ink"}`}>{t ?? "All treatments"}</span>
                   </button>
                 </li>
               );
@@ -380,7 +380,7 @@ export function DentistSearch() {
             <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none]">
               <button type="button" onClick={() => setSheet(true)} className={`${chip} ${active.length ? chipOn : chipOff}`}>
                 <SlidersHorizontal className="size-4" strokeWidth={1.75} /> Filters
-                {active.length > 0 && <span className="grid size-5 place-items-center rounded-full bg-sky-500 text-[11px] font-semibold text-white">{active.length}</span>}
+                {active.length > 0 && <span className="grid size-5 place-items-center rounded-full bg-[color-mix(in_srgb,var(--accent)_78%,black)] text-[11px] font-semibold text-white">{active.length}</span>}
               </button>
               <button type="button" onClick={hasLocation ? stopLocation : locate} disabled={locating} aria-pressed={hasLocation} className={`${chip} ${hasLocation ? chipOn : chipOff}`}>
                 {locating ? <LoaderCircle className="size-4 animate-spin" strokeWidth={1.75} /> : <LocateFixed className="size-4" strokeWidth={1.75} />} Near me
@@ -416,7 +416,7 @@ export function DentistSearch() {
                 );
               })}
               {(active.length > 0 || f.q || f.loc || hasLocation) && (
-                <button type="button" onClick={() => router.replace("/dentists", { scroll: false })} className="shrink-0 px-2 text-[13.5px] font-medium text-sky-400 hover:text-sky-300">
+                <button type="button" onClick={() => router.replace("/dentists", { scroll: false })} className="shrink-0 px-2 text-[13.5px] font-medium text-[var(--accent)] hover:text-[var(--headline-accent)]">
                   Clear all
                 </button>
               )}
@@ -424,7 +424,7 @@ export function DentistSearch() {
             {active.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {active.map((x) => (
-                  <button key={x.key} type="button" onClick={() => set({ [x.key]: null })} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-sky-500/50 bg-sky-500/10 px-3 text-[12.5px] text-ink">
+                  <button key={x.key} type="button" onClick={() => set({ [x.key]: null })} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[rgb(var(--accent-rgb)/0.5)] bg-[var(--accent-soft)] px-3 text-[12.5px] text-ink">
                     {x.options.find(([v]) => v === params.get(x.key))?.[1] ?? params.get(x.key)}
                     <X className="size-3.5" strokeWidth={2} />
                     <span className="sr-only">Remove filter</span>
@@ -549,7 +549,7 @@ function PreviewContent({ d, onClose, photo = "aspect-[4/3]" }: { d: ProviderPro
       <div className="absolute inset-x-0 bottom-0 grid gap-0.5 p-4 text-white">
         <p className="flex items-center gap-1.5 text-[19px] font-semibold">
           {d.name}
-          {d.verification.status === "verified" && <BadgeCheck className="size-5 text-sky-400" strokeWidth={2} aria-label="Verified" />}
+          {d.verification.status === "verified" && <BadgeCheck className="size-5 text-[var(--accent)]" strokeWidth={2} aria-label="Verified" />}
         </p>
         <p className="text-[13.5px] text-white/80">
           {d.specialty}
@@ -609,7 +609,7 @@ function PreviewContent({ d, onClose, photo = "aspect-[4/3]" }: { d: ProviderPro
       <Link href={`/dentists/${d.id}`} className="inline-flex h-10 items-center justify-center rounded-xl bg-white/[0.08] text-[13.5px] font-semibold text-ink hover:bg-white/[0.12]">
         Full profile
       </Link>
-      <Link href={`/book/${d.id}`} className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 text-[13.5px] font-semibold text-white hover:bg-sky-500">
+      <Link href={`/book/${d.id}`} className="inline-flex h-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_78%,black)] text-[13.5px] font-semibold text-white hover:bg-[color-mix(in_srgb,var(--accent)_90%,black)]">
         Book
       </Link>
     </div>
@@ -786,7 +786,7 @@ export const DentistCard = memo(function DentistCard({ p, selected = false, onSe
   return (
     <section
       className={`group relative grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2.5 rounded-3xl p-3 transition-[background-color,box-shadow,translate] duration-300 hover:-translate-y-0.5 hover:bg-[var(--surface-elevated)] hover:shadow-[0_10px_36px_rgba(0,0,0,0.45)] ${
-        selected ? "bg-[var(--surface-elevated)] ring-2 ring-sky-400/70" : ""
+        selected ? "bg-[var(--surface-elevated)] ring-2 ring-[rgb(var(--accent-rgb)/0.7)]" : ""
       }`}
     >
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[var(--surface-elevated)]">
@@ -805,7 +805,7 @@ export const DentistCard = memo(function DentistCard({ p, selected = false, onSe
           <span className="rounded-md bg-black/55 px-1.5 py-0.5 text-[11px] font-medium text-white backdrop-blur">Demo</span>
         </div>
         {/* the offer-style banner: when they can see you */}
-        <span className="absolute bottom-3 left-0 flex items-center gap-1.5 rounded-r-md bg-sky-600 py-1 pl-2.5 pr-3 text-[12.5px] font-semibold text-white">
+        <span className="absolute bottom-3 left-0 flex items-center gap-1.5 rounded-r-md bg-[color-mix(in_srgb,var(--accent)_78%,black)] py-1 pl-2.5 pr-3 text-[12.5px] font-semibold text-white">
           {p.nextAvailable ? (
             <>
               <CalendarClock className="size-3.5" strokeWidth={2} /> Next: {when(p.nextAvailable)}
@@ -858,7 +858,7 @@ export const DentistCard = memo(function DentistCard({ p, selected = false, onSe
             {extra.slice(0, 3).join(" · ")}
             {extra.length > 3 && ` · +${extra.length - 3} more`}
           </span>
-          <span aria-hidden className="shrink-0 font-medium text-sky-400 group-hover:underline">
+          <span aria-hidden className="shrink-0 font-medium text-[var(--accent)] group-hover:underline">
             View profile ›
           </span>
         </div>
