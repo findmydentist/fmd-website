@@ -72,7 +72,7 @@ export function MomentsRail({ viewer }: { viewer: Viewer | null }) {
                 className="group flex w-[72px] flex-col items-center gap-2 text-center"
               >
                 <span
-                  className={`block size-[70px] rounded-full p-[3px] transition-[translate,background-color] duration-200 group-hover:-translate-y-0.5 ${r.seen ? "" : "bg-[var(--accent)]"}`}
+                  className={`block size-[70px] rounded-full p-[4px] transition-[translate,background-color] duration-200 group-hover:-translate-y-0.5 ${r.seen ? "" : "bg-[var(--accent)]"}`}
                 >
                   <span className="relative block size-full overflow-hidden rounded-full bg-[var(--background-secondary)] ring-[2.5px] ring-[var(--surface)]">
                     <Image src={cover.media.src} alt="" fill sizes="70px" className="object-cover" />
