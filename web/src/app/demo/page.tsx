@@ -2,7 +2,7 @@
 
 import { ArrowRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Page } from "@/components/Page";
 import { DEMO_USERS, homeOf, safeNext, type DemoUser } from "@/lib/demo";
 import { useDemoUser } from "@/lib/useDemoUser";
@@ -12,14 +12,18 @@ const OPENS: Record<DemoUser["role"], string> = {
   dentist: "FMD Main · coming soon",
   clinic_owner: "Opens FMD Clinic",
   clinic_front_desk: "Opens FMD Clinic",
+  student: "Opens FMD Scholar",
 };
 
 function Chooser() {
   const router = useRouter();
   const next = useSearchParams().get("next");
   const { user, signIn } = useDemoUser();
+  const [opening, setOpening] = useState<DemoUser | null>(null);
 
-  const choose = (u: DemoUser) => {
+  // the demo person, plus their own FMD account, so FMD Main's account pages and FMD Scholar work for them too
+  const choose = async (u: DemoUser) => {
+    setOpening(u);
     signIn(u.id);
     router.push(next ? safeNext(next) : homeOf(u));
   };
@@ -41,7 +45,13 @@ function Chooser() {
                 {u.title} · {OPENS[u.role]}
               </span>
             </span>
-            {user?.id === u.id && <span className="text-[12.5px] text-ink-3">Current</span>}
+            {opening?.id === u.id ? (
+              <span className="text-[12.5px] text-ink-3" role="status">
+                Opening {u.name.replace(/^Dr\. /, "").split(" ")[0]}&apos;s account…
+              </span>
+            ) : (
+              user?.id === u.id && <span className="text-[12.5px] text-ink-3">Current</span>
+            )}
             <ArrowRight className="arrow-nudge size-4 shrink-0 text-ink-3" strokeWidth={1.5} />
           </button>
         </li>

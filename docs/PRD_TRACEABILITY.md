@@ -52,7 +52,7 @@ Nothing in the earlier plan was found to **omit** a PRD section. Its annex cover
 | ECO-01 | Separate products: Main, Clinic OS, Scholar, Admin, Accountant | §2 | - | Route groups `/`, `/clinic`, `/scholar`, `/admin`, `/accounts` | Per-app roles | Route/role access tests | NS | - |
 | ECO-02 | **No FMD Campus; no standalone FMD Edge app** | §2 | - | Nav, IA | - | Grep/nav test: no "Campus" | IT | - |
 | ECO-03 | Shared identity, app-specific roles and entitlements | §2, §10 | All | Auth module | `users`, `memberships`, `roles`, `entitlements` | Role matrix tests | IP (shared identity + roles IT; app entitlements NS) | - |
-| ECO-04 | Student membership grants Scholar access | §2, §8.1 | Student | Scholar gate | `entitlements(scholar.base)` | Expired membership → no access | IT (Scholar entitlement only via active student membership; expiry ends access) | OD-05 |
+| ECO-04 | Student membership grants Scholar access | §2, §8.1 | Student | Scholar gate (`/scholar`, sample/scholar/access.ts) | `entitlements(scholar.base)` | Expired membership → no access | IT (Scholar entitlement only via active student membership; expiry ends access) | OD-05 |
 | ECO-05 | Professional membership and Clinic OS are separate products and charges | §2, §14 | Dentist/Clinic | Plans, receipts | Separate `plans` rows | Receipt shows distinct line items | IT (Clinic OS listed as separate product) | - |
 | ECO-06 | Multi-staff clinic orgs with role access | §2, §6.1 | Clinic | Clinic team admin | `org_members`, `role_grants` | Staff denied out-of-role actions | NS | - |
 | ECO-07 | Account linking, recovery, consent, deletion request | §2, §4.1 | All | Account settings | `consents`, `deletion_requests` | E2E recovery/deletion | IP (recovery via OTP, consent, deletion IT; linking NS) | - |
@@ -232,35 +232,35 @@ Nothing in the earlier plan was found to **omit** a PRD section. Its annex cover
 
 | ID | Requirement | Src | Status | Deps |
 |---|---|---|---|---|
-| SCH-01 | Access via ₹400/yr student membership | §8.1 | NS | - |
-| SCH-02 | Configurable, disclosed usage limits | §8.1 | PD | OD-05 |
-| SCH-03 | Optional upgrade (tentative ₹350) | §8.1 | PD | OD-05 |
-| SCH-04 | Eligibility tied to membership; grace and renewal | §8.1 | PD | OD-05 |
-| SCH-05 | Professionals' entitlement not assumed | §8.1 | PD | OD-05 |
-| SCH-06 | Doubt clarification across subjects | §8.2 | NS | OD-14 |
-| SCH-07 | Levels: beginner / UG / PG / specialist | §8.2 | NS | - |
-| SCH-08 | Follow-ups, quizzes, flashcards, revision plans, summaries | §8.2 | NS | - |
-| SCH-09 | Viva questions, model answers, examiner follow-ups | §8.2 | NS | - |
-| SCH-10 | Document-grounded Q&A with page references | §8.2 | NS | - |
-| SCH-11 | Flag uncertainty and conflicting evidence | §8.2 | NS | - |
-| SCH-12 | Presentation outlines and slide content | §8.3 | NS | - |
-| SCH-13 | Seminar, journal club, case, classroom, conference formats | §8.3 | NS | - |
-| SCH-14 | Slide count, style, citations, speaker notes | §8.3 | NS | - |
+| SCH-01 | Access via ₹400/yr student membership | §8.1 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-02 | Configurable, disclosed usage limits | §8.1 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | OD-05 |
+| SCH-03 | Optional upgrade (tentative ₹350) | §8.1 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | OD-05 |
+| SCH-04 | Eligibility tied to membership; grace and renewal | §8.1 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | OD-05 |
+| SCH-05 | Professionals' entitlement not assumed | §8.1 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | OD-05 |
+| SCH-06 | Doubt clarification across subjects | §8.2 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | OD-14 |
+| SCH-07 | Levels: beginner / UG / PG / specialist | §8.2 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-08 | Follow-ups, quizzes, flashcards, revision plans, summaries | §8.2 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-09 | Viva questions, model answers, examiner follow-ups | §8.2 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-10 | Document-grounded Q&A with page references | §8.2 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-11 | Flag uncertainty and conflicting evidence | §8.2 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-12 | Presentation outlines and slide content | §8.3 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-13 | Seminar, journal club, case, classroom, conference formats | §8.3 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-14 | Slide count, style, citations, speaker notes | §8.3 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
 | SCH-15 | Editable PPTX export | §8.3 | BX | File-generation service |
-| SCH-16 | Traceable citations; flag unverified | §8.3 | NS | - |
-| SCH-17 | User papers with quotation limits | §8.3 | NS | - |
-| SCH-18 | Regenerate at slide, section or deck | §8.3 | NS | - |
-| SCH-19 | Research questions, objectives, hypotheses, outlines | §8.4 | NS | - |
-| SCH-20 | Literature plans, summaries, matrices, evidence extraction | §8.4 | NS | - |
-| SCH-21 | Methodology, data dictionary, questionnaires, stats concepts | §8.4 | NS | - |
-| SCH-22 | Manuscript, abstract, poster, reviewer responses | §8.4 | NS | - |
-| SCH-23 | No fabricated studies, results, ethics or references | §8.4 | NS | - |
-| SCH-24 | Reference verification and integrity reminders | §8.4 | NS | - |
-| SCH-25 | Projects/workspaces | §8.5 | NS | - |
-| SCH-26 | Saved conversations, docs, outputs, revisions | §8.5 | NS | - |
-| SCH-27 | Searchable tagged library | §8.5 | NS | - |
-| SCH-28 | Export, delete, retention | §8.5 | NS | - |
-| SCH-29 | Usage meter with upgrade path | §8.5 | NS | OD-05 |
+| SCH-16 | Traceable citations; flag unverified | §8.3 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-17 | User papers with quotation limits | §8.3 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-18 | Regenerate at slide, section or deck | §8.3 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-19 | Research questions, objectives, hypotheses, outlines | §8.4 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-20 | Literature plans, summaries, matrices, evidence extraction | §8.4 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-21 | Methodology, data dictionary, questionnaires, stats concepts | §8.4 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-22 | Manuscript, abstract, poster, reviewer responses | §8.4 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-23 | No fabricated studies, results, ethics or references | §8.4 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-24 | Reference verification and integrity reminders | §8.4 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-25 | Projects/workspaces | §8.5 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-26 | Saved conversations, docs, outputs, revisions | §8.5 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-27 | Searchable tagged library | §8.5 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-28 | Export, delete, retention | §8.5 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | - |
+| SCH-29 | Usage meter with upgrade path | §8.5 | IP (demo UI on sample data, FMD_SCHOLAR_PLAN.md) | OD-05 |
 
 ## 8. Admin and Accountant (§9)
 

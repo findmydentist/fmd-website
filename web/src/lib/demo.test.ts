@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canOpenClinic, DEMO_USERS, findDemoUser, safeNext } from "./demo.ts";
+import { canOpenClinic, DEMO_USERS, findDemoUser, homeOf, safeNext } from "./demo.ts";
 
-test("four demo people", () => {
+test("five demo people: the student opens FMD Scholar", () => {
   assert.deepEqual(
     DEMO_USERS.map((u) => u.id),
-    ["demo-patient", "demo-dentist", "demo-owner", "demo-desk"],
+    ["demo-patient", "demo-dentist", "demo-owner", "demo-desk", "demo-student"],
   );
+  assert.equal(homeOf(findDemoUser("demo-student")!), "/scholar");
+  assert.equal(homeOf(findDemoUser("demo-owner")!), "/clinic/smile-studio");
 });
 
 test("findDemoUser", () => {

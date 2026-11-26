@@ -1,5 +1,5 @@
 /**
- * Frontend-only stand-in for the FastAPI backend, on when NEXT_PUBLIC_FMD_DEMO=1 (see fmd()). Four fixed accounts, one
+ * Frontend-only stand-in for the FastAPI backend, on when NEXT_PUBLIC_FMD_DEMO=1 (see fmd()). Five fixed accounts, one
  * password, OTP always 123456; the "session" is the account id in localStorage. Nothing leaves the browser. A dentist's
  * registration is kept per account in localStorage too, so the new dentist can be taken from sign-up to verified.
  */
@@ -25,11 +25,13 @@ export const DEMO_ACCOUNTS: Me[] = [
   },
   // just signed up, no registration yet: the demo of a new dentist getting verified
   { ...base, id: "demo-new-dentist", full_name: "Dr. Meera Nair", phone: "+919000000004", email: "newdentist@demo.fmd.test", created_at: "2026-11-10T09:00:00Z" },
+  // a BDS student: FMD Scholar sets her up as a paid student on her first visit (components/scholar/Shell.tsx)
+  { ...base, id: "demo-student", full_name: "Rhea Kapoor", phone: "+919000000005", email: "student@demo.fmd.test", city: "Manipal" },
 ];
 
 /** what each demo account is, for the login page's list */
 export const demoRole = (a: Me) =>
-  a.id === "demo-new-dentist" ? "New dentist · not verified" : a.workspaces.length ? "Clinic owner" : a.dentist_profile ? "Dentist" : "Patient";
+  a.id === "demo-new-dentist" ? "New dentist · not verified" : a.id === "demo-student" ? "Dental student · FMD Scholar" : a.workspaces.length ? "Clinic owner" : a.dentist_profile ? "Dentist" : "Patient";
 
 /* a dentist's registration, as this browser's demo saved it (overrides the fixed one) */
 const PKEY = (id: string) => `fmd-demo:dentist-profile:${id}`;

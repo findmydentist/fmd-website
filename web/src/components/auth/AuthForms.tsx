@@ -166,7 +166,7 @@ function AutoHeight({ children }: { children: ReactNode }) {
     return () => ro.disconnect();
   }, []);
   return (
-    <div style={{ height: h }} className="transition-[height] duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] [overflow-clip-margin:8px] [overflow:clip] motion-reduce:transition-none">
+    <div style={{ height: h }} className="transition-[height] duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] [overflow-clip-margin:96px] [overflow:clip] motion-reduce:transition-none">
       <div ref={inner}>{children}</div>
     </div>
   );
@@ -212,7 +212,7 @@ function IdField({ value, onChange, glow = false }: { value: string; onChange: (
           </span>
         )}
         <input
-          className={`${fieldCls} h-12 text-[15.5px] ${email ? "pl-11" : "pl-[66px]"} ${glow ? "!border-transparent !bg-[var(--background)]" : ""}`}
+          className={`${fieldCls} ${glow ? "h-14 !rounded-[18px] !border-transparent !bg-[var(--background)] text-[17px]" : "h-12 text-[15.5px]"} ${email ? "pl-11" : "pl-[66px]"}`}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           autoComplete="username"
@@ -476,7 +476,7 @@ export function LoginForm() {
       if (role) chooseRole(role.id);
       else clearRole();
       setDemoOpen(false);
-      if (!next && role?.clinicId) {
+      if (!next && (role?.clinicId || role?.role === "student")) {
         authChanged();
         router.replace(homeOf(role));
       } else finish();

@@ -39,7 +39,8 @@ export async function deleteFile(id: string) {
   await run("readwrite", (s) => s.delete(id)).catch(() => undefined);
 }
 
-/** A one-page PDF with a title and lines of text: enough for demo reports, plans, invoices and certificates. */
+/** A plain PDF with a title and lines of text: enough for demo reports, plans, invoices, certificates and handouts.
+ *  Long lines wrap at about 90 characters, and it adds pages as needed (42 lines each). */
 export function demoPdf(title: string, lines: string[]): Blob {
   // the built-in Helvetica only covers Latin text, so ₹ becomes "Rs." and anything else outside ASCII a "?"
   const esc = (s: string) =>
@@ -47,13 +48,22 @@ export function demoPdf(title: string, lines: string[]): Blob {
       .replaceAll("₹", "Rs. ")
       .replace(/[\\()]/g, (c) => `\\${c}`)
       .replace(/[^\x20-\x7e]/g, "?");
-  const text = [`BT /F1 18 Tf 56 780 Td (${esc(title)}) Tj ET`, ...lines.map((l, i) => `BT /F1 11 Tf 56 ${746 - i * 17} Td (${esc(l)}) Tj ET`)].join("\n");
+  const wrapped = lines.flatMap((l) => (l.length <= 90 ? [l] : (l.match(/.{1,90}(\s|$)/g) ?? [l]).map((x) => x.trimEnd())));
+  const pages: string[][] = [];
+  for (let i = 0; i < Math.max(1, wrapped.length); i += 42) pages.push(wrapped.slice(i, i + 42));
+  const streams = pages.map((p, n) =>
+    [...(n === 0 ? [`BT /F1 18 Tf 56 780 Td (${esc(title)}) Tj ET`] : []), ...p.map((l, i) => `BT /F1 11 Tf 56 ${746 - i * 17} Td (${esc(l)}) Tj ET`)].join("\n"),
+  );
+  // objects: 1 catalog, 2 page tree, 3 font, then each page followed by its contents
+  const kids = pages.map((_, n) => `${4 + n * 2} 0 R`).join(" ");
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+    `<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    `<< /Length ${text.length} >>\nstream\n${text}\nendstream`,
+    ...streams.flatMap((text, n) => [
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${5 + n * 2} 0 R >>`,
+      `<< /Length ${text.length} >>\nstream\n${text}\nendstream`,
+    ]),
   ];
   let out = "%PDF-1.4\n";
   const offsets: number[] = [];

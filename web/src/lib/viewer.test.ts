@@ -10,8 +10,8 @@ const profile = (status: string) => ({ verification_status: status }) as unknown
 
 test("demo roles map to viewers", () => {
   const vs = DEMO_USERS.map(fromDemo);
-  assert.deepEqual(vs.map((v) => v.kind), ["patient", "dentist", "clinic_owner", "clinic_staff"]);
-  assert.deepEqual(vs.map((v) => v.verifiedDentist), [false, true, true, false]);
+  assert.deepEqual(vs.map((v) => v.kind), ["patient", "dentist", "clinic_owner", "clinic_staff", "student"]);
+  assert.deepEqual(vs.map((v) => v.verifiedDentist), [false, true, true, false, false]);
   assert.equal(vs[2].clinicId, "smile-studio");
   assert.equal(vs[0].initials, "PS");
 });
@@ -29,9 +29,8 @@ test("real accounts map by workspace and profile", () => {
 });
 
 test("permissions", () => {
-  const [patient, dentist, owner, desk] = DEMO_USERS.map(fromDemo);
-  // students and companies aren't demo roles any more; real accounts of those kinds still exist
-  const student = { ...patient, kind: "student" as const };
+  const [patient, dentist, owner, desk, student] = DEMO_USERS.map(fromDemo);
+  // companies aren't a demo role; real company accounts still exist
   const company = { ...patient, kind: "company" as const };
   const unverified = fromMe(me({ dentist_profile: profile("pending") }));
   assert.equal(canCreate(null), false);

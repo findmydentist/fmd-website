@@ -19,7 +19,6 @@ import {
   priceOf,
   receiptPdf,
   REFUND_TERMS,
-  SCHOLAR_EXTRA,
   setAutoRenew,
   usage,
   type MembershipView,
@@ -95,7 +94,7 @@ export function PlansPage() {
         })}
       </ul>
       <p className="text-[13px] text-ink-3">
-        {REFUND_TERMS} An FMD Main membership is separate from an FMD Clinic subscription. Students: {SCHOLAR_EXTRA.note.toLowerCase()} (tentatively {rupees(SCHOLAR_EXTRA.price)}).
+        {REFUND_TERMS} An FMD Main membership is separate from an FMD Clinic subscription. The student membership includes unlimited FMD Scholar.
       </p>
     </div>
   );
@@ -234,17 +233,16 @@ export function MembershipPage() {
   const [type, setType] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [sure, setSure] = useState(false);
-  const [now, setNow] = useState(0);
   const userId = me?.id;
   const load = useCallback(() => {
     if (!userId) return;
-    getMembership(userId).then((x) => (setM(x), setNow(Date.now())));
+    getMembership(userId).then(setM);
     getAccountType(userId).then(setType);
   }, [userId]);
   useEffect(load, [load]);
   if (!me || m === undefined) return <div className="app-panel h-48 animate-pulse" aria-busy />;
   const plan = m?.plan ?? (type as PlanId | null);
-  const meters = usage(m?.status === "active" || m?.status === "grace" ? m.plan : null, now);
+  const meters = usage(m?.status === "active" || m?.status === "grace" ? m.plan : null);
 
   return (
     <div className="mx-auto grid w-full max-w-[760px] gap-5">
@@ -335,7 +333,7 @@ export function MembershipPage() {
               </div>
               {pct >= 80 && (
                 <p className="text-[13px] text-ink-2">
-                  You&apos;ve used {pct}% this month. {m?.plan === "student" ? `After the limit, extra use is planned (tentatively ${rupees(SCHOLAR_EXTRA.price)}); it isn't on sale yet.` : ""}
+                  You&apos;ve used {pct}% this month.
                 </p>
               )}
             </div>

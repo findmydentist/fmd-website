@@ -48,7 +48,7 @@ test("cancelling: refunded within 7 days, otherwise runs to the end", async () =
   assert.equal((await getMembership("b5", NOW + 32 * DAY + 3000))!.auto_renew, true);
 });
 
-test("student usage is shown with its limit and reset date", () => {
-  const u = usage("student", NOW);
-  assert.ok(u[0].used < u[0].limit && u[0].resets_at!.startsWith("2026-11-30"));
+test("the student membership includes unlimited FMD Scholar, with no meters", () => {
+  assert.deepEqual(usage("student"), []);
+  assert.ok(PLANS.find((p) => p.id === "student")!.limits.some((l) => /Unlimited FMD Scholar/.test(l)));
 });

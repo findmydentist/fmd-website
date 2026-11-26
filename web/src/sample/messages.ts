@@ -63,7 +63,7 @@ function seed(viewerId: string, patient: boolean): Thread[] {
     t({ id: "skt", name: "Demo Capital Dental", avatar: null, kind: "clinic", verified: true }, [
       ["them", "Thanks for your interest in the associate role. Are you free for a call on Monday?", 6],
     ], { context: "job", jobId: "job-locum-skt" }),
-  ];
+  ].filter((x) => !(viewerId === "demo-student" && x.with.id === "rhea-kapoor")); // the demo student is Rhea herself
 }
 
 function load(viewerId: string, patient = false): Thread[] {
